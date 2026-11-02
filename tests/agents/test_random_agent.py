@@ -1,7 +1,13 @@
 import asyncio
 
 from tabletop_arena.agents import Agent, Chosen, DecisionRequest, RandomAgent
-from tabletop_arena.core import ActionSpace, Decision, Observation, PlayerId
+from tabletop_arena.core import (
+    ActionSpace,
+    Decision,
+    NotationError,
+    Observation,
+    PlayerId,
+)
 from tabletop_arena.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
 from tabletop_arena.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
 from tests.core.test_actions import Move, Pass, Step, StepSpace, step_notation
@@ -14,7 +20,12 @@ class StepText:
         return step_notation(action)
 
     def parse_action(self, text: str) -> Step:
-        raise NotImplementedError
+        tokens = text.split(" ")
+        if tokens == ["pass"]:
+            return Pass()
+        if len(tokens) == 3 and tokens[0] == "move" and tokens[2].isdigit():
+            return Move(tokens[1], int(tokens[2]))
+        raise NotationError(f"{text!r} is not a step")
 
     def describe_action(self, observation: Observation, action: Step) -> str:
         return step_notation(action)
