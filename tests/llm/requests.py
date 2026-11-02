@@ -1,0 +1,45 @@
+"""Decision requests built from real game states, for prompt and agent tests."""
+
+from typing import Any
+
+from tabletop_arena.agents import DecisionRequest
+from tabletop_arena.core import AnyGame, Event, GameConfig
+from tabletop_arena.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
+from tabletop_arena.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
+
+
+def request_at(
+    game: AnyGame,
+    config: GameConfig,
+    moves: list[str],
+    events: tuple[Event, ...] = (),
+    seed: int = 0,
+) -> DecisionRequest[Any]:
+    """Request for the first open decision after playing `moves` in decision order."""
+    state = game.setup(config, seed).state
+    for notation in moves:
+        decision = game.pending_decisions(state)[0]
+        state = game.apply(state, decision.player, game.parse_action(notation)).state
+    decision = game.pending_decisions(state)[0]
+    observation = game.observe(state, decision.player)
+    return DecisionRequest(
+        game_id=game.id,
+        decision=decision,
+        observation=observation,
+        observation_text=game.render_text(observation),
+        actions=game.legal_actions(state, decision),
+        recent_events=events,
+        rules=game.rules_text(),
+        action_text=game,
+    )
+
+
+def tic_tac_toe_request(
+    moves: list[str], events: tuple[Event, ...] = ()
+) -> DecisionRequest[Mark]:
+    return request_at(KInARow(), TIC_TAC_TOE, moves, events)
+
+
+def auction_request(coins: int = 10) -> DecisionRequest[Bid]:
+    config = SealedAuctionConfig(num_players=3, lots=3, starting_coins=coins)
+    return request_at(SealedAuction(), config, [])
