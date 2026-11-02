@@ -77,6 +77,7 @@ def test_request_arguments_force_the_tool_and_skip_unset_options() -> None:
     assert arguments["messages"][1] == {"role": "user", "content": "your move"}
     assert "temperature" not in arguments
     assert "reasoning_effort" not in arguments
+    assert arguments["drop_params"] is True
     return
 
 

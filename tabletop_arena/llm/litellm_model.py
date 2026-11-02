@@ -70,12 +70,16 @@ class LiteLLMChatModel:
 def request_arguments(
     messages: Sequence[Message], settings: ModelSettings, tool: ToolSpec | None
 ) -> dict[str, Any]:
-    """Keyword arguments for litellm.acompletion; unset options are left out."""
+    """Keyword arguments for litellm.acompletion; unset options are left out.
+
+    `drop_params` drops options the provider does not support, such as Anthropic's seed.
+    """
     arguments: dict[str, Any] = {
         "model": settings.model,
         "messages": messages_json(messages),
         "max_tokens": settings.max_tokens,
         "timeout": settings.timeout_seconds,
+        "drop_params": True,
     }
     if settings.temperature is not None:
         arguments["temperature"] = settings.temperature
