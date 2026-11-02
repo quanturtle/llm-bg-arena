@@ -26,6 +26,7 @@ from tabletop_arena.core.registry import (
     register_game,
     registered_game_ids,
 )
+from tabletop_arena.core.rng import Rng
 from tabletop_arena.core.scores import Scores
 
 __all__ = [
@@ -48,6 +49,7 @@ __all__ = [
     "NotationError",
     "Observation",
     "PlayerId",
+    "Rng",
     "Scores",
     "Tokens",
     "Transition",
