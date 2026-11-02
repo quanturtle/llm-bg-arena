@@ -49,15 +49,38 @@ def json_str(data: JsonObject, key: str) -> str:
     return value
 
 
+def json_list_of[T: str | int | bool](
+    data: JsonObject, key: str, kind: type[T]
+) -> list[T]:
+    """`data[key]` as a list of `kind` items; other shapes raise TypeError."""
+    return list_of(key, data[key], kind)
+
+
 def json_str_list(data: JsonObject, key: str) -> list[str]:
-    """`data[key]` as a list of str; other types raise TypeError."""
-    value = data[key]
+    """`data[key]` as a list of str; other shapes raise TypeError."""
+    return list_of(key, data[key], str)
+
+
+def json_str_lists(data: JsonObject, key: str) -> list[list[str]]:
+    """`data[key]` as a list of lists of str; other shapes raise TypeError."""
+    return [list_of(key, item, str) for item in list_of_values(key, data[key])]
+
+
+def list_of[T: str | int | bool](key: str, value: JsonValue, kind: type[T]) -> list[T]:
+    """`value` as a list of `kind` items, where bools never count as ints."""
+    items: list[T] = []
+    for item in list_of_values(key, value):
+        if not isinstance(item, kind) or (kind is int and isinstance(item, bool)):
+            raise TypeError(f"{key!r} holds {item!r}, expected {kind.__name__}")
+        items.append(item)
+    return items
+
+
+def list_of_values(key: str, value: JsonValue) -> Sequence[JsonValue]:
+    """`value` as a sequence that is not a string."""
     if isinstance(value, str) or not isinstance(value, Sequence):
         raise TypeError(f"{key!r} is {value!r}, expected a list")
-    items = list(value)
-    if not all(isinstance(item, str) for item in items):
-        raise TypeError(f"{key!r} is {value!r}, expected strings")
-    return [str(item) for item in items]
+    return value
 
 
 def json_object(data: JsonObject, key: str) -> JsonObject:
