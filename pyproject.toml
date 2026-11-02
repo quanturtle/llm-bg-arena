@@ -1,0 +1,36 @@
+[project]
+name = "tabletop-arena"
+version = "0.1.0"
+description = "Code board games once, then let LLMs, bots and humans play them against each other."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.100",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tabletop_arena"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["tabletop_arena", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
