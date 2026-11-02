@@ -1,8 +1,9 @@
-"""Command line for listing games and playing matches.
+"""Command line for listing games, playing matches and replaying logs.
 
 arena games
 arena play k_in_a_row --agent random --agent random --seed 7
 arena play sealed_auction --config '{"num_players": 4}'
+arena replay runs/<log>.jsonl
 """
 
 import argparse
@@ -25,6 +26,7 @@ from tabletop_arena.core import (
     create_game,
     registered_game_ids,
 )
+from tabletop_arena.logs.replay import read_log, replay_match
 from tabletop_arena.logs.sink import Broadcast, JsonlFile, RecordSink
 
 DEFAULT_LOG_DIR = Path("runs")
@@ -60,6 +62,14 @@ def add_play_command(commands: Commands) -> None:
     return
 
 
+def add_replay_command(commands: Commands) -> None:
+    """`arena replay LOG`: rebuild a match from its log and check every step."""
+    parser = commands.add_parser("replay", help="check a match log by replaying it")
+    parser.add_argument("log", type=Path)
+    parser.set_defaults(handler=check_replay)
+    return
+
+
 def parse_arguments(argv: list[str]) -> argparse.Namespace:
     """Parsed command line."""
     parser = argparse.ArgumentParser(
@@ -68,6 +78,7 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     commands = parser.add_subparsers(dest="command", required=True)
     add_games_command(commands)
     add_play_command(commands)
+    add_replay_command(commands)
     return parser.parse_args(argv)
 
 
@@ -128,6 +139,16 @@ def play(args: argparse.Namespace) -> None:
     ranks = ", ".join(f"P{player + 1} #{rank}" for player, rank in result.ranks.items())
     print(f"Ranks: {ranks}")
     print(f"Log: {log_path}")
+    return
+
+
+def check_replay(args: argparse.Namespace) -> None:
+    """Replay a log and report whether it matches."""
+    report = replay_match(read_log(args.log))
+    print(
+        f"Replay matches the log: {report.game_id}, {report.steps} steps, "
+        f"{report.events} events."
+    )
     return
 
 

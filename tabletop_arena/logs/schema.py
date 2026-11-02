@@ -60,8 +60,14 @@ class TraceRecord(Record):
 
 
 class DecisionRecord(Record):
+    """`step` is the step this action makes; `observed_at_step` the state it saw.
+
+    Simultaneous decisions share one `observed_at_step`.
+    """
+
     type: Literal["decision"] = "decision"
     step: int
+    observed_at_step: int
     player: int
     kind: str
     prompt: str
@@ -76,6 +82,7 @@ class DecisionRecord(Record):
 class ForfeitRecord(Record):
     type: Literal["forfeit"] = "forfeit"
     step: int
+    observed_at_step: int
     player: int
     kind: str
     reason: str

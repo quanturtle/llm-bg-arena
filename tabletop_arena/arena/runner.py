@@ -86,6 +86,15 @@ class Progress[S]:
 
 
 @dataclass(frozen=True)
+class Answer[A]:
+    """A request an agent answered, the step of the state it saw, and its latency."""
+
+    request: DecisionRequest[A]
+    observed_at: int
+    latency: float
+
+
+@dataclass(frozen=True)
 class MatchContext[S, A, C: GameConfig]:
     """What stays fixed during a match."""
 
@@ -181,13 +190,15 @@ async def play_round[S, A, C: GameConfig](
             for decision, request in zip(decisions, requests, strict=True)
         )
     )
+    observed_at = progress.step
     forfeited: list[PlayerId] = []
     for request, (choice, latency) in zip(requests, answers, strict=True):
+        answer = Answer(request, observed_at, latency)
         if isinstance(choice, Forfeited):
-            record_forfeit(context, progress, request, choice, latency)
+            record_forfeit(context, progress, answer, choice)
             forfeited.append(request.decision.player)
         else:
-            progress = apply_choice(context, progress, request, choice, latency)
+            progress = apply_choice(context, progress, answer, choice)
     return progress, tuple(forfeited)
 
 
@@ -232,19 +243,20 @@ async def timed_decide[A](
 def record_forfeit[S, A, C: GameConfig](
     context: MatchContext[S, A, C],
     progress: Progress[S],
-    request: DecisionRequest[A],
+    answer: Answer[A],
     choice: Forfeited,
-    latency: float,
 ) -> None:
     """Log a player giving up instead of answering."""
+    request = answer.request
     context.sink.write(
         ForfeitRecord(
             step=progress.step,
+            observed_at_step=answer.observed_at,
             player=request.decision.player,
             kind=request.decision.kind,
             reason=choice.reason,
             observation_digest=request.observation.digest(),
-            latency_seconds=latency,
+            latency_seconds=answer.latency,
             trace=trace_record(choice.trace),
         )
     )
@@ -254,12 +266,12 @@ def record_forfeit[S, A, C: GameConfig](
 def apply_choice[S, A, C: GameConfig](
     context: MatchContext[S, A, C],
     progress: Progress[S],
-    request: DecisionRequest[A],
+    answer: Answer[A],
     choice: Chosen[A],
-    latency: float,
 ) -> Progress[S]:
     """Check and apply one chosen action, logging it and the events it caused."""
     game = context.game
+    request = answer.request
     decision = request.decision
     if not request.actions.is_legal(choice.action):
         notation = game.format_action(choice.action)
@@ -273,6 +285,7 @@ def apply_choice[S, A, C: GameConfig](
     context.sink.write(
         DecisionRecord(
             step=step,
+            observed_at_step=answer.observed_at,
             player=decision.player,
             kind=decision.kind,
             prompt=decision.prompt,
@@ -280,7 +293,7 @@ def apply_choice[S, A, C: GameConfig](
             observation=plain_object(request.observation.data),
             action=game.format_action(choice.action),
             action_json=plain_object(game.action_json(choice.action)),
-            latency_seconds=latency,
+            latency_seconds=answer.latency,
             trace=trace_record(choice.trace),
         )
     )
