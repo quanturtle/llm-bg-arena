@@ -28,12 +28,16 @@ class RandomAgent:
         return {"kind": "random", "seed": self._seed}
 
     async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
-        listing = request.actions.listing(LISTING_LIMIT)
-        if listing is None:
-            action, self._rng = walk_tokens(request.actions, self._rng)
-        else:
-            action, self._rng = self._rng.choice(listing)
+        action, self._rng = uniform_action(request.actions, self._rng)
         return Chosen(action, DecisionTrace())
+
+
+def uniform_action[A](space: ActionSpace[A], rng: Rng) -> tuple[A, Rng]:
+    """A random legal action: uniform if the space lists, else uniform per token."""
+    listing = space.listing(LISTING_LIMIT)
+    if listing is None:
+        return walk_tokens(space, rng)
+    return rng.choice(listing)
 
 
 def walk_tokens[A](space: ActionSpace[A], rng: Rng) -> tuple[A, Rng]:
