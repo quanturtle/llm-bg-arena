@@ -26,7 +26,6 @@ from tabletop_arena.core import (
     GameConfig,
     PlayerId,
     Scores,
-    seats,
 )
 from tabletop_arena.logs.schema import (
     DecisionRecord,
@@ -306,20 +305,10 @@ def match_result[S, A, C: GameConfig](
     return MatchResult(
         match_id=match_id,
         scores=scores,
-        ranks=final_ranks(scores, forfeited),
+        ranks=scores.ranks_after_forfeits(forfeited),
         forfeited=forfeited,
         steps=progress.step,
     )
-
-
-def final_ranks(scores: Scores, forfeited: tuple[PlayerId, ...]) -> dict[PlayerId, int]:
-    """Ranks by points among finishers; every forfeiter shares the rank after them."""
-    finishers = Scores(
-        {p: points for p, points in scores.points.items() if p not in forfeited}
-    )
-    ranks = finishers.ranks()
-    last = len(finishers.points) + 1
-    return {player: ranks.get(player, last) for player in seats(len(scores.points))}
 
 
 def finish_record(result: MatchResult, clock: Clock) -> MatchFinished:

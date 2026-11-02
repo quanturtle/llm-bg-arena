@@ -12,6 +12,16 @@ def test_tied_players_share_the_better_rank() -> None:
     return
 
 
+def test_forfeiters_rank_below_every_finisher() -> None:
+    scores = Scores({PlayerId(0): 9, PlayerId(1): 4, PlayerId(2): 6})
+    assert scores.ranks_after_forfeits([PlayerId(0)]) == {
+        PlayerId(0): 3,
+        PlayerId(1): 2,
+        PlayerId(2): 1,
+    }
+    return
+
+
 def test_scores_json_is_in_seat_order_with_breakdown() -> None:
     scores = Scores(
         {PlayerId(1): 3, PlayerId(0): 5},

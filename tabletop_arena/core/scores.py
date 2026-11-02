@@ -1,6 +1,6 @@
 """Scores: points per player, the source of rankings and ratings."""
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field
 
 from tabletop_arena.core.json_data import JsonValue
@@ -20,6 +20,17 @@ class Scores:
             player: 1 + sum(1 for other in self.points.values() if other > points)
             for player, points in self.points.items()
         }
+
+    def ranks_after_forfeits(
+        self, forfeited: Collection[PlayerId]
+    ) -> dict[PlayerId, int]:
+        """Ranks by points among finishers; forfeiters share the rank after them."""
+        finishers = Scores(
+            {p: points for p, points in self.points.items() if p not in forfeited}
+        )
+        ranks = finishers.ranks()
+        last = len(finishers.points) + 1
+        return {player: ranks.get(player, last) for player in sorted(self.points)}
 
     def to_json(self) -> list[JsonValue]:
         """One entry per player, in seat order."""
