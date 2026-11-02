@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from tabletop_arena.agents import DecisionRequest
+from tabletop_arena.agents.base import DecisionRequest
 from tabletop_arena.core import NotationError
 from tabletop_arena.llm.model import ChatModel, Completion, Message, ModelSettings
 
@@ -214,6 +214,10 @@ class ActionExtractor:
         self._model = model
         self._settings = settings
         return
+
+    @property
+    def model_name(self) -> str:
+        return self._settings.model
 
     async def extract[A](
         self, reply: str, request: DecisionRequest[A]

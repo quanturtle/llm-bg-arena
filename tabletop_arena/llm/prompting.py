@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from tabletop_arena.agents import DecisionRequest
+from tabletop_arena.agents.base import DecisionRequest
 from tabletop_arena.core import ActionSpace, Tokens, seat_label
 from tabletop_arena.llm.model import Message, ToolSpec
 
