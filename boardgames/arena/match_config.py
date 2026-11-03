@@ -1,9 +1,11 @@
 """The match config file: the game, its config, the seats and each LLM seat's settings.
 
-A file is read once into frozen pydantic models. Unknown keys are errors. An LLM
-seat's unset values fall back to the file's `llm` defaults, then to the built-in
-defaults of ModelSettings, PromptSettings and LlmAgentSettings. A seat value set
-to null skips the `llm` default and takes the built-in one.
+A file is read once into frozen pydantic models. Unknown keys are errors. Every
+seat is a language model unless it says `agent: random`; with no `seats`, every
+player is one. An LLM seat's unset values, its model included, fall back to the
+file's `llm` defaults, then to the built-in defaults (DEFAULT_MODEL, ModelSettings,
+PromptSettings, LlmAgentSettings). A seat value set to null skips the `llm`
+default and takes the built-in one.
 """
 
 from dataclasses import replace
@@ -11,7 +13,14 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Discriminator,
+    Field,
+    Tag,
+    ValidationError,
+)
 from pydantic import JsonValue as PlainJson
 from pydantic_core import ErrorDetails
 
@@ -45,7 +54,7 @@ SUGGESTED_MODELS = (
     "anthropic/claude-haiku-5.5",
 )
 AGENT_FIELDS = frozenset({"max_illegal_retries", "max_tool_calls", "fallback"})
-SEAT_ONLY_FIELDS = frozenset({"agent", "model", "label", "seed"})
+SEAT_ONLY_FIELDS = frozenset({"agent", "label", "seed"})
 
 
 class ConfigModel(BaseModel):
@@ -55,6 +64,7 @@ class ConfigModel(BaseModel):
 class LlmOptions(ConfigModel):
     """Settings an LLM seat may set; None means "use the default"."""
 
+    model: str | None = None
     temperature: float | None = Field(default=None, ge=0, le=2)
     top_p: float | None = Field(default=None, ge=0, le=1)
     max_tokens: int | None = Field(default=None, ge=1)
@@ -73,25 +83,38 @@ class LlmOptions(ConfigModel):
 class LlmDefaults(LlmOptions):
     """The file's `llm` section: defaults for every LLM seat, plus the reply cache."""
 
+    model: str | None = DEFAULT_MODEL
     cache: bool = False
 
 
 class LlmSeat(LlmOptions):
-    agent: Literal["llm"]
-    model: str
+    agent: Literal["llm"] = "llm"
     label: str | None = None
     seed: int | None = None
 
 
 class RandomSeat(ConfigModel):
+    """A bot that picks uniformly among legal actions, only when asked for by name."""
+
     agent: Literal["random"]
 
 
-type Seat = Annotated[LlmSeat | RandomSeat, Field(discriminator="agent")]
+def seat_kind(raw: object) -> str:
+    """The seat's `agent`, "llm" when the seat leaves it out."""
+    if isinstance(raw, dict):
+        agent = raw.get("agent", "llm")
+        return agent if isinstance(agent, str) else "llm"
+    return getattr(raw, "agent", "llm")
+
+
+type Seat = Annotated[
+    Annotated[LlmSeat, Tag("llm")] | Annotated[RandomSeat, Tag("random")],
+    Discriminator(seat_kind),
+]
 
 
 class MatchConfig(ConfigModel):
-    """One match: `seats` left out means every seat is random."""
+    """One match: `seats` left out means every player is the default model."""
 
     game: str
     config: dict[str, PlainJson] = {}
@@ -151,9 +174,9 @@ def check_reasoning(config: MatchConfig, source: str) -> None:
 
 
 def seats_for(config: MatchConfig, num_players: int) -> list[LlmSeat | RandomSeat]:
-    """The seats to fill, one per player; a missing `seats` list seats random bots."""
+    """The seats to fill, one per player; with no `seats`, each is the default model."""
     if config.seats is None:
-        return [RandomSeat(agent="random") for _ in range(num_players)]
+        return [LlmSeat() for _ in range(num_players)]
     if len(config.seats) != num_players:
         raise ConfigError(
             f"{config.game} seats {num_players} players but the file lists "
@@ -178,8 +201,12 @@ def llm_agent_settings(
     seat: LlmSeat, options: LlmOptions, seed: int
 ) -> LlmAgentSettings:
     """Agent settings for a seat; options still unset keep the built-in defaults."""
+    if options.model is None:
+        raise ConfigError(
+            "a language model seat needs a model; the seat and llm set none"
+        )
     model = replace(
-        ModelSettings(model=seat.model, seed=seed),
+        ModelSettings(model=options.model, seed=seed),
         **options.model_dump(include=set(MODEL_FIELDS), exclude_none=True),
     )
     prompt = replace(

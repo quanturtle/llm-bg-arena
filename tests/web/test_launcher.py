@@ -9,12 +9,14 @@ from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
 
+BOT_MATCH = "game: k_in_a_row\nseats: [{agent: random}, {agent: random}]\n"
+
 
 def test_launcher_starts_a_match_and_reports_how_it_ended(tmp_path: Path) -> None:
     launcher = MatchLauncher(tmp_path, None, None)
 
     async def start_and_wait() -> None:
-        launch = launcher.start("game: k_in_a_row\nseed: 1\n")
+        launch = launcher.start(f"{BOT_MATCH}seed: 1\n")
         assert launch.status == "running"
         await launcher.wait()
         return
@@ -32,7 +34,7 @@ def test_a_paused_match_holds_until_resumed(tmp_path: Path) -> None:
     launcher = MatchLauncher(tmp_path, None, None)
 
     async def pause_resume() -> None:
-        match_id = launcher.start("game: k_in_a_row\n").match_id
+        match_id = launcher.start(BOT_MATCH).match_id
         assert launcher.pause(match_id).status == "paused"
         await asyncio.sleep(0.05)
         assert MatchStore(tmp_path).match(match_id).steps == 0
@@ -49,7 +51,7 @@ def test_a_stopped_match_ends_its_log_as_stopped(tmp_path: Path) -> None:
     launcher = MatchLauncher(tmp_path, None, None)
 
     async def pause_stop() -> str:
-        match_id = launcher.start("game: k_in_a_row\n").match_id
+        match_id = launcher.start(BOT_MATCH).match_id
         launcher.pause(match_id)
         await asyncio.sleep(0.05)
         assert (await launcher.stop(match_id)).status == "stopped"
@@ -70,7 +72,7 @@ def test_start_endpoint_offers_examples_and_rejects_bad_configs(tmp_path: Path) 
         {"name": "ttt", "text": "game: k_in_a_row\n"}
     ]
     assert client.post("/api/matches", json={"yaml": "- list"}).status_code == 422
-    started = client.post("/api/matches", json={"yaml": "game: k_in_a_row\n"})
+    started = client.post("/api/matches", json={"yaml": BOT_MATCH})
     assert started.status_code == 201
     match_id = started.json()["match_id"]
     assert client.get("/api/launches").json()[0]["match_id"] == match_id

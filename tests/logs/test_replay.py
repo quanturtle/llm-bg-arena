@@ -193,7 +193,8 @@ def test_cli_replay_reports_a_match(
 ) -> None:
     log = tmp_path / "match.jsonl"
     config = tmp_path / "match.yaml"
-    config.write_text("game: sealed_auction\n", encoding="utf-8")
+    bots = "seats: [{agent: random}, {agent: random}, {agent: random}]\n"
+    config.write_text(f"game: sealed_auction\n{bots}", encoding="utf-8")
     cli.run_command(cli.parse_arguments(["play", str(config), "--log", str(log)]))
     cli.run_command(cli.parse_arguments(["replay", str(log)]))
     assert "Replay matches the log: sealed_auction, 18 steps" in capsys.readouterr().out

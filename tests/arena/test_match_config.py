@@ -4,6 +4,8 @@ import pytest
 import yaml
 
 from boardgames.arena.match_config import (
+    DEFAULT_MODEL,
+    LlmDefaults,
     LlmSeat,
     MatchConfig,
     RandomSeat,
@@ -141,11 +143,13 @@ def test_file_that_is_not_a_mapping_is_a_config_error(tmp_path: Path) -> None:
     return
 
 
-def test_missing_seats_are_random_and_counts_must_match() -> None:
-    assert seats_for(MatchConfig(game="k_in_a_row"), 2) == [
-        RandomSeat(agent="random"),
-        RandomSeat(agent="random"),
-    ]
+def test_seats_default_to_the_default_model_and_counts_must_match() -> None:
+    seats = seats_for(MatchConfig(game="k_in_a_row"), 2)
+    assert seats == [LlmSeat(), LlmSeat()]
+    options = merged_options(LlmSeat(), LlmDefaults())
+    assert llm_agent_settings(LlmSeat(), options, 1).model.model == DEFAULT_MODEL
+    bare = parse_match_config({"game": "x", "seats": [{}, {"model": "a/b"}]}, "t")
+    assert [type(seat) for seat in bare.seats or []] == [LlmSeat, LlmSeat]
     with pytest.raises(ConfigError, match="seats 2 players but the file lists 3"):
         seats_for(full_config(), 2)
     return

@@ -11,6 +11,8 @@ from boardgames.arena.lineup import (
 )
 from boardgames.arena.match_config import LlmDefaults, LlmSeat
 
+BOTS = "seats: [{agent: random}, {agent: random}]\n"
+
 
 def write_config(tmp_path: Path, text: str) -> Path:
     path = tmp_path / "match.yaml"
@@ -31,7 +33,7 @@ def test_existing_log_path_is_one_error_line(
 ) -> None:
     log = tmp_path / "match.jsonl"
     log.write_text("kept\n", encoding="utf-8")
-    config = write_config(tmp_path, f"game: k_in_a_row\nlog: {log}\n")
+    config = write_config(tmp_path, f"game: k_in_a_row\nlog: {log}\n{BOTS}")
     assert error_lines(["play", str(config)], capsys) == [
         f"error: {log} already exists; logs are never overwritten"
     ]
@@ -63,7 +65,7 @@ def test_play_runs_the_configured_match_and_writes_its_log(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     log = tmp_path / "match.jsonl"
-    config = write_config(tmp_path, f"game: k_in_a_row\nseed: 3\nlog: {log}\n")
+    config = write_config(tmp_path, f"game: k_in_a_row\nseed: 3\nlog: {log}\n{BOTS}")
     cli.run_command(cli.parse_arguments(["play", str(config)]))
     output = capsys.readouterr().out
     assert "k_in_a_row (seed 3): P1 random, P2 random" in output
@@ -75,7 +77,7 @@ def test_play_runs_the_configured_match_and_writes_its_log(
 def test_seed_and_log_flags_override_the_file(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    config = write_config(tmp_path, "game: k_in_a_row\nseed: 3\n")
+    config = write_config(tmp_path, f"game: k_in_a_row\nseed: 3\n{BOTS}")
     log = tmp_path / "override.jsonl"
     cli.run_command(
         cli.parse_arguments(["play", str(config), "--seed", "5", "--log", str(log)])

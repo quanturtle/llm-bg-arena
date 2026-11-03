@@ -79,11 +79,13 @@ def agent_for_seat(
     seed = derive_seed(match_seed, index)
     if isinstance(seat, RandomSeat):
         return RandomAgent(seed)
-    if model is None:
-        raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {seat.model!r}")
     options = merged_options(seat, defaults)
     model_seed = (seed if seat.seed is None else seat.seed) % 2**31
     settings = llm_agent_settings(seat, options, model_seed)
+    if model is None:
+        raise ConfigError(
+            f"set {API_KEY_VARIABLE} in .env to seat {settings.model.model!r}"
+        )
     extractor = None
     if options.extractor is not None:
         extractor_settings = ModelSettings(
