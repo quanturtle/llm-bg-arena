@@ -349,6 +349,11 @@ def index(request: Request) -> FileResponse:
     return FileResponse(static_directory() / "index.html")
 
 
+def health() -> dict[str, str]:
+    """Liveness check for monitors: the server is up and answering."""
+    return {"status": "ok"}
+
+
 async def revalidate_assets(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
@@ -378,4 +383,5 @@ def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
     app.middleware("http")(revalidate_assets)
     app.mount("/static", StaticFiles(directory=static_directory()), name="static")
     app.add_api_route("/", index, include_in_schema=False)
+    app.add_api_route("/health", health)
     return app
