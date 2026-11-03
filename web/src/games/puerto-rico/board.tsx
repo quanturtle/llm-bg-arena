@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { defineGame, type BoardContext } from "@/games/define";
+import { BuildingMarket, ScoreTable } from "@/games/puerto-rico/market";
 import { layoutSchema, observationSchema, type BuildingSpec, type PuertoRicoObservation } from "@/games/puerto-rico/observation";
 import { PlayerBoards } from "@/games/puerto-rico/player-board";
 import { PuertoRicoStatus, RolesStrip, TableStrip } from "@/games/puerto-rico/table";
@@ -30,9 +31,13 @@ function buildingSpecs(layout: unknown): Map<string, BuildingSpec> | string {
   return new Map(parsed.data.buildings.map((spec) => [spec.name, spec]));
 }
 
+function MissingSpecs({ error }: { error: string }) {
+  return <p className="text-sm text-destructive">The Puerto Rico building table did not load: {error}</p>;
+}
+
 function PuertoRicoBoard({ observation, context }: { observation: PuertoRicoObservation; context: BoardContext }) {
   const specs = buildingSpecs(context.layout);
-  if (typeof specs === "string") return <p className="text-sm text-destructive">The Puerto Rico building table did not load: {specs}</p>;
+  if (typeof specs === "string") return <MissingSpecs error={specs} />;
   return (
     <div className="@container flex flex-col gap-3">
       <PuertoRicoStatus observation={observation} match={context.match} />
@@ -43,9 +48,19 @@ function PuertoRicoBoard({ observation, context }: { observation: PuertoRicoObse
   );
 }
 
+function MarketTab({ observation, context }: { observation: PuertoRicoObservation; context: BoardContext }) {
+  const specs = buildingSpecs(context.layout);
+  if (typeof specs === "string") return <MissingSpecs error={specs} />;
+  return <BuildingMarket observation={observation} specs={specs} />;
+}
+
 export const puertoRico = defineGame({
   schema: observationSchema,
-  tabs: [{ id: "board", label: "Board", render: (observation, context) => <PuertoRicoBoard observation={observation} context={context} /> }],
+  tabs: [
+    { id: "board", label: "Board", render: (observation, context) => <PuertoRicoBoard observation={observation} context={context} /> },
+    { id: "market", label: "Building market", render: (observation, context) => <MarketTab observation={observation} context={context} /> },
+    { id: "scores", label: "Scores", render: (observation, context) => <ScoreTable observation={observation} match={context.match} /> },
+  ],
   eventIcons: {
     game_started: Flag,
     role_selection: Drama,
