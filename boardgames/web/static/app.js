@@ -229,14 +229,30 @@
     });
   }
 
+  // Text with each seat mention (P1, P2, ...) in that seat's color.
+  function seatColored(text, players) {
+    const parts = [];
+    let end = 0;
+    for (const found of text.matchAll(/\bP(\d+)\b/g)) {
+      const player = Number(found[1]) - 1;
+      if (player < 0 || player >= players) continue;
+      parts.push(text.slice(end, found.index), h("span", { class: `seat-ref c${player}` }, found[0]));
+      end = found.index + found[0].length;
+    }
+    parts.push(text.slice(end));
+    return parts;
+  }
+
+  // One row per event: the step in a column wide enough for five digits, then the message.
   function eventList(outline, step, viewer, omniscient) {
+    const players = outline.match.seats.length;
     const items = visibleEvents(outline, step, viewer, omniscient).map((event) => {
       const isPrivate = event.audience !== "everyone";
       const classes = [];
       if (event.step === step) classes.push("current");
       if (isPrivate) classes.push("private");
       const who = isPrivate ? ` (seen by ${event.audience.map((p) => `P${p + 1}`).join(", ")})` : "";
-      return h("li", { class: classes.join(" ") }, h("span", { class: "step" }, event.step), event.text, who);
+      return h("li", { class: classes.join(" ") }, h("span", { class: "step" }, event.step), h("span", { class: "text" }, seatColored(event.text + who, players)));
     });
     const list = h("ul", { class: "events" }, items);
     // scroll the list itself, never the page, so controls stay put while a match runs
