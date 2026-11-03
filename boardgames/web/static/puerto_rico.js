@@ -4,44 +4,57 @@
 window.boards = window.boards || {};
 
 (function () {
+  const ASSET_ROOT = "/static/puerto_rico";
+  const COIN_1 = "tokens/doubloon_1.png";
+  const COIN_5 = "tokens/doubloon_5.png";
   const GOODS = ["corn", "indigo", "sugar", "tobacco", "coffee"];
   const GOOD_META = {
-    corn: { label: "Corn", icon: "🌽" },
-    indigo: { label: "Indigo", icon: "🔷" },
-    sugar: { label: "Sugar", icon: "🍬" },
-    tobacco: { label: "Tobacco", icon: "🍂" },
-    coffee: { label: "Coffee", icon: "☕" },
+    corn: {
+      label: "Corn",
+      icon: "🌽",
+      barrel: "goods/corn_barrel.png",
+      tile: "plantations/corn.png",
+      occupied: "plantations/corn_occupied.png",
+    },
+    indigo: {
+      label: "Indigo",
+      icon: "🔷",
+      barrel: "goods/indigo_barrel.png",
+      tile: "plantations/indigo.png",
+      occupied: "plantations/indigo_occupied.png",
+    },
+    sugar: {
+      label: "Sugar",
+      icon: "🍬",
+      barrel: "goods/sugar_barrel.png",
+      tile: "plantations/sugar.png",
+      occupied: "plantations/sugar_occupied.png",
+    },
+    tobacco: {
+      label: "Tobacco",
+      icon: "🍂",
+      barrel: "goods/tobacco_barrel.png",
+      tile: "plantations/tobacco.png",
+      occupied: "plantations/tobacco_occupied.png",
+    },
+    coffee: {
+      label: "Coffee",
+      icon: "☕",
+      barrel: "goods/coffee_barrel.png",
+      tile: "plantations/coffee.png",
+      occupied: "plantations/coffee_occupied.png",
+    },
   };
   const ROLE_META = {
-    settler: { label: "Settler", icon: "🌱" },
-    mayor: { label: "Mayor", icon: "👤" },
-    builder: { label: "Builder", icon: "🔨" },
-    craftsman: { label: "Craftsman", icon: "⚙️" },
-    trader: { label: "Trader", icon: "💰" },
-    captain: { label: "Captain", icon: "⛵" },
-    prospector: { label: "Prospector", icon: "⛏️" },
-    prospector_2: { label: "Prospector II", icon: "⛏️" },
+    settler: { label: "Settler", icon: "🌱", art: "roles/settler.png" },
+    mayor: { label: "Mayor", icon: "👤", art: "roles/mayor.png" },
+    builder: { label: "Builder", icon: "🔨", art: "roles/builder.png" },
+    craftsman: { label: "Craftsman", icon: "⚙️", art: "roles/craftsman.png" },
+    trader: { label: "Trader", icon: "💰", art: "roles/trader.png" },
+    captain: { label: "Captain", icon: "⛵", art: "roles/captain.png" },
+    prospector: { label: "Prospector", icon: "⛏️", art: "roles/prospector.png" },
+    prospector_2: { label: "Prospector II", icon: "⛏️", art: "roles/prospector.png" },
   };
-  const BUILDING_ICONS = {
-    small_market: "🏪",
-    large_market: "🏬",
-    office: "🏢",
-    hacienda: "🏡",
-    construction_hut: "🛖",
-    residence: "🏠",
-    small_warehouse: "📦",
-    large_warehouse: "🗃️",
-    hospice: "🏥",
-    factory: "🏭",
-    university: "🎓",
-    harbor: "⚓",
-    wharf: "🚢",
-    guild_hall: "🏛️",
-    fortress: "🏰",
-    customs_house: "🏛️",
-    city_hall: "🏛️",
-  };
-
   function h(tag, attrs, ...children) {
     const node = document.createElement(tag);
     for (const [key, value] of Object.entries(attrs || {})) {
@@ -55,6 +68,29 @@ window.boards = window.boards || {};
       node.append(child instanceof Node ? child : document.createTextNode(String(child)));
     }
     return node;
+  }
+
+  function asset(path) {
+    return `${ASSET_ROOT}/${path}`;
+  }
+
+  function image(path, className, alt) {
+    return h("img", {
+      class: className,
+      src: asset(path),
+      alt: alt || "",
+      loading: "lazy",
+    });
+  }
+
+  // Building art has one variant per colonist count: name.png, name_1.png, ...
+  function buildingArt(name, colonists) {
+    const filled = Math.max(0, Math.min(Number(colonists) || 0, 3));
+    return `buildings/${name}${filled ? `_${filled}` : ""}.png`;
+  }
+
+  function coinIcon(value) {
+    return image(Number(value) >= 5 ? COIN_5 : COIN_1, "coin", "doubloon");
   }
 
   function agentName(context, player) {
@@ -82,7 +118,9 @@ window.boards = window.boards || {};
         class: `pr-good ${goodClass(good)}`,
         title: count === undefined || count === null ? meta.label : `${meta.label}: ${count}`,
       },
-      h("span", { class: "glyph" }, meta.icon),
+      meta.barrel
+        ? image(meta.barrel, "glyph-art", meta.label)
+        : h("span", { class: "glyph" }, meta.icon),
       h("span", null, meta.label),
       count === undefined || count === null ? null : h("strong", null, count),
     );
@@ -97,13 +135,14 @@ window.boards = window.boards || {};
 
   function plantationTile(good, colonized) {
     const meta = GOOD_META[good] || { label: good, icon: "•" };
+    const art = colonized ? meta.occupied : meta.tile;
     return h(
       "div",
       {
         class: `pr-tile ${goodClass(good)}${colonized ? " colonized" : ""}`,
         title: `${meta.label} plantation${colonized ? " (colonized)" : ""}`,
       },
-      h("span", { class: "icon" }, meta.icon),
+      art ? image(art, "tile-art", meta.label) : h("span", { class: "icon" }, meta.icon),
       h("span", { class: "label" }, meta.label),
     );
   }
@@ -112,7 +151,7 @@ window.boards = window.boards || {};
     return h(
       "div",
       { class: `pr-tile quarry${occupied ? " colonized" : ""}`, title: occupied ? "Quarry (occupied)" : "Quarry" },
-      h("span", { class: "icon" }, "⛏️"),
+      image(occupied ? "plantations/quarry_occupied.png" : "plantations/quarry.png", "tile-art", "Quarry"),
       h("span", { class: "label" }, "Quarry"),
     );
   }
@@ -147,7 +186,9 @@ window.boards = window.boards || {};
       h(
         "div",
         { class: "pr-ship-head" },
-        h("span", { class: "icon" }, meta ? meta.icon : "⛵"),
+        meta && meta.barrel
+          ? image(meta.barrel, "cargo-art", meta.label)
+          : h("span", { class: "icon" }, "⛵"),
         h("span", { class: "name" }, meta ? meta.label : "empty"),
         h("span", { class: "count" }, `${ship.filled}/${ship.capacity}`),
       ),
@@ -167,11 +208,20 @@ window.boards = window.boards || {};
             class: `pr-slot${good ? ` filled ${goodClass(good)}` : ""}`,
             title: meta ? meta.label : "empty trading-house space",
           },
-          meta ? meta.icon : "",
+          meta && meta.barrel
+            ? image(meta.barrel, "slot-art", meta.label)
+            : meta
+              ? meta.icon
+              : "",
         ),
       );
     }
-    return h("div", { class: "pr-slots" }, slots);
+    return h(
+      "div",
+      { class: "pr-trading" },
+      h("div", { class: "pr-slots" }, slots),
+      image("boards/trading_house.png", "reference-art", "Trading house reference card"),
+    );
   }
 
   function roleCard(role, observation) {
@@ -184,13 +234,20 @@ window.boards = window.boards || {};
     return h(
       "div",
       { class: classes.join(" "), title: meta.label },
-      h("span", { class: "icon" }, meta.icon),
+      meta.art
+        ? image(meta.art, "role-art", meta.label)
+        : h("span", { class: "icon" }, meta.icon),
       h("span", { class: "name" }, meta.label),
       h(
         "span",
         { class: "meta" },
         role.doubloons
-          ? h("span", { class: "doubloons", title: "doubloons on this role" }, `${role.doubloons}d`)
+          ? h(
+              "span",
+              { class: "doubloons", title: "doubloons on this role" },
+              coinIcon(role.doubloons),
+              `${role.doubloons}d`,
+            )
           : null,
         taken
           ? h("span", { class: "seat" }, seatDot(role.taken_by), `P${role.taken_by + 1}`)
@@ -250,11 +307,6 @@ window.boards = window.boards || {};
     return String(name).replace(/_/g, " ");
   }
 
-  function buildingIcon(name, spec) {
-    if (spec && spec.production) return (GOOD_META[spec.production] || {}).icon || "🌱";
-    return BUILDING_ICONS[name] || "🏗️";
-  }
-
   function buildingChip(building, spec) {
     const max = spec ? spec.max_colonists : Math.max(1, building.colonists || 0);
     const pips = [];
@@ -269,7 +321,7 @@ window.boards = window.boards || {};
           ? `${buildingLabel(building.name)} (${spec.victory_points} VP, ${building.colonists}/${spec.max_colonists} colonists)`
           : buildingLabel(building.name),
       },
-      h("span", { class: "icon" }, buildingIcon(building.name, spec)),
+      image(buildingArt(building.name, building.colonists), "building-art", buildingLabel(building.name)),
       h("span", { class: "name" }, buildingLabel(building.name)),
       spec ? h("span", { class: "vp" }, `${spec.victory_points}vp`) : null,
       h("span", { class: "pips" }, pips),
@@ -284,7 +336,7 @@ window.boards = window.boards || {};
       buildingChip(building, specs.get(building.name)),
     );
     const stats = [
-      ["Doubloons", player.doubloons],
+      ["Doubloons", player.doubloons, true],
       ["Public VP", player.public_points],
       ["Unplaced colonists", player.colonists_unplaced],
       ["Island", `${player.occupied_island_spaces}/12`],
@@ -306,7 +358,15 @@ window.boards = window.boards || {};
       h(
         "div",
         { class: "pr-player-stats" },
-        stats.map(([label, value]) => h("span", {}, `${label} `, h("strong", {}, value))),
+        stats.map(([label, value, coin]) =>
+          h(
+            "span",
+            {},
+            `${label} `,
+            coin ? coinIcon(value) : null,
+            h("strong", {}, value),
+          ),
+        ),
       ),
       h("div", { class: "pr-player-row" }, h("span", { class: "label" }, "Goods"), goodsRow(player.goods, false)),
       h("div", { class: "pr-player-row" }, h("span", { class: "label" }, "Island"), islandGrid(player)),
@@ -333,10 +393,10 @@ window.boards = window.boards || {};
         h(
           "div",
           { class: `pr-market-card${copies ? "" : " unavailable"}` },
+          image(buildingArt(spec.name, 0), "market-art", buildingLabel(spec.name)),
           h(
             "div",
             { class: "pr-market-head" },
-            h("span", { class: "icon" }, buildingIcon(spec.name, spec)),
             h("span", { class: "name" }, buildingLabel(spec.name)),
             h("span", { class: "vp" }, `${spec.victory_points}vp`),
           ),
