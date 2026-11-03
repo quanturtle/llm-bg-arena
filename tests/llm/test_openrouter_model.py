@@ -5,6 +5,7 @@ from collections.abc import Callable
 import httpx
 import pytest
 
+from boardgames.core import ConfigError, JsonValue
 from boardgames.llm.model import (
     Completion,
     ForcedTool,
@@ -84,6 +85,28 @@ def test_request_body_passes_set_options() -> None:
     assert body["reasoning"] == {"effort": "low"}
     assert "tools" not in body
     assert "tool_choice" not in body
+    return
+
+
+def test_request_body_passes_top_p_and_a_thinking_budget() -> None:
+    settings = ModelSettings(model="m", top_p=0.9, thinking_budget_tokens=2048)
+    body = request_body(MESSAGES, settings, (), "auto")
+    assert body["top_p"] == 0.9
+    assert body["reasoning"] == {"max_tokens": 2048}
+    return
+
+
+def test_request_body_merges_extra_last_so_it_overrides_built_in_fields() -> None:
+    extra: dict[str, JsonValue] = {"provider": {"order": ["openai"]}, "max_tokens": 5}
+    body = request_body(MESSAGES, ModelSettings(model="m", extra=extra), (), "auto")
+    assert body["provider"] == {"order": ["openai"]}
+    assert body["max_tokens"] == 5
+    return
+
+
+def test_effort_and_budget_together_are_a_config_error() -> None:
+    with pytest.raises(ConfigError, match="not both"):
+        ModelSettings(model="m", reasoning_effort="low", thinking_budget_tokens=1)
     return
 
 

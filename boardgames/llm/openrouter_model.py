@@ -137,13 +137,18 @@ def request_body(
     }
     if settings.temperature is not None:
         body["temperature"] = settings.temperature
+    if settings.top_p is not None:
+        body["top_p"] = settings.top_p
     if settings.seed is not None:
         body["seed"] = settings.seed
     if settings.reasoning_effort is not None:
         body["reasoning"] = {"effort": settings.reasoning_effort}
+    if settings.thinking_budget_tokens is not None:
+        body["reasoning"] = {"max_tokens": settings.thinking_budget_tokens}
     if tools:
         body["tools"] = tools_json(tools)
         body["tool_choice"] = tool_choice_json(tool_choice)
+    body.update(settings.extra)
     return body
 
 
