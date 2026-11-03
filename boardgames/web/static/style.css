@@ -91,6 +91,8 @@ button { cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: default; }
+textarea.config { width: 100%; box-sizing: border-box; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; }
+.new-match .toolbar { display: flex; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
 
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }

@@ -1,9 +1,10 @@
-"""Command line for listing games, playing matches and replaying logs.
+"""Command line: list games, play matches, replay logs and serve the viewer.
 
 arena games
 arena play examples/tic_tac_toe.yaml
 arena play examples/auction_llms.yaml --seed 3 --log runs/auction.jsonl
 arena replay runs/<log>.jsonl
+arena serve
 
 A match config file names the game, its config and the seats; see
 docs/ARCHITECTURE.md. The OpenRouter key comes from the environment or a
@@ -12,51 +13,25 @@ local .env file.
 
 import argparse
 import asyncio
-import hashlib
 import os
 import sys
-import uuid
 from pathlib import Path
 
 import uvicorn
 from dotenv import load_dotenv
 
-import boardgames.games  # noqa: F401  (importing registers every game)
-from boardgames.agents import Agent, RandomAgent
-from boardgames.agents.llm_agent import LlmAgent
-from boardgames.arena.clock import SystemClock
-from boardgames.arena.console import ConsoleLog
-from boardgames.arena.match_config import (
-    LlmDefaults,
-    LlmSeat,
-    RandomSeat,
-    llm_agent_settings,
-    load_match_config,
-    merged_options,
-    seats_for,
-)
-from boardgames.arena.runner import play_match
-from boardgames.core import (
-    ArenaError,
-    ConfigError,
-    create_game,
-    registered_game_ids,
-)
-from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
-from boardgames.llm.model import ChatModel, ModelSettings
-from boardgames.llm.openrouter_model import OpenRouterChatModel
-from boardgames.llm.parsing import ActionExtractor
-from boardgames.llm.retry import RetryingChatModel
+from boardgames.arena.lineup import API_KEY_VARIABLE, prepare_match, run_prepared
+from boardgames.arena.match_config import load_match_config
+from boardgames.core import ArenaError
+from boardgames.games import game_ids
 from boardgames.logs.replay import read_log, replay_match
-from boardgames.logs.sink import Broadcast, JsonlFile, RecordSink
-from boardgames.logs.thoughts import ThoughtsFile
 from boardgames.web.app import create_app
+from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
 
 DEFAULT_LOG_DIR = Path("runs")
-DEFAULT_CACHE_DIR = Path(".arena_cache")
+DEFAULT_EXAMPLES_DIR = Path("examples")
 ENV_FILE = Path(".env")
-API_KEY_VARIABLE = "OPENROUTER_API_KEY"
 
 type Commands = argparse._SubParsersAction[argparse.ArgumentParser]
 
@@ -103,10 +78,16 @@ def add_replay_command(commands: Commands) -> None:
 
 
 def add_serve_command(commands: Commands) -> None:
-    """`arena serve`: the web viewer over a directory of logs."""
+    """`arena serve`: the web viewer over a directory of logs, able to start matches."""
     parser = commands.add_parser("serve", help="serve the web viewer")
     parser.add_argument(
         "--runs", type=Path, default=DEFAULT_LOG_DIR, help="log directory"
+    )
+    parser.add_argument(
+        "--examples",
+        type=Path,
+        default=DEFAULT_EXAMPLES_DIR,
+        help="match configs offered on the new-match page",
     )
     parser.add_argument("--host", default="127.0.0.1", help="bind address")
     parser.add_argument("--port", type=int, default=8000, help="port (default 8000)")
@@ -129,7 +110,7 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
 
 def list_games(args: argparse.Namespace) -> None:
     """Print one registered game id per line."""
-    for game_id in registered_game_ids():
+    for game_id in game_ids():
         print(game_id)
     return
 
@@ -139,85 +120,18 @@ def openrouter_api_key() -> str | None:
     return os.environ.get(API_KEY_VARIABLE) or None
 
 
-def chat_model(use_cache: bool, api_key: str) -> ChatModel:
-    """OpenRouter with retries on transient errors, behind the cache if enabled."""
-    model: ChatModel = RetryingChatModel(OpenRouterChatModel(api_key))
-    if use_cache:
-        model = CachedChatModel(model, DirectoryResponseStore(DEFAULT_CACHE_DIR))
-    return model
-
-
-def derive_seed(match_seed: int, seat: int) -> int:
-    """Per-seat agent seed, independent across seats."""
-    digest = hashlib.sha256(f"{match_seed}/{seat}".encode()).digest()
-    return int.from_bytes(digest[:8], "big")
-
-
-def agent_for_seat(
-    seat: LlmSeat | RandomSeat,
-    defaults: LlmDefaults,
-    match_seed: int,
-    index: int,
-    model: ChatModel | None,
-) -> Agent:
-    """The agent for one seat; an LLM seat needs the chat model, so a key.
-
-    A seat's `seed` replaces the derived seed for the model only, reduced below 2**31.
-    """
-    seed = derive_seed(match_seed, index)
-    if isinstance(seat, RandomSeat):
-        return RandomAgent(seed)
-    if model is None:
-        raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {seat.model!r}")
-    options = merged_options(seat, defaults)
-    model_seed = (seed if seat.seed is None else seat.seed) % 2**31
-    settings = llm_agent_settings(seat, options, model_seed)
-    extractor = None
-    if options.extractor is not None:
-        extractor_settings = ModelSettings(
-            model=options.extractor, temperature=0.0, max_tokens=64
-        )
-        extractor = ActionExtractor(model, extractor_settings)
-    return LlmAgent(model, settings, seed, extractor)
-
-
 def play(args: argparse.Namespace) -> None:
     """Play the match a config file describes, print it unless --quiet, log it."""
     config = load_match_config(args.match)
-    game = create_game(config.game)
-    game_config = game.parse_config(config.config)
-    seed = config.seed if args.seed is None else args.seed
-    seats = seats_for(config, game_config.num_players)
-    api_key = openrouter_api_key()
-    model = chat_model(config.llm.cache, api_key) if api_key else None
-    agents = [
-        agent_for_seat(seat, config.llm, seed, index, model)
-        for index, seat in enumerate(seats)
-    ]
-    match_id = uuid.uuid4().hex[:12]
-    default_log = DEFAULT_LOG_DIR / f"{game.id}-{seed}-{match_id}.jsonl"
-    log_path = args.log or config.log or default_log
-    thoughts_path = log_path.with_suffix(".thoughts.md")
-    with JsonlFile(log_path) as log_file, ThoughtsFile(thoughts_path) as thoughts:
-        sinks: list[RecordSink] = [log_file, thoughts]
-        if not args.quiet:
-            sinks.append(ConsoleLog(sys.stdout))
-        sink = Broadcast(sinks)
-        result = asyncio.run(
-            play_match(
-                game,
-                game_config,
-                seed,
-                agents,
-                match_id=match_id,
-                sink=sink,
-                clock=SystemClock(),
-            )
-        )
+    prepared = prepare_match(
+        config, openrouter_api_key(), DEFAULT_LOG_DIR, seed=args.seed, log=args.log
+    )
+    console = None if args.quiet else sys.stdout
+    result = asyncio.run(run_prepared(prepared, console))
     ranks = ", ".join(f"P{player + 1} #{rank}" for player, rank in result.ranks.items())
     print(f"Ranks: {ranks}")
-    print(f"Log: {log_path}")
-    print(f"Thoughts: {thoughts_path}")
+    print(f"Log: {prepared.log_path}")
+    print(f"Thoughts: {prepared.thoughts_path}")
     return
 
 
@@ -232,9 +146,13 @@ def check_replay(args: argparse.Namespace) -> None:
 
 
 def serve(args: argparse.Namespace) -> None:
-    """Serve the web viewer until interrupted."""
+    """Serve the web viewer until interrupted; matches started there run in-process."""
+    game_ids()
+    launcher = MatchLauncher(args.runs, openrouter_api_key(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
-    uvicorn.run(create_app(MatchStore(args.runs)), host=args.host, port=args.port)
+    uvicorn.run(
+        create_app(MatchStore(args.runs), launcher), host=args.host, port=args.port
+    )
     return
 
 

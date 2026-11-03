@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from boardgames.arena import cli
 from boardgames.web.app import create_app
+from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
 from tests.web.support import costly_agents, write_match
 
@@ -12,7 +13,8 @@ from tests.web.support import costly_agents, write_match
 @pytest.fixture
 def client(tmp_path: Path) -> TestClient:
     write_match(tmp_path, "ttt", seed=1, agents=costly_agents(2))
-    return TestClient(create_app(MatchStore(tmp_path)))
+    launcher = MatchLauncher(tmp_path, None, None)
+    return TestClient(create_app(MatchStore(tmp_path), launcher))
 
 
 def test_games_matches_and_frames(client: TestClient) -> None:

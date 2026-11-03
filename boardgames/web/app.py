@@ -14,14 +14,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from pydantic import JsonValue as PlainJson
 
-import boardgames.games  # noqa: F401  (importing registers every game)
-from boardgames.core import (
-    ArenaError,
-    UnknownGameError,
-    create_game,
-    registered_game_ids,
-)
+from boardgames.core import ArenaError, UnknownGameError, create_game
+from boardgames.games import game_ids
 from boardgames.logs.schema import plain_object
+from boardgames.web.launcher import Example, Launch, MatchLauncher
 from boardgames.web.layouts import game_layout
 from boardgames.web.stats import AgentDetail, Leaderboard, agent_detail, leaderboard
 from boardgames.web.store import Catalog, MatchStore, MatchSummary, UnknownMatchError
@@ -48,6 +44,14 @@ class GameInfo(BaseModel):
 
 class GameDetail(GameInfo):
     rules: str
+
+
+class StartRequest(BaseModel):
+    """A match config as YAML text, as the new-match page sends it."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    yaml: str
 
 
 class TimelineCache:
@@ -83,6 +87,11 @@ def cache_of(request: Request) -> TimelineCache:
     return cache
 
 
+def launcher_of(request: Request) -> MatchLauncher:
+    launcher: MatchLauncher = request.app.state.launcher
+    return launcher
+
+
 def game_info(game_id: str, catalog: Catalog) -> GameInfo:
     game = create_game(game_id)
     return GameInfo(
@@ -98,7 +107,25 @@ api = APIRouter(prefix="/api")
 @api.get("/games")
 def list_games(request: Request) -> list[GameInfo]:
     catalog = store_of(request).catalog()
-    return [game_info(game_id, catalog) for game_id in registered_game_ids()]
+    return [game_info(game_id, catalog) for game_id in game_ids()]
+
+
+@api.get("/examples")
+def list_examples(request: Request) -> list[Example]:
+    """The example match configs the new-match page offers."""
+    return launcher_of(request).examples()
+
+
+@api.post("/matches", status_code=201)
+async def start_match(request: Request, body: StartRequest) -> Launch:
+    """Start the match a YAML config describes; it runs on the server's loop."""
+    return launcher_of(request).start(body.yaml)
+
+
+@api.get("/launches")
+def list_launches(request: Request) -> list[Launch]:
+    """Matches started from the viewer, newest first, with failures."""
+    return launcher_of(request).launches()
 
 
 @api.get("/games/{game_id}")
@@ -187,12 +214,13 @@ def index(request: Request) -> FileResponse:
     return FileResponse(static_directory() / "index.html")
 
 
-def create_app(store: MatchStore) -> FastAPI:
-    """The viewer application over `store`."""
+def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
+    """The viewer application over `store`; `launcher` starts matches from it."""
     app = FastAPI(
         title="Boardgames", docs_url="/api/docs", openapi_url="/api/openapi.json"
     )
     app.state.store = store
+    app.state.launcher = launcher
     app.state.timelines = TimelineCache()
     app.include_router(api)
     app.add_exception_handler(UnknownMatchError, not_found)

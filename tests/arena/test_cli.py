@@ -3,6 +3,12 @@ from pathlib import Path
 import pytest
 
 from boardgames.arena import cli
+from boardgames.arena.lineup import (
+    API_KEY_VARIABLE,
+    agent_for_seat,
+    chat_model,
+    derive_seed,
+)
 from boardgames.arena.match_config import LlmDefaults, LlmSeat
 
 
@@ -93,7 +99,7 @@ def test_unknown_game_exits_with_status_1(
 def test_llm_seat_builds_an_llm_agent_with_merged_settings() -> None:
     seat = LlmSeat(agent="llm", model="anthropic/claude-haiku-5-5", fallback="forfeit")
     defaults = LlmDefaults(max_illegal_retries=1, extractor="openai/gpt-5-mini")
-    agent = cli.agent_for_seat(seat, defaults, 7, 1, cli.chat_model(False, "k"))
+    agent = agent_for_seat(seat, defaults, 7, 1, chat_model(False, "k"))
     settings = agent.settings()
     assert agent.name == "anthropic/claude-haiku-5-5"
     assert settings["kind"] == "llm"
@@ -104,19 +110,19 @@ def test_llm_seat_builds_an_llm_agent_with_merged_settings() -> None:
 
 def test_seat_seed_sets_only_the_model_seed_modulo_2_31() -> None:
     seat = LlmSeat(agent="llm", model="openai/gpt-x", seed=2**31 + 5)
-    agent = cli.agent_for_seat(seat, LlmDefaults(), 7, 1, cli.chat_model(False, "k"))
+    agent = agent_for_seat(seat, LlmDefaults(), 7, 1, chat_model(False, "k"))
     settings = agent.settings()
     model = settings["model"]
     assert isinstance(model, dict)
     assert model["seed"] == 5
-    assert settings["seed"] == cli.derive_seed(7, 1)
+    assert settings["seed"] == derive_seed(7, 1)
     return
 
 
 def test_reasoning_conflict_is_reported_before_the_key_check(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.delenv(cli.API_KEY_VARIABLE, raising=False)
+    monkeypatch.delenv(API_KEY_VARIABLE, raising=False)
     config = write_config(
         tmp_path,
         "game: k_in_a_row\nllm: {reasoning_effort: high}\nseats:\n"
@@ -133,7 +139,7 @@ def test_reasoning_conflict_is_reported_before_the_key_check(
 def test_llm_seat_without_a_key_exits_with_status_1(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.delenv(cli.API_KEY_VARIABLE, raising=False)
+    monkeypatch.delenv(API_KEY_VARIABLE, raising=False)
     monkeypatch.chdir(tmp_path)
     config = write_config(
         tmp_path,
