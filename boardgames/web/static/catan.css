@@ -1,5 +1,5 @@
 /* Catan board: terrain, tokens, pieces and the player table under the SVG. */
-.catan svg { width: 100%; max-width: 620px; height: auto; display: block; }
+.catan svg { width: 100%; max-width: 860px; height: auto; display: block; }
 
 .catan .hex { stroke: #f6f5f1; stroke-width: 1.5; }
 .catan .hex.forest { fill: #3f7a4a; }

@@ -186,12 +186,16 @@ window.boards = window.boards || {};
       { class: classes.join(" "), title: meta.label },
       h("span", { class: "icon" }, meta.icon),
       h("span", { class: "name" }, meta.label),
-      role.doubloons
-        ? h("span", { class: "doubloons", title: "doubloons on this role" }, `${role.doubloons}d`)
-        : null,
-      taken
-        ? h("span", { class: "seat" }, seatDot(role.taken_by), `P${role.taken_by + 1}`)
-        : h("span", { class: "muted small" }, "open"),
+      h(
+        "span",
+        { class: "meta" },
+        role.doubloons
+          ? h("span", { class: "doubloons", title: "doubloons on this role" }, `${role.doubloons}d`)
+          : null,
+        taken
+          ? h("span", { class: "seat" }, seatDot(role.taken_by), `P${role.taken_by + 1}`)
+          : h("span", { class: "muted" }, "open"),
+      ),
     );
   }
 

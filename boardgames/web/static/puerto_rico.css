@@ -43,32 +43,50 @@
   font-weight: 600;
 }
 
+/* every role in one row: equal columns, content stacked so long names fit */
 .pr-roles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 6px;
 }
 .pr-role {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 6px 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
+  text-align: center;
+  container-type: inline-size;
 }
 .pr-role.taken { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 .pr-role.active { outline: 2px solid var(--accent); outline-offset: -1px; }
 .pr-role .icon { font-size: 18px; line-height: 1; }
-.pr-role .name { font-size: 13px; font-weight: 600; }
+/* names shrink with the card down to 10px, then end in an ellipsis */
+.pr-role .name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(10px, 16cqi, 12px);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pr-role .meta {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+  white-space: nowrap;
+}
 .pr-role .doubloons {
-  margin-left: auto;
   color: var(--warn);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.pr-role .seat { margin-left: auto; font-size: 12px; }
 
 .pr-supplies {
   display: grid;
@@ -127,9 +145,10 @@
   background: color-mix(in srgb, var(--good) 14%, var(--panel));
 }
 
+/* one ship per row, so the cargo name and count always fit */
 .pr-ships {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 5px;
 }
 .pr-ship {
@@ -335,6 +354,5 @@
 .pr-final td, .pr-final th { padding: 3px 6px; }
 
 @media (max-width: 620px) {
-  .pr-ships { grid-template-columns: 1fr; }
   .pr-island { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
