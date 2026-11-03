@@ -4,9 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boardgames</title>
+<link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<h1>Boardgames</h1>
-<p>The viewer is served from <code>/api</code>; the interface comes in the next task.</p>
+<header class="topbar">
+  <a class="brand" href="#/matches">Boardgames</a>
+  <nav>
+    <a href="#/matches" data-route="matches">Matches</a>
+  </nav>
+</header>
+<main id="app"></main>
+<script src="/static/boards.js"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>

@@ -54,12 +54,30 @@ def test_matches_are_listed_and_filtered(client: TestClient) -> None:
 def test_match_summary_and_timeline(client: TestClient) -> None:
     summary = client.get("/api/matches/ttt").json()
     assert summary["seats"][0]["agent"] == "model-0"
-    timeline = client.get("/api/matches/ttt/timeline").json()
-    assert timeline["match"]["match_id"] == "ttt"
-    assert len(timeline["frames"]) == summary["steps"] + 1
-    assert timeline["frames"][1]["decision"]["trace"]["reasoning"].startswith("I pick")
+    outline = client.get("/api/matches/ttt/timeline").json()
+    assert outline["match"]["match_id"] == "ttt"
+    assert outline["frame_count"] == summary["steps"] + 1
+    assert len(outline["moves"]) == summary["steps"]
+    assert outline["moves"][0]["step"] == 1
+    assert outline["moves"][0]["illegal_attempts"] == 1
+    assert len(outline["scores"]) == outline["frame_count"]
+    assert outline["events"][0]["kind"] == "started"
+    frame = client.get("/api/matches/ttt/frames/1").json()
+    assert frame["decision"]["trace"]["reasoning"].startswith("I pick")
+    assert frame["boards"][0]["viewer"] is None
+    assert client.get("/api/matches/ttt/frames/999").status_code == 404
     assert client.get("/api/matches/nope").status_code == 404
     assert client.get("/api/matches/nope/timeline").status_code == 404
+    return
+
+
+def test_layouts_exist_only_for_drawn_boards(client: TestClient) -> None:
+    layout = client.get("/api/games/catan/layout").json()
+    assert len(layout["hexes"]) == 19
+    assert len(layout["vertices"]) == 54
+    assert len(layout["edges"]) == 72
+    assert client.get("/api/games/k_in_a_row/layout").status_code == 404
+    assert client.get("/api/games/chess/layout").status_code == 404
     return
 
 
@@ -78,7 +96,7 @@ def test_timeline_is_rebuilt_when_a_running_match_advances(tmp_path: Path) -> No
     write_records(path, records)
     second = client.get("/api/matches/live/timeline").json()
     assert second["match"]["status"] == "finished"
-    assert len(second["frames"]) > len(first["frames"])
+    assert second["frame_count"] > first["frame_count"]
     return
 
 

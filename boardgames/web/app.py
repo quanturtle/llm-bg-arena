@@ -22,10 +22,15 @@ from boardgames.core import (
     registered_game_ids,
 )
 from boardgames.logs.schema import plain_object
+from boardgames.web.layouts import game_layout
 from boardgames.web.store import Catalog, MatchStore, MatchSummary, UnknownMatchError
-from boardgames.web.timeline import Timeline, build_timeline
+from boardgames.web.timeline import Frame, Outline, Timeline, build_timeline, outline
 
 TIMELINE_CACHE_SIZE = 16
+
+
+class UnknownFrameError(ArenaError):
+    """A step outside the match's timeline."""
 
 
 class GameInfo(BaseModel):
@@ -117,10 +122,32 @@ def match_summary(request: Request, match_id: str) -> MatchSummary:
     return store_of(request).match(match_id)
 
 
-@api.get("/matches/{match_id}/timeline")
-def match_timeline(request: Request, match_id: str) -> Timeline:
+def timeline_of(request: Request, match_id: str) -> Timeline:
     store = store_of(request)
     return cache_of(request).timeline(store, store.match(match_id))
+
+
+@api.get("/matches/{match_id}/timeline")
+def match_outline(request: Request, match_id: str) -> Outline:
+    """Every move, event and score of the match; boards come one frame at a time."""
+    return outline(timeline_of(request, match_id))
+
+
+@api.get("/matches/{match_id}/frames/{step}")
+def match_frame(request: Request, match_id: str, step: int) -> Frame:
+    frames = timeline_of(request, match_id).frames
+    if not 0 <= step < len(frames):
+        raise UnknownFrameError(f"match {match_id!r} has no step {step}")
+    return frames[step]
+
+
+@api.get("/games/{game_id}/layout")
+def game_layout_route(request: Request, game_id: str) -> dict[str, PlainJson]:
+    create_game(game_id)
+    layout = game_layout(game_id)
+    if layout is None:
+        raise UnknownGameError(f"game {game_id!r} has no drawn layout")
+    return layout
 
 
 def not_found(request: Request, error: Exception) -> JSONResponse:
@@ -148,6 +175,7 @@ def create_app(store: MatchStore) -> FastAPI:
     app.state.timelines = TimelineCache()
     app.include_router(api)
     app.add_exception_handler(UnknownMatchError, not_found)
+    app.add_exception_handler(UnknownFrameError, not_found)
     app.add_exception_handler(UnknownGameError, not_found)
     app.add_exception_handler(ArenaError, unprocessable)
     app.mount("/static", StaticFiles(directory=static_directory()), name="static")

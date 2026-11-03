@@ -79,6 +79,28 @@ class Timeline(View):
     frames: list[Frame]
 
 
+class MoveView(View):
+    """One step as the outline lists it: who did what, without boards or traces."""
+
+    step: int
+    player: int
+    action: str
+    description: str
+    illegal_attempts: int
+    fallback: str | None
+
+
+class Outline(View):
+    """The light part of a timeline: every move, event and score, but no boards."""
+
+    match: MatchSummary
+    frame_count: int
+    moves: list[MoveView]
+    events: list[EventRecord]
+    forfeits: list[ForfeitView]
+    scores: list[list[ScoreView]]
+
+
 def board_views(game: AnyGame, state: Any, num_players: int) -> list[BoardView]:
     """The spectator's view first, then each seat's."""
     views: list[BoardView] = []
@@ -178,3 +200,26 @@ def build_timeline(records: Sequence[LogRecord]) -> Timeline:
         for step in range(replayed.last_step + 1)
     ]
     return Timeline(match=summarize(list(records)), frames=frames)
+
+
+def move_view(decision: DecisionView, step: int) -> MoveView:
+    return MoveView(
+        step=step,
+        player=decision.player,
+        action=decision.action,
+        description=decision.description,
+        illegal_attempts=decision.trace.illegal_attempts,
+        fallback=decision.trace.fallback,
+    )
+
+
+def outline(timeline: Timeline) -> Outline:
+    """The timeline without boards and traces, small enough to send whole."""
+    return Outline(
+        match=timeline.match,
+        frame_count=len(timeline.frames),
+        moves=[move_view(f.decision, f.step) for f in timeline.frames if f.decision],
+        events=[event for f in timeline.frames for event in f.events],
+        forfeits=[forfeit for f in timeline.frames for forfeit in f.forfeits],
+        scores=[f.scores for f in timeline.frames],
+    )
