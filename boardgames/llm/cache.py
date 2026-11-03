@@ -5,6 +5,7 @@ so any prompt change misses. Cached replies cost nothing and are marked cached.
 """
 
 import json
+import os
 from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
@@ -44,16 +45,21 @@ class DirectoryResponseStore:
         return
 
     def get(self, key: str) -> JsonObject | None:
+        """The stored object, or None when the file is missing or not a JSON object."""
         path = self._path(key)
-        if not path.exists():
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
             return None
-        value: JsonObject = json.loads(path.read_text(encoding="utf-8"))
-        return value
+        return value if isinstance(value, dict) else None
 
     def put(self, key: str, value: JsonObject) -> None:
+        """Write through a temporary name, so a cut-off write leaves no file behind."""
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(value), encoding="utf-8")
+        temporary = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        temporary.write_text(json.dumps(value), encoding="utf-8")
+        os.replace(temporary, path)
         return
 
     def _path(self, key: str) -> Path:
@@ -75,8 +81,9 @@ class CachedChatModel:
     ) -> Completion:
         key = cache_key(messages, settings, tools, tool_choice)
         stored = self._store.get(key)
-        if stored is not None:
-            return replace(completion_from_json(stored), cost_usd=0.0, is_cached=True)
+        cached = None if stored is None else completion_from_json(stored)
+        if cached is not None:
+            return replace(cached, cost_usd=0.0, is_cached=True)
         completion = await self._inner.complete(messages, settings, tools, tool_choice)
         self._store.put(key, completion_json(completion))
         return completion
@@ -114,12 +121,12 @@ def completion_json(completion: Completion) -> dict[str, JsonValue]:
     }
 
 
-def completion_from_json(stored: JsonObject) -> Completion:
-    """Completion from its stored form."""
-    text = stored["text"]
-    calls = stored["tool_calls"]
-    prompt_tokens = stored["prompt_tokens"]
-    completion_tokens = stored["completion_tokens"]
+def completion_from_json(stored: JsonObject) -> Completion | None:
+    """Completion from its stored form; a malformed entry gives None, a cache miss."""
+    text = stored.get("text")
+    calls = stored.get("tool_calls")
+    prompt_tokens = stored.get("prompt_tokens")
+    completion_tokens = stored.get("completion_tokens")
     reasoning = stored.get("reasoning")
     if not (
         isinstance(text, str)
@@ -128,25 +135,30 @@ def completion_from_json(stored: JsonObject) -> Completion:
         and isinstance(completion_tokens, int)
         and (reasoning is None or isinstance(reasoning, str))
     ):
-        raise TypeError(f"malformed cached completion: {stored!r}")
+        return None
+    tool_calls = [tool_call_from_json(call) for call in calls]
+    if any(call is None for call in tool_calls):
+        return None
     return Completion(
         text=text,
-        tool_calls=tuple(tool_call_from_json(call) for call in calls),
+        tool_calls=tuple(call for call in tool_calls if call is not None),
         usage=Usage(prompt_tokens, completion_tokens),
         cost_usd=None,
         reasoning=reasoning,
     )
 
 
-def tool_call_from_json(stored: JsonValue) -> ToolCall:
-    """A tool call from its stored form."""
+def tool_call_from_json(stored: JsonValue) -> ToolCall | None:
+    """A tool call from its stored form, or None when malformed."""
     if not isinstance(stored, dict):
-        raise TypeError(f"malformed cached tool call: {stored!r}")
-    call_id, name, arguments = stored["id"], stored["name"], stored["arguments"]
+        return None
+    call_id = stored.get("id")
+    name = stored.get("name")
+    arguments = stored.get("arguments")
     if not (
         isinstance(call_id, str)
         and isinstance(name, str)
         and isinstance(arguments, str)
     ):
-        raise TypeError(f"malformed cached tool call: {stored!r}")
+        return None
     return ToolCall(call_id, name, arguments)

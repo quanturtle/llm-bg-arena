@@ -137,3 +137,15 @@ def test_cache_round_trips_several_tool_calls(tmp_path: Path) -> None:
     complete(model)
     assert complete(model).tool_calls == calls
     return
+
+
+def test_a_corrupt_cache_entry_is_a_miss(tmp_path: Path) -> None:
+    store = DirectoryResponseStore(tmp_path)
+    key = cache_key(MESSAGES, SETTINGS, (TOOL,), ForcedTool(TOOL.name))
+    store.put(key, {"text": "x"})
+    (tmp_path / "zz").mkdir()
+    (tmp_path / "zz" / "zz.json").write_text("{not json", encoding="utf-8")
+    inner = QueuedChatModel([reply("fresh")])
+    assert complete(CachedChatModel(inner, store)).text == "fresh"
+    assert store.get("zz") is None
+    return
