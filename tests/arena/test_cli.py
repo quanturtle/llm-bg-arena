@@ -8,6 +8,7 @@ from boardgames.arena.lineup import (
     agent_for_seat,
     derive_seed,
     openrouter_model,
+    player_names,
 )
 from boardgames.arena.match_config import LlmSeat
 from tests.llm.fakes import FirstListedMove
@@ -75,7 +76,7 @@ def test_play_runs_the_configured_match_and_writes_its_log(
     cli.run_command(cli.parse_arguments(["play", str(config)]))
     output = capsys.readouterr().out
     model = "qwen/qwen3.7-flash"
-    assert f"tic_tac_toe (seed 3): P1 {model}, P2 {model}" in output
+    assert f"tic_tac_toe (seed 3): P1 {model} #1, P2 {model} #2" in output
     assert "Ranks:" in output
     assert log.exists()
     return
@@ -112,18 +113,29 @@ def test_llm_seat_builds_an_llm_agent_with_its_settings() -> None:
         max_illegal_retries=1,
         extractor="openai/gpt-5-mini",
     )
-    agent = agent_for_seat(seat, 7, 1, openrouter_model("k"))
+    agent = agent_for_seat(seat, "haiku #2", 7, 1, openrouter_model("k"))
     settings = agent.settings()
-    assert agent.name == "anthropic/claude-haiku-5-5"
+    assert agent.name == "haiku #2"
     assert settings["kind"] == "llm"
     assert (settings["max_illegal_retries"], settings["fallback"]) == (1, "forfeit")
     assert settings["extractor"] == "openai/gpt-5-mini"
     return
 
 
+def test_repeated_names_get_a_number_and_unique_ones_stay() -> None:
+    seats = [LlmSeat(), LlmSeat(model="a/b"), LlmSeat(), LlmSeat(label="me")]
+    assert player_names(seats) == [
+        "qwen/qwen3.7-flash #1",
+        "a/b",
+        "qwen/qwen3.7-flash #2",
+        "me",
+    ]
+    return
+
+
 def test_seat_seed_sets_only_the_model_seed_modulo_2_31() -> None:
     seat = LlmSeat(model="openai/gpt-x", seed=2**31 + 5)
-    agent = agent_for_seat(seat, 7, 1, openrouter_model("k"))
+    agent = agent_for_seat(seat, "openai/gpt-x", 7, 1, openrouter_model("k"))
     settings = agent.settings()
     model = settings["model"]
     assert isinstance(model, dict)

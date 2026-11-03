@@ -76,10 +76,10 @@
     return seconds < 1 ? `${Math.round(seconds * 1000)} ms` : `${seconds.toFixed(1)} s`;
   }
 
-  // The seat's agent name, followed by its model id when the name is a label.
+  // The seat's agent name, followed by its model id when the name is a label that hides it.
   function seatName(seat) {
     if (!seat) return "";
-    return seat.model && seat.model !== seat.agent ? `${seat.agent} (${seat.model})` : seat.agent;
+    return seat.model && !seat.agent.startsWith(seat.model) ? `${seat.agent} (${seat.model})` : seat.agent;
   }
 
   function seatChip(match, player, extra) {

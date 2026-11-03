@@ -6,7 +6,9 @@ and `run_prepared`, so they agree on seeds, log names and the model stack.
 
 import hashlib
 import uuid
-from dataclasses import dataclass
+from collections import Counter
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TextIO
 
@@ -66,19 +68,35 @@ def derive_seed(match_seed: int, seat: int) -> int:
     return int.from_bytes(digest[:8], "big")
 
 
+def player_names(seats: Sequence[LlmSeat]) -> list[str]:
+    """Each seat's label or model; names that repeat get #1, #2... in seat order."""
+    bases = [seat.label or llm_agent_settings(seat, 0).model.model for seat in seats]
+    counts = Counter(bases)
+    taken: Counter[str] = Counter()
+    names = []
+    for base in bases:
+        if counts[base] == 1:
+            names.append(base)
+            continue
+        taken[base] += 1
+        names.append(f"{base} #{taken[base]}")
+    return names
+
+
 def agent_for_seat(
     seat: LlmSeat,
+    name: str,
     match_seed: int,
     index: int,
     model: ChatModel,
 ) -> Agent:
-    """The language model player for one seat.
+    """The language model player for one seat, called `name` in logs and the viewer.
 
     A seat's `seed` replaces the derived seed for the model only, reduced below 2**31.
     """
     seed = derive_seed(match_seed, index)
     model_seed = (seed if seat.seed is None else seat.seed) % 2**31
-    settings = llm_agent_settings(seat, model_seed)
+    settings = replace(llm_agent_settings(seat, model_seed), label=name)
     extractor = None
     if seat.extractor is not None:
         extractor_settings = ModelSettings(
@@ -109,8 +127,10 @@ def prepare_match(
         raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {first!r}")
     stack = with_cache(model, config.cache)
     agents = [
-        agent_for_seat(seat, match_seed, index, stack)
-        for index, seat in enumerate(seats)
+        agent_for_seat(seat, name, match_seed, index, stack)
+        for index, (seat, name) in enumerate(
+            zip(seats, player_names(seats), strict=True)
+        )
     ]
     match_id = uuid.uuid4().hex[:12]
     default_log = runs_dir / f"{game.id}-{match_seed}-{match_id}.jsonl"
