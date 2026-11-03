@@ -52,7 +52,7 @@ from boardgames.llm.tools import (
     ToolResult,
     after_text_reply,
     after_tool_calls,
-    answer_tool_call,
+    answer_tool_calls,
     game_tools,
 )
 
@@ -78,12 +78,15 @@ class Attempt[A]:
     """One model call: how its reply resolved, plus its log record and completions.
 
     `resolution` is None for a tools-mode round that only looked things up.
+    `rejections` counts the rejected answers in the call: at most one in a
+    single-shot mode, one per rejected take_action in tools mode.
     """
 
     resolution: Resolved[A] | Rejected | None
     reply: ParsedReply | None
     record: dict[str, JsonValue]
     completions: tuple[Completion, ...]
+    rejections: int
 
 
 class LlmAgent:
@@ -185,10 +188,7 @@ class LlmAgent:
             completion = await self._model.complete(
                 messages, self._settings.model, tools, "auto"
             )
-            results = [
-                answer_tool_call(call, request, prompt_settings)
-                for call in completion.tool_calls
-            ]
+            results = answer_tool_calls(completion.tool_calls, request, prompt_settings)
             if results:
                 progress = after_tool_calls(progress, results, budget)
                 messages = (*messages, *tool_round_messages(completion, results))
@@ -234,7 +234,8 @@ class LlmAgent:
             "messages": messages_json(new_messages),
             **attempt_record(completion, parsed, resolution, completions[1:]),
         }
-        return Attempt(resolution, parsed, record, tuple(completions))
+        rejections = 1 if isinstance(resolution, Rejected) else 0
+        return Attempt(resolution, parsed, record, tuple(completions), rejections)
 
     def _remember(self, reply: ParsedReply | None) -> None:
         """Replace the notes with the reply's notes, cut to the memory limit."""
@@ -291,14 +292,19 @@ def tool_round_attempt[A](
     results: Sequence[ToolResult[A]],
     new_messages: Sequence[Message],
 ) -> Attempt[A]:
-    """Log one round of tool calls; a round without a call is a format rejection."""
-    answered = [result for result in results if result.outcome is not None]
-    resolved = [result for result in answered if isinstance(result.outcome, Resolved)]
-    decisive = resolved[0] if resolved else (answered[-1] if answered else None)
+    """Log one round of tool calls; a round without a call is a format rejection.
+
+    The record's resolution is the accepted action, else the first rejection.
+    """
+    resolved = [result for result in results if isinstance(result.outcome, Resolved)]
+    rejected = [result for result in results if isinstance(result.outcome, Rejected)]
+    decisive = resolved[0] if resolved else (rejected[0] if rejected else None)
     resolution = decisive.outcome if decisive is not None else None
     reply = decisive.reply if decisive is not None else None
+    rejections = len(rejected)
     if not results:
         resolution = Rejected("format", NO_TOOL_NUDGE)
+        rejections = 1
     calls: list[JsonValue] = [
         {"name": call.name, "arguments": call.arguments, "result": result.text}
         for call, result in zip(completion.tool_calls, results, strict=True)
@@ -308,7 +314,7 @@ def tool_round_attempt[A](
         **attempt_record(completion, reply, resolution, ()),
         "tool_calls": calls,
     }
-    return Attempt(resolution, reply, record, (completion,))
+    return Attempt(resolution, reply, record, (completion,), rejections)
 
 
 def attempt_record[A](
@@ -351,9 +357,7 @@ def decision_trace[A](
         reasoning=reasoning,
         memory=memory,
         attempts=records,
-        illegal_attempts=sum(
-            1 for attempt in attempts if isinstance(attempt.resolution, Rejected)
-        ),
+        illegal_attempts=sum(attempt.rejections for attempt in attempts),
         api_retries=sum(c.api_retries for c in completions),
         fallback=fallback,
         prompt_tokens=sum(c.usage.prompt_tokens for c in completions),

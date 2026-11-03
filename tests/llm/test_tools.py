@@ -11,6 +11,7 @@ from boardgames.llm.tools import (
     after_text_reply,
     after_tool_calls,
     answer_tool_call,
+    answer_tool_calls,
     game_tools,
 )
 from tests.llm.requests import auction_request, tic_tac_toe_request
@@ -128,4 +129,23 @@ def test_progress_exhausts_on_rejections_calls_or_text_replies() -> None:
     nudged = after_text_reply(DecisionProgress[Any](), BUDGET)
     assert (nudged.phase, nudged.text_replies) == ("exploring", 1)
     assert after_text_reply(nudged, BUDGET).phase == "exhausted"
+    return
+
+
+def test_an_accepted_action_commits_even_past_the_call_budget() -> None:
+    request = tic_tac_toe_request([])
+    results = [answer("get_rules", request)] * BUDGET.max_tool_calls
+    results.append(answer("take_action", request, action="a1"))
+    assert after_tool_calls(DecisionProgress[Any](), results, BUDGET).phase == (
+        "committed"
+    )
+    return
+
+
+def test_a_second_take_action_in_one_reply_is_ignored() -> None:
+    request = tic_tac_toe_request([])
+    calls = [call("take_action", action="a1"), call("take_action", action="b2")]
+    results = answer_tool_calls(calls, request, SETTINGS)
+    assert results[1].text.startswith("Ignored:")
+    assert results[1].outcome is None
     return

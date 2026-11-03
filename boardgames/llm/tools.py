@@ -221,25 +221,44 @@ class DecisionProgress[A]:
     reply: ParsedReply | None = None
 
 
+def answer_tool_calls[A](
+    calls: Sequence[ToolCall], request: DecisionRequest[A], settings: PromptSettings
+) -> list[ToolResult[A]]:
+    """Results for one reply's calls in order; after an accepted action, later
+    take_action calls are ignored, while lookups are still answered."""
+    results: list[ToolResult[A]] = []
+    chosen: str | None = None
+    for call in calls:
+        if call.name == TAKE_ACTION and chosen is not None:
+            results.append(ToolResult(f"Ignored: the decision is already {chosen!r}."))
+            continue
+        result = answer_tool_call(call, request, settings)
+        if isinstance(result.outcome, Resolved):
+            chosen = request.actions.notation(result.outcome.action)
+        results.append(result)
+    return results
+
+
 def after_tool_calls[A](
     progress: DecisionProgress[A],
     results: Sequence[ToolResult[A]],
     budget: ToolBudget,
 ) -> DecisionProgress[A]:
-    """Progress after one reply's tool calls, answered in order."""
+    """Progress after one reply's tool calls; an accepted action always commits,
+    and the limits are checked only once the whole reply is counted."""
     for result in results:
-        progress = after_tool_call(progress, result, budget)
-        if progress.phase != "exploring":
-            break
-    return progress
+        progress = after_tool_call(progress, result)
+    if progress.phase == "committed":
+        return progress
+    return exhausted_if_over(progress, budget)
 
 
 def after_tool_call[A](
-    progress: DecisionProgress[A], result: ToolResult[A], budget: ToolBudget
+    progress: DecisionProgress[A], result: ToolResult[A]
 ) -> DecisionProgress[A]:
-    """Progress after one answered tool call."""
+    """Progress after one answered tool call; the first accepted action commits."""
     calls_made = progress.calls_made + 1
-    if isinstance(result.outcome, Resolved):
+    if isinstance(result.outcome, Resolved) and progress.chosen is None:
         return replace(
             progress,
             phase="committed",
@@ -249,8 +268,7 @@ def after_tool_call[A](
         )
     rejected = isinstance(result.outcome, Rejected)
     rejections = progress.rejections + (1 if rejected else 0)
-    advanced = replace(progress, calls_made=calls_made, rejections=rejections)
-    return exhausted_if_over(advanced, budget)
+    return replace(progress, calls_made=calls_made, rejections=rejections)
 
 
 def after_text_reply[A](

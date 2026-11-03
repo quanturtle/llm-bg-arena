@@ -282,3 +282,15 @@ def test_tools_mode_falls_back_when_the_call_budget_runs_out() -> None:
     assert choice.trace.illegal_attempts == 0
     assert len(model.calls) == 2
     return
+
+
+def test_tools_mode_counts_each_rejected_call_and_keeps_the_accepted_one() -> None:
+    reply = tool_calls(
+        ("take_action", {"action": "b2"}), ("take_action", {"action": "a1"})
+    )
+    llm, _ = tools_agent([reply], max_tool_calls=1)
+    choice = decide(llm, tic_tac_toe_request(["b2"]))
+    assert isinstance(choice, Chosen)
+    assert (choice.action, choice.trace.fallback) == (Mark(0, 0), None)
+    assert choice.trace.illegal_attempts == 1
+    return
