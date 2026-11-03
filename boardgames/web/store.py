@@ -20,6 +20,7 @@ from boardgames.logs.schema import (
     MatchStarted,
     MatchStopped,
 )
+from boardgames.logs.thoughts import thoughts_path
 
 type MatchStatus = Literal["finished", "running", "stopped"]
 
@@ -242,6 +243,18 @@ class MatchStore:
     def records(self, match_id: str) -> list[LogRecord]:
         """Every record of one match's log."""
         return read_log(self._path_of(match_id))
+
+    def delete(self, match_id: str) -> None:
+        """Remove a match's log and thoughts file; unknown ids raise UnknownMatchError.
+
+        Only files found in the store's directory are removed.
+        """
+        path = self._path_of(match_id)
+        path.unlink(missing_ok=True)
+        thoughts_path(path).unlink(missing_ok=True)
+        self._cache.pop(path, None)
+        del self._paths[match_id]
+        return
 
     def _log_paths(self) -> list[Path]:
         if not self._directory.is_dir():

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from boardgames.core import ConfigError
 from boardgames.web.app import create_app
-from boardgames.web.launcher import MatchLauncher
+from boardgames.web.launcher import MatchLauncher, MatchStillPlayingError
 from boardgames.web.store import MatchStore
 from tests.llm.fakes import FirstListedMove
 
@@ -60,6 +60,37 @@ def test_a_stopped_match_ends_its_log_as_stopped(tmp_path: Path) -> None:
 
     match_id = asyncio.run(pause_stop())
     assert MatchStore(tmp_path).match(match_id).status == "stopped"
+    return
+
+
+async def play_to_the_end(launcher: MatchLauncher) -> str:
+    match_id = launcher.start(BOT_MATCH).match_id
+    await launcher.wait()
+    return match_id
+
+
+def test_delete_removes_an_ended_match_and_its_files(tmp_path: Path) -> None:
+    launcher = MatchLauncher(tmp_path, FirstListedMove(), None)
+    match_id = asyncio.run(play_to_the_end(launcher))
+    client = TestClient(create_app(MatchStore(tmp_path), launcher))
+    assert client.delete(f"/api/matches/{match_id}").status_code == 204
+    assert list(tmp_path.iterdir()) == []
+    assert client.get(f"/api/matches/{match_id}").status_code == 404
+    assert client.get("/api/launches").json() == []
+    return
+
+
+async def forget_while_paused(launcher: MatchLauncher) -> None:
+    match_id = launcher.start(BOT_MATCH).match_id
+    launcher.pause(match_id)
+    with pytest.raises(MatchStillPlayingError):
+        launcher.forget(match_id)
+    await launcher.stop(match_id)
+    return
+
+
+def test_a_match_still_playing_cannot_be_deleted(tmp_path: Path) -> None:
+    asyncio.run(forget_while_paused(MatchLauncher(tmp_path, FirstListedMove(), None)))
     return
 
 

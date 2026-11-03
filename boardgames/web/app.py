@@ -28,6 +28,7 @@ from boardgames.web.launcher import (
     Example,
     Launch,
     MatchLauncher,
+    MatchStillPlayingError,
     UnknownLaunchError,
 )
 from boardgames.web.layouts import game_layout
@@ -123,6 +124,11 @@ class TimelineCache:
         while len(self._entries) > self._size:
             self._entries.popitem(last=False)
         return timeline
+
+    def forget(self, match_id: str) -> None:
+        """Drop a deleted match's timeline."""
+        self._entries.pop(match_id, None)
+        return
 
 
 def store_of(request: Request) -> MatchStore:
@@ -281,6 +287,15 @@ def match_summary(request: Request, match_id: str) -> MatchSummary:
     return store_of(request).match(match_id)
 
 
+@api.delete("/matches/{match_id}", status_code=204)
+async def delete_match(request: Request, match_id: str) -> Response:
+    """Delete a match's log and thoughts file; a match still playing here is 409."""
+    launcher_of(request).forget(match_id)
+    store_of(request).delete(match_id)
+    cache_of(request).forget(match_id)
+    return Response(status_code=204)
+
+
 def timeline_of(request: Request, match_id: str) -> Timeline:
     """The match's timeline; a log whose setup no longer replays gets a short reason."""
     store = store_of(request)
@@ -341,6 +356,10 @@ def unprocessable(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"error": str(error)}, status_code=422)
 
 
+def conflict(request: Request, error: Exception) -> JSONResponse:
+    return JSONResponse({"error": str(error)}, status_code=409)
+
+
 def static_directory() -> Path:
     return Path(str(files("boardgames.web") / "static"))
 
@@ -379,6 +398,7 @@ def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
     app.add_exception_handler(UnknownAgentError, not_found)
     app.add_exception_handler(UnknownLaunchError, not_found)
     app.add_exception_handler(UnknownGameError, not_found)
+    app.add_exception_handler(MatchStillPlayingError, conflict)
     app.add_exception_handler(ArenaError, unprocessable)
     app.middleware("http")(revalidate_assets)
     app.mount("/static", StaticFiles(directory=static_directory()), name="static")

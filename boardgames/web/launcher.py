@@ -31,6 +31,10 @@ class UnknownLaunchError(ArenaError):
     """No match with this id was started from this server."""
 
 
+class MatchStillPlayingError(ArenaError):
+    """The match is running or paused here; stop it before deleting it."""
+
+
 class Example(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -139,6 +143,21 @@ class MatchLauncher:
             task.cancel()
             await asyncio.wait({task}, timeout=STOP_TIMEOUT_SECONDS)
         return self.launch(match_id)
+
+    def forget(self, match_id: str) -> None:
+        """Drop an ended match from the launches, before its log is deleted.
+
+        A match still running or paused raises MatchStillPlayingError; unknown ids pass.
+        """
+        if match_id not in self._launched:
+            return
+        if self.launch(match_id).status in ("running", "paused"):
+            raise MatchStillPlayingError(
+                f"match {match_id!r} is still playing; stop it before deleting it"
+            )
+        del self._launched[match_id]
+        del self._tasks[match_id]
+        return
 
     async def wait(self) -> None:
         """Wait for every started match to end; for tests."""
