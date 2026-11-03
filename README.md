@@ -85,7 +85,7 @@ Replay matches the log: tic_tac_toe, 7 steps, 9 events.
 
 ## Watch
 
-The web viewer lists every match in `runs/`, replays it move by move, and starts new ones: the "New match" page is a form where you pick the game and its settings, add players, and set each player's model and model settings, and a started match runs inside the server, so the viewer follows it live. Its page has Pause, Resume and Stop buttons: pausing waits for the move in progress, and stopping ends the match at once and keeps its log. Language model seats use the server's `OPENROUTER_API_KEY`.
+The web viewer lists every match in `runs/`, replays it move by move, and starts new ones: the "New match" page is a form where you pick the game and its settings, add players, and set each player's model, whether it reasons before moving, and other model settings, and a started match runs inside the server, so the viewer follows it live. Its page has Pause, Resume and Stop buttons: pausing waits for the move in progress, and stopping ends the match at once and keeps its log. Language model seats use the server's `OPENROUTER_API_KEY`.
 
 ```sh
 uv run arena serve

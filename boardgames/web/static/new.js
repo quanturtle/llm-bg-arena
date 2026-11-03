@@ -14,13 +14,11 @@
 
   // Per-player settings, in plain words; an empty field keeps the default shown in it.
   const SEAT_FIELDS = [
-    { key: "label", label: "Display name", kind: "text", hint: "Shown next to the model, for example \"aggressive trader\"." },
-    { key: "output_mode", label: "How it answers", kind: "select", options: [["tool", "Picks a move from the list"], ["text", "Explains, then gives a final answer"], ["tools", "Looks around with game tools, then moves"]] },
+    { key: "label", label: "Name", kind: "text", hint: "Defaults to the model; players on the same model get #1, #2." },
+    { key: "reasoning", label: "Reasoning", kind: "toggle", hint: "Lets the model think before it moves. Off is much faster; some models (like gpt-5-nano) can't turn it off." },
+    { key: "reasoning_effort", label: "Reasoning effort", kind: "select", options: [["low", "Low"], ["medium", "Medium"], ["high", "High"]], needsReasoning: true },
     { key: "temperature", label: "Randomness (temperature)", kind: "number", step: "0.1", min: "0", max: "2", hint: "0 is steady and predictable, 1 or more is varied." },
-    { key: "reasoning_effort", label: "Thinking effort", kind: "select", options: [["none", "Off"], ["low", "Low"], ["medium", "Medium"], ["high", "High"]], hint: "For models that think before answering. Off is fastest, but some models (like gpt-5-nano) must think and reject it." },
-    { key: "thinking_budget_tokens", label: "Thinking budget (tokens)", kind: "number", step: "1", min: "1", hint: "Instead of thinking effort, not with it." },
-    { key: "max_tokens", label: "Longest reply (tokens)", kind: "number", step: "1", min: "1" },
-    { key: "max_tool_calls", label: "Tool calls per move", kind: "number", step: "1", min: "1", hint: "Only when it looks around with game tools." },
+    { key: "max_tokens", label: "Longest reply (tokens)", kind: "number", step: "1", min: "1", hint: "Reasoning counts toward it." },
     { key: "max_illegal_retries", label: "Second chances after an illegal move", kind: "number", step: "1", min: "0" },
     { key: "fallback", label: "If it still can't move", kind: "select", options: [["random", "Play a random legal move"], ["default", "Play the game's default move"], ["forfeit", "Forfeit the match"]] },
     { key: "timeout_seconds", label: "Time limit per reply (seconds)", kind: "number", step: "1", min: "1" },
@@ -51,7 +49,7 @@
   }
 
   function newSeat(state) {
-    return { model: state.options.default_model, custom: false, settings: {} };
+    return { model: state.options.default_model, custom: false, reasoning: true, settings: {} };
   }
 
   function currentGame(state) {
@@ -77,6 +75,7 @@
       for (const [key, value] of Object.entries(seat.settings)) {
         if (value !== undefined) entry[key] = value;
       }
+      if (!seat.reasoning) entry.reasoning_effort = "none";
       return entry;
     });
     return { game: state.game, config, seed, seats };
@@ -89,15 +88,25 @@
     return option ? option[1] : String(value);
   }
 
-  function seatInput(state, field, seat, changed) {
+  function defaultLabel(text) {
+    return text === "model's default" ? text : `${text} (default)`;
+  }
+
+  function seatInput(state, field, seat, changed, rerender) {
     const current = seat.settings[field.key];
     const update = (raw) => {
       seat.settings[field.key] = raw === "" ? undefined : field.kind === "number" ? Number(raw) : raw;
       changed();
     };
+    if (field.kind === "toggle") {
+      const box = h("input", { type: "checkbox", onchange: (event) => { seat.reasoning = event.target.checked; rerender(); } });
+      box.checked = seat.reasoning;
+      return h("span", { class: "toggle" }, box, seat.reasoning ? "On" : "Off");
+    }
     if (field.kind === "select") {
-      const select = h("select", { onchange: (event) => update(event.target.value) }, h("option", { value: "" }, `${defaultText(state, field.key, field)} (default)`), field.options.filter(([code]) => code !== state.options.seat_defaults[field.key]).map(([code, text]) => h("option", { value: code }, text)));
-      select.value = current === undefined ? "" : String(current);
+      const off = field.needsReasoning && !seat.reasoning;
+      const select = h("select", { disabled: off ? "" : null, onchange: (event) => update(event.target.value) }, h("option", { value: "" }, off ? "Reasoning is off" : defaultLabel(defaultText(state, field.key, field))), field.options.filter(([code]) => code !== state.options.seat_defaults[field.key]).map(([code, text]) => h("option", { value: code }, text)));
+      select.value = current === undefined || off ? "" : String(current);
       return select;
     }
     if (field.kind === "textarea") {
@@ -106,7 +115,7 @@
       return area;
     }
     const fallback = defaultText(state, field.key, field);
-    const placeholder = field.key === "label" ? "none" : fallback.startsWith("model") ? fallback : `default: ${fallback}`;
+    const placeholder = field.key === "label" ? "the model's name" : fallback.startsWith("model") ? fallback : `default: ${fallback}`;
     const input = h("input", { type: field.kind, step: field.step, min: field.min, max: field.max, placeholder, oninput: (event) => update(event.target.value) });
     input.value = current === undefined ? "" : String(current);
     return input;
@@ -142,7 +151,7 @@
       "details",
       { class: "seat-advanced", open: seat.open ? "" : null, ontoggle: (event) => { seat.open = event.target.open; } },
       h("summary", { class: "small" }, "Model settings"),
-      h("div", { class: "fields" }, SEAT_FIELDS.map((field) => h("label", { title: field.hint || "" }, h("span", {}, field.label), seatInput(state, field, seat, changed), field.hint && field.kind !== "textarea" ? h("small", { class: "muted" }, field.hint) : null))),
+      h("div", { class: "fields" }, SEAT_FIELDS.map((field) => h("label", { title: field.hint || "" }, h("span", {}, field.label), seatInput(state, field, seat, changed, rerender), field.hint && field.kind !== "textarea" ? h("small", { class: "muted" }, field.hint) : null))),
     );
     return h(
       "div",

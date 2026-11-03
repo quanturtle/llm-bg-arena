@@ -87,6 +87,9 @@ select, input[type="text"], input[type="number"], textarea, button {
   border-radius: 6px;
   padding: 5px 9px;
 }
+select:disabled, input:disabled { opacity: 0.55; }
+.toggle { display: flex; align-items: center; gap: 8px; height: 34px; }
+.toggle input[type="checkbox"] { width: auto; margin: 0; }
 button { cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
