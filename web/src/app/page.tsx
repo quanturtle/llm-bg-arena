@@ -1,5 +1,2 @@
-import { PageTitle } from "@/components/page";
-
-export default function Home() {
-  return <PageTitle title="Matches" description="Replays of every match in the log directory." />;
-}
+// The home page is the matches list.
+export { default, metadata } from "./matches/page";
