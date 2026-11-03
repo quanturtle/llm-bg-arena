@@ -134,6 +134,7 @@ def test_llm_seat_without_a_key_exits_with_status_1(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.delenv(cli.API_KEY_VARIABLE, raising=False)
+    monkeypatch.chdir(tmp_path)
     config = write_config(
         tmp_path,
         "game: k_in_a_row\nseats:\n  - {agent: llm, model: openai/gpt-x}\n"
@@ -143,6 +144,8 @@ def test_llm_seat_without_a_key_exits_with_status_1(
         cli.run_command(cli.parse_arguments(["play", str(config)]))
     assert exit_info.value.code == 1
     assert "set OPENROUTER_API_KEY" in capsys.readouterr().err
+    assert not (tmp_path / cli.DEFAULT_LOG_DIR).exists()
+    assert list(tmp_path.rglob("*.jsonl")) == []
     return
 
 

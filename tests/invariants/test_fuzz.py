@@ -1,3 +1,5 @@
+from itertools import pairwise, product
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -19,15 +21,41 @@ from tests.invariants.playthrough import random_playthrough
 SEEDS = st.integers(min_value=0, max_value=2**32 - 1)
 K_IN_A_ROW = KInARow()
 AUCTION = SealedAuction()
+DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
+
+
+def has_floating_mark(state: KInARowState) -> bool:
+    """Some mark sits directly above an empty cell; row 0 is the bottom."""
+    return any(
+        upper[col] is not None and lower[col] is None
+        for lower, upper in pairwise(state.board)
+        for col in range(state.config.cols)
+    )
+
+
+def has_line(state: KInARowState) -> bool:
+    """Brute force: one player owns k cells in a row, column or diagonal."""
+    rows, cols, k = state.config.rows, state.config.cols, state.config.k
+    for row, col, (d_row, d_col) in product(range(rows), range(cols), DIRECTIONS):
+        end_row, end_col = row + (k - 1) * d_row, col + (k - 1) * d_col
+        if not (0 <= end_row < rows and 0 <= end_col < cols):
+            continue
+        owners = {state.board[row + i * d_row][col + i * d_col] for i in range(k)}
+        if len(owners) == 1 and None not in owners:
+            return True
+    return False
 
 
 def check_k_in_a_row(state: KInARowState) -> None:
-    """Marks alternate, so X has as many marks as O or one more."""
+    """Marks alternate, gravity holds, and the game ends at a line or a full board."""
     cells = [cell for row in state.board for cell in row]
     x_marks = cells.count(PlayerId(0))
     o_marks = cells.count(PlayerId(1))
     assert x_marks - o_marks in (0, 1)
     assert state.to_move == PlayerId(x_marks - o_marks)
+    assert not (state.config.gravity and has_floating_mark(state))
+    is_full = None not in cells
+    assert K_IN_A_ROW.is_terminal(state) == (has_line(state) or is_full)
     return
 
 
