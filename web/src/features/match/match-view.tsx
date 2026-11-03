@@ -15,25 +15,17 @@ import { ReplayBar } from "@/features/match/replay-bar";
 import { useFrame, useLaunch, useLayout, useTimeline } from "@/features/match/use-match-data";
 import { useReplay } from "@/features/match/use-replay";
 import { GAMES } from "@/games/registry";
-import { useFillViewport } from "@/hooks/use-fill-viewport";
-import { useHeight } from "@/hooks/use-height";
 import { useNow } from "@/hooks/use-now";
 import type { Outline } from "@/lib/api";
-
-// the site header's height (h-14) and the gaps around the replay bar, in px
-const SITE_HEADER_PX = 56;
-const BAR_GAP_PX = 16;
-// from Tailwind's xl breakpoint the side column sticks and fills the window down to this gap
-const WIDE_SCREEN = "(min-width: 80rem)";
-const SIDE_GAP_PX = 16;
 
 function numberParam(value: string | null): number | null {
   return value === null || value === "" || Number.isNaN(Number(value)) ? null : Number(value);
 }
 
 /**
- * The replay page. The replay bar sticks under the site header; on wide screens the decision card
- * and the event log stick beside the board at fixed heights, so stepping never moves them.
+ * The replay page. On desktop it is exactly one window tall: the header and the replay bar on top,
+ * then the board and a side column (decision card over the event log) sharing the rest; a panel
+ * whose content is taller scrolls inside itself. Narrower screens stack the panels and scroll.
  */
 function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }) {
   const params = useSearchParams();
@@ -44,8 +36,6 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
   });
   const [boardTab, setBoardTab] = useState("board");
   const [decisionTab, setDecisionTab] = useState<DecisionTab>("reasoning");
-  const [barRef, barHeight] = useHeight<HTMLDivElement>();
-  const sideRef = useFillViewport<HTMLDivElement>(WIDE_SCREEN, SIDE_GAP_PX);
   const match = outline.match;
   const launch = useLaunch(matchId, state.running).data ?? null;
   const layout = useLayout(match.game_id).data ?? null;
@@ -53,47 +43,48 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
   const live = liveState(state, launch?.status ?? null);
   const now = useNow(state.running);
   const clocks = clocksAt(outline, state.step, frame.data?.pending ?? [], live === "on", now);
-  const sideTop = SITE_HEADER_PX + barHeight + BAR_GAP_PX;
   return (
-    <>
+    // 6.5rem is the site header (h-14) plus the main element's vertical padding (py-6)
+    <div className="flex flex-col gap-3 xl:h-[calc(100dvh-6.5rem)]">
       <MatchHeader outline={outline} launch={launch} live={live} />
-      <div ref={barRef} className="sticky top-14 z-30 -mx-1 bg-background px-1 pt-1 pb-3">
-        <ReplayBar match={match} state={state} dispatch={dispatch} clocks={clocks} />
+      <div className="sticky top-14 z-30 -mx-1 bg-background px-1 pt-1 xl:static">
+        <ReplayBar match={match} state={state} dispatch={dispatch} clocks={clocks} scores={frame.data?.scores ?? []} />
       </div>
       {frame.error ? <ErrorAlert error={frame.error} /> : null}
       {frame.data ? (
-        <div
-          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_26rem] 2xl:grid-cols-[minmax(0,1fr)_30rem]"
-          style={{ "--side-top": `${sideTop}px` } as React.CSSProperties}
-        >
-          <div className="flex min-w-0 flex-col gap-4">
-            <BoardPanel
+        <div className="grid grid-cols-1 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_26rem]">
+          <BoardPanel
+            match={match}
+            frame={frame.data}
+            viewer={state.viewer}
+            layout={layout}
+            tab={boardTab}
+            onTab={setBoardTab}
+            points={<PointsChart outline={outline} step={state.step} onSeek={(step) => dispatch({ type: "seek", step })} />}
+            className="min-w-0 xl:min-h-0"
+          />
+          <div className="flex min-w-0 flex-col gap-3 xl:min-h-0">
+            <DecisionCard
               match={match}
               frame={frame.data}
-              viewer={state.viewer}
-              layout={layout}
-              tab={boardTab}
-              onTab={setBoardTab}
-              isFinal={match.status === "finished" && state.step === state.last}
+              tab={decisionTab}
+              onTab={setDecisionTab}
+              className="h-88 shrink-0 xl:h-[min(22rem,45%)]"
             />
-            <PointsChart outline={outline} step={state.step} onSeek={(step) => dispatch({ type: "seek", step })} />
-          </div>
-          <div ref={sideRef} className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-(--side-top) xl:self-start">
-            <DecisionCard match={match} frame={frame.data} tab={decisionTab} onTab={setDecisionTab} className="h-88 shrink-0" />
             <EventLog
               outline={outline}
               step={state.step}
               viewer={state.viewer}
               omniscient={state.omniscient}
               icons={GAMES[match.game_id]?.eventIcons ?? {}}
-              className="h-112 xl:h-auto xl:min-h-40 xl:flex-1"
+              className="h-112 xl:h-auto xl:min-h-0 xl:flex-1"
             />
           </div>
         </div>
       ) : (
         <LoadingRows />
       )}
-    </>
+    </div>
   );
 }
 

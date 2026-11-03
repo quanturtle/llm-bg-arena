@@ -2,7 +2,6 @@
 
 import { CircleAlert } from "lucide-react";
 
-import { SeatChip } from "@/components/seat";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,27 +9,14 @@ import { GAMES } from "@/games/registry";
 import type { Frame, JsonObject, MatchSummary } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+const POINTS_TAB = "points";
 const TEXT_TAB = "text";
-
-function ScoreRow({ match, frame, isFinal }: { match: MatchSummary; frame: Frame; isFinal: boolean }) {
-  return (
-    // columns of fixed width, so a score reaching two digits never rewraps the row
-    <div aria-label="Scores" className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-x-6 gap-y-1 border-t px-4 pt-3 text-sm">
-      {frame.scores.map((score) => (
-        <span key={score.player} className="flex min-w-0 items-center gap-1.5">
-          <SeatChip seat={match.seats[score.player]} className="min-w-0" />
-          <strong className="tabular-nums">{score.points}</strong>
-          {/* the rank's slot is kept during play, so the row does not rewrap at the end */}
-          <span className={cn("text-muted-foreground tabular-nums", !isFinal && "invisible")}>#{score.rank}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
+// on desktop each tab fills the panel and scrolls inside it when its content is taller
+const TAB_BODY = "min-h-0 px-4 xl:overflow-y-auto";
 
 /**
- * The board of the step on screen in tabs: the game's drawn views for the spectator, and the
- * text rendering for everyone. The chosen tab stays chosen as the steps change.
+ * The board of the step on screen in tabs: the game's drawn views for the spectator, points over
+ * time, and the text rendering. The chosen tab stays chosen as the steps change.
  */
 export function BoardPanel({
   match,
@@ -39,7 +25,8 @@ export function BoardPanel({
   layout,
   tab,
   onTab,
-  isFinal,
+  points,
+  className,
 }: {
   match: MatchSummary;
   frame: Frame;
@@ -47,23 +34,27 @@ export function BoardPanel({
   layout: JsonObject | null;
   tab: string;
   onTab: (tab: string) => void;
-  isFinal: boolean;
+  points: React.ReactNode;
+  className?: string;
 }) {
   const view = frame.boards.find((board) => board.viewer === viewer) ?? frame.boards[0];
   const game = GAMES[match.game_id];
   // drawn boards show what a spectator sees; a seat's own view is its text rendering
   const drawn = game && viewer === null && view.observation ? game.draw(view.observation, { layout, frame, match }) : null;
   const tabs = drawn?.ok ? drawn.tabs : [];
-  const shown = tab === TEXT_TAB || tabs.some((entry) => entry.id === tab) ? tab : (tabs[0]?.id ?? TEXT_TAB);
+  // a game tab chosen earlier falls back to the first one when this view has no drawn tabs
+  const ids = [...tabs.map((entry) => entry.id), POINTS_TAB, TEXT_TAB];
+  const shown = ids.includes(tab) ? tab : (tabs[0]?.id ?? TEXT_TAB);
   return (
-    <Card aria-label="Board" className="gap-3 pt-3 pb-3">
-      <Tabs value={shown} onValueChange={onTab} className="gap-3">
+    <Card aria-label="Board" className={cn("gap-3 py-3", className)}>
+      <Tabs value={shown} onValueChange={onTab} className="min-h-0 flex-1 gap-3">
         <TabsList className="mx-4">
           {tabs.map((entry) => (
             <TabsTrigger key={entry.id} value={entry.id}>
               {entry.label}
             </TabsTrigger>
           ))}
+          <TabsTrigger value={POINTS_TAB}>Points</TabsTrigger>
           <TabsTrigger value={TEXT_TAB}>Text</TabsTrigger>
         </TabsList>
         {drawn && !drawn.ok ? (
@@ -74,15 +65,17 @@ export function BoardPanel({
           </Alert>
         ) : null}
         {tabs.map((entry) => (
-          <TabsContent key={entry.id} value={entry.id} className="px-4">
+          <TabsContent key={entry.id} value={entry.id} className={TAB_BODY}>
             {entry.node}
           </TabsContent>
         ))}
-        <TabsContent value={TEXT_TAB} className="px-4">
+        <TabsContent value={POINTS_TAB} className={TAB_BODY}>
+          {points}
+        </TabsContent>
+        <TabsContent value={TEXT_TAB} className={TAB_BODY}>
           <pre className="overflow-x-auto font-mono text-xs leading-relaxed">{view.text}</pre>
         </TabsContent>
       </Tabs>
-      <ScoreRow match={match} frame={frame} isFinal={isFinal} />
     </Card>
   );
 }

@@ -62,27 +62,24 @@ export function MatchHeader({ outline, launch, live }: { outline: Outline; launc
   const meta = `seed ${match.seed} · ${config} · ${promptLabel(match.prompt_version)}`;
   const playing = launch !== null && (launch.status === "running" || launch.status === "paused");
   return (
-    <div className="mb-4 flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              <Link href={`/game?id=${encodeURIComponent(match.game_id)}`} className="hover:underline">
-                {match.game_id}
-              </Link>
-            </h1>
-            <span className="font-mono text-sm text-muted-foreground">{match.match_id}</span>
-            <StatusBadge status={shownStatus(outline, launch)} />
-            {live ? <LiveIndicator on={live === "on"} /> : null}
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p className="truncate font-mono text-xs text-muted-foreground">{meta}</p>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xl font-mono">{meta}</TooltipContent>
-          </Tooltip>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-3">
+      {/* one line: the settings truncate first, so the title and the buttons keep their places */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1 className="text-xl font-semibold tracking-tight">
+          <Link href={`/game?id=${encodeURIComponent(match.game_id)}`} className="hover:underline">
+            {match.game_id}
+          </Link>
+        </h1>
+        <span className="font-mono text-sm text-muted-foreground">{match.match_id}</span>
+        <StatusBadge status={shownStatus(outline, launch)} />
+        {live ? <LiveIndicator on={live === "on"} /> : null}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p className="min-w-0 flex-1 basis-48 truncate font-mono text-xs text-muted-foreground">{meta}</p>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xl font-mono">{meta}</TooltipContent>
+        </Tooltip>
+        <div className="ml-auto flex items-center gap-2">
           {playing ? (
             <LiveControls matchId={match.match_id} launch={launch} />
           ) : (

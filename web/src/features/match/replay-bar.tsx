@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import type { Clocks } from "@/features/match/clocks";
 import { SPEEDS, type ReplayAction, type ReplayState, type Speed } from "@/features/match/replay";
-import type { MatchSummary } from "@/lib/api";
+import type { MatchSummary, ScoreView } from "@/lib/api";
 import { formatClock, seatName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -45,8 +45,11 @@ function Transport({ state, dispatch }: { state: ReplayState; dispatch: React.Di
   );
 }
 
-/** Each seat with its clock; a pulsing dot in a slot of its own marks the players thinking. */
-function SeatClocks({ match, clocks }: { match: MatchSummary; clocks: Clocks }) {
+/**
+ * Each seat with its points at the step on screen and its clock; a pulsing dot in a slot of its
+ * own marks the players thinking.
+ */
+function SeatClocks({ match, clocks, scores }: { match: MatchSummary; clocks: Clocks; scores: ScoreView[] }) {
   const finished = match.status === "finished";
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
@@ -56,10 +59,14 @@ function SeatClocks({ match, clocks }: { match: MatchSummary; clocks: Clocks }) 
       </span>
       {match.seats.map((seat) => {
         const clock = clocks.seats[seat.player];
+        const points = scores.find((score) => score.player === seat.player)?.points;
         return (
           <span key={seat.player} className="flex min-w-0 items-center gap-2" title={`Time ${seatName(seat)} has spent on its moves`}>
             <SeatChip seat={seat} className="max-w-64" />
             {finished && seat.rank === 1 ? <WinnerBadge /> : seat.forfeited ? <ForfeitBadge /> : null}
+            <span className="w-[6ch] text-right tabular-nums" title="Points others can see at this step">
+              <strong>{points ?? ""}</strong> <span className="text-xs text-muted-foreground">pts</span>
+            </span>
             <span className={cn("w-[7ch] font-mono tabular-nums", clock.thinking ? "font-semibold text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
               {formatClock(clock.ms)}
             </span>
@@ -80,15 +87,17 @@ export function ReplayBar({
   state,
   dispatch,
   clocks,
+  scores,
 }: {
   match: MatchSummary;
   state: ReplayState;
   dispatch: React.Dispatch<ReplayAction>;
   clocks: Clocks;
+  scores: ScoreView[];
 }) {
   const digits = String(state.last).length;
   return (
-    <section aria-label="Replay controls" className="flex flex-col gap-3 rounded-xl border bg-card/95 px-4 py-3 shadow-xs backdrop-blur">
+    <section aria-label="Replay controls" className="flex flex-col gap-2 rounded-xl border bg-card/95 px-4 py-2.5 shadow-xs backdrop-blur">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Transport state={state} dispatch={dispatch} />
         <Select value={String(state.speed)} onValueChange={(value) => dispatch({ type: "setSpeed", speed: Number(value) as Speed })}>
@@ -139,7 +148,7 @@ export function ReplayBar({
           All events
         </Label>
       </div>
-      <SeatClocks match={match} clocks={clocks} />
+      <SeatClocks match={match} clocks={clocks} scores={scores} />
     </section>
   );
 }
