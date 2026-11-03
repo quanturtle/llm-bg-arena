@@ -1,4 +1,4 @@
-from itertools import pairwise, product
+from itertools import product
 
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -18,13 +18,6 @@ from boardgames.games.catan.model import (
     road_count,
 )
 from boardgames.games.catan.rules import longest_road_lengths
-from boardgames.games.k_in_a_row import (
-    FOUR_IN_A_ROW,
-    TIC_TAC_TOE,
-    KInARow,
-    KInARowConfig,
-    KInARowState,
-)
 from boardgames.games.puerto_rico import (
     PuertoRico,
     PuertoRicoConfig,
@@ -37,32 +30,27 @@ from boardgames.games.sealed_auction import (
     SealedAuctionConfig,
     SealedAuctionState,
 )
+from boardgames.games.tic_tac_toe import (
+    TicTacToe,
+    TicTacToeConfig,
+    TicTacToeState,
+)
 from tests.invariants.playthrough import random_playthrough
 
 SEEDS = st.integers(min_value=0, max_value=2**32 - 1)
-K_IN_A_ROW = KInARow()
+TIC_TAC_TOE = TicTacToe()
 AUCTION = SealedAuction()
 CATAN = Catan()
 DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
 
 
-def has_floating_mark(state: KInARowState) -> bool:
-    """Some mark sits directly above an empty cell; row 0 is the bottom."""
-    return any(
-        upper[col] is not None and lower[col] is None
-        for lower, upper in pairwise(state.board)
-        for col in range(state.config.cols)
-    )
-
-
-def has_line(state: KInARowState) -> bool:
-    """Brute force: one player owns k cells in a row, column or diagonal."""
-    rows, cols, k = state.config.rows, state.config.cols, state.config.k
-    for row, col, (d_row, d_col) in product(range(rows), range(cols), DIRECTIONS):
-        end_row, end_col = row + (k - 1) * d_row, col + (k - 1) * d_col
-        if not (0 <= end_row < rows and 0 <= end_col < cols):
+def has_line(state: TicTacToeState) -> bool:
+    """Brute force: one player owns three cells in a row, column or diagonal."""
+    for row, col, (d_row, d_col) in product(range(3), range(3), DIRECTIONS):
+        end_row, end_col = row + 2 * d_row, col + 2 * d_col
+        if not (0 <= end_row < 3 and 0 <= end_col < 3):
             continue
-        owners = {state.board[row + i * d_row][col + i * d_col] for i in range(k)}
+        owners = {state.board[row + i * d_row][col + i * d_col] for i in range(3)}
         if len(owners) == 1 and None not in owners:
             return True
     return False
@@ -71,16 +59,15 @@ def has_line(state: KInARowState) -> bool:
 PUERTO_RICO = PuertoRico()
 
 
-def check_k_in_a_row(state: KInARowState) -> None:
-    """Marks alternate, gravity holds, and the game ends at a line or a full board."""
+def check_tic_tac_toe(state: TicTacToeState) -> None:
+    """Marks alternate, and the game ends at a line or a full board."""
     cells = [cell for row in state.board for cell in row]
     x_marks = cells.count(PlayerId(0))
     o_marks = cells.count(PlayerId(1))
     assert x_marks - o_marks in (0, 1)
     assert state.to_move == PlayerId(x_marks - o_marks)
-    assert not (state.config.gravity and has_floating_mark(state))
     is_full = None not in cells
-    assert K_IN_A_ROW.is_terminal(state) == (has_line(state) or is_full)
+    assert TIC_TAC_TOE.is_terminal(state) == (has_line(state) or is_full)
     return
 
 
@@ -165,32 +152,10 @@ def check_puerto_rico(state: PuertoRicoState) -> None:
 @settings(max_examples=2000, deadline=None)
 @given(seed=SEEDS)
 def test_tic_tac_toe_random_play_keeps_invariants(seed: int) -> None:
-    state, steps = random_playthrough(K_IN_A_ROW, TIC_TAC_TOE, seed, check_k_in_a_row)
+    config = TicTacToeConfig()
+    state, steps = random_playthrough(TIC_TAC_TOE, config, seed, check_tic_tac_toe)
     assert 5 <= steps <= 9
-    assert sum(K_IN_A_ROW.scores(state).points.values()) == 1.0
-    return
-
-
-@settings(max_examples=300, deadline=None)
-@given(seed=SEEDS)
-def test_four_in_a_row_random_play_keeps_invariants(seed: int) -> None:
-    _, steps = random_playthrough(K_IN_A_ROW, FOUR_IN_A_ROW, seed, check_k_in_a_row)
-    assert 7 <= steps <= 42
-    return
-
-
-@settings(max_examples=100, deadline=None)
-@given(
-    seed=SEEDS, rows=st.integers(1, 6), cols=st.integers(1, 6), gravity=st.booleans()
-)
-def test_any_board_size_terminates(
-    seed: int, rows: int, cols: int, gravity: bool
-) -> None:
-    k = min(3, max(rows, cols))
-    if k < 2:
-        return
-    config = KInARowConfig(rows=rows, cols=cols, k=k, gravity=gravity)
-    random_playthrough(K_IN_A_ROW, config, seed, check_k_in_a_row)
+    assert sum(TIC_TAC_TOE.scores(state).points.values()) == 1.0
     return
 
 

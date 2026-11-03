@@ -9,7 +9,7 @@ from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
 
-BOT_MATCH = "game: k_in_a_row\nseats: [{agent: random}, {agent: random}]\n"
+BOT_MATCH = "game: tic_tac_toe\nseats: [{agent: random}, {agent: random}]\n"
 
 
 def test_launcher_starts_a_match_and_reports_how_it_ended(tmp_path: Path) -> None:
@@ -65,11 +65,11 @@ def test_a_stopped_match_ends_its_log_as_stopped(tmp_path: Path) -> None:
 def test_start_endpoint_offers_examples_and_rejects_bad_configs(tmp_path: Path) -> None:
     examples = tmp_path / "examples"
     examples.mkdir()
-    (examples / "ttt.yaml").write_text("game: k_in_a_row\n", encoding="utf-8")
+    (examples / "ttt.yaml").write_text("game: tic_tac_toe\n", encoding="utf-8")
     launcher = MatchLauncher(tmp_path / "runs", None, examples)
     client = TestClient(create_app(MatchStore(tmp_path / "runs"), launcher))
     assert client.get("/api/examples").json() == [
-        {"name": "ttt", "text": "game: k_in_a_row\n"}
+        {"name": "ttt", "text": "game: tic_tac_toe\n"}
     ]
     assert client.post("/api/matches", json={"yaml": "- list"}).status_code == 422
     started = client.post("/api/matches", json={"yaml": BOT_MATCH})

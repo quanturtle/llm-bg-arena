@@ -8,8 +8,8 @@ from boardgames.agents import Agent
 from boardgames.arena import cli
 from boardgames.arena.runner import play_match
 from boardgames.core import AnyGame, GameConfig
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
 from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.replay import (
     LogFormatError,
     ReplayMismatchError,
@@ -62,7 +62,7 @@ def replace_first[R: LogRecord](
 @pytest.mark.parametrize("seed", range(5))
 def test_random_matches_replay_exactly(seed: int) -> None:
     cases: list[tuple[AnyGame, GameConfig, int]] = [
-        (KInARow(), TIC_TAC_TOE, 2),
+        (TicTacToe(), TicTacToeConfig(), 2),
         (SealedAuction(), AUCTION, 3),
     ]
     for game, config, players in cases:
@@ -76,7 +76,7 @@ def test_random_matches_replay_exactly(seed: int) -> None:
 
 def test_changed_action_is_detected() -> None:
     agents = [ScriptedAgent(["a1", "b1", "c1"]), ScriptedAgent(["a2", "b2"])]
-    records = record_match(KInARow(), TIC_TAC_TOE, agents)
+    records = record_match(TicTacToe(), TicTacToeConfig(), agents)
     tampered = replace_first(records, DecisionRecord, {"action": "c3"})
     with pytest.raises(ReplayMismatchError, match="step 1: machine form of 'c3'"):
         replay_match(tampered)
@@ -147,7 +147,7 @@ def test_changed_decision_kind_or_prompt_is_detected(
 
 def test_changed_forfeit_step_is_detected() -> None:
     records = record_match(
-        KInARow(), TIC_TAC_TOE, [ScriptedAgent(["b2", "a1"]), ForfeitingAgent()]
+        TicTacToe(), TicTacToeConfig(), [ScriptedAgent(["b2", "a1"]), ForfeitingAgent()]
     )
     tampered = replace_first(records, ForfeitRecord, {"step": 5})
     with pytest.raises(ReplayMismatchError, match="forfeit at step 5 follows step 1"):
@@ -157,14 +157,14 @@ def test_changed_forfeit_step_is_detected() -> None:
 
 def test_forfeited_match_replays() -> None:
     records = record_match(
-        KInARow(), TIC_TAC_TOE, [ScriptedAgent(["b2", "a1"]), ForfeitingAgent()]
+        TicTacToe(), TicTacToeConfig(), [ScriptedAgent(["b2", "a1"]), ForfeitingAgent()]
     )
     assert replay_match(records).steps == 1
     return
 
 
 def test_log_without_finish_is_malformed() -> None:
-    records = record_match(KInARow(), TIC_TAC_TOE, random_agents(2))
+    records = record_match(TicTacToe(), TicTacToeConfig(), random_agents(2))
     with pytest.raises(LogFormatError, match="no MatchFinished"):
         replay_match(records[:-1])
     return

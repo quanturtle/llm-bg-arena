@@ -9,29 +9,27 @@ from boardgames.core import (
     create_game,
     register_game,
 )
-from boardgames.games.k_in_a_row import (
-    FOUR_IN_A_ROW,
-    TIC_TAC_TOE,
-    KInARow,
-    KInARowConfig,
-    KInARowState,
+from boardgames.games.tic_tac_toe import (
     Mark,
+    TicTacToe,
+    TicTacToeConfig,
+    TicTacToeState,
 )
 
-GAME = KInARow()
+GAME = TicTacToe()
 P1 = PlayerId(0)
 P2 = PlayerId(1)
 
 
-def play(cells: list[str], config: KInARowConfig = TIC_TAC_TOE) -> KInARowState:
+def play(cells: list[str]) -> TicTacToeState:
     """Play `cells` alternately from the start, P1 first."""
-    state = GAME.setup(config, seed=0).state
+    state = GAME.setup(TicTacToeConfig(), seed=0).state
     for index, cell in enumerate(cells):
         state = GAME.apply(state, PlayerId(index % 2), GAME.parse_action(cell)).state
     return state
 
 
-def legal_cells(state: KInARowState) -> list[str]:
+def legal_cells(state: TicTacToeState) -> list[str]:
     (decision,) = GAME.pending_decisions(state)
     listing = GAME.legal_actions(state, decision).listing(100)
     assert listing is not None
@@ -104,30 +102,17 @@ def test_moving_after_the_end_raises() -> None:
     return
 
 
-def test_gravity_only_allows_lowest_empty_cells() -> None:
-    state = play(["c1"], FOUR_IN_A_ROW)
-    assert legal_cells(state) == ["a1", "b1", "c2", "d1", "e1", "f1", "g1"]
-    return
-
-
-def test_gravity_explains_floating_cell() -> None:
-    state = play([], FOUR_IN_A_ROW)
+def test_off_board_cell_is_explained() -> None:
+    state = play([])
     (decision,) = GAME.pending_decisions(state)
     space = GAME.legal_actions(state, decision)
-    assert space.explain(Mark(3, 0)) == "With gravity, a mark in column a lands on a1."
-    return
-
-
-def test_full_column_is_not_legal() -> None:
-    config = KInARowConfig(rows=2, cols=3, k=3, gravity=True)
-    state = play(["a1", "b1", "a2"], config)
-    assert legal_cells(state) == ["b2", "c1"]
+    assert space.explain(Mark(3, 0)) == "a4 is off the board, which runs from a1 to c3."
     return
 
 
 def test_notation_round_trips_on_every_cell() -> None:
-    for row in range(FOUR_IN_A_ROW.rows):
-        for col in range(FOUR_IN_A_ROW.cols):
+    for row in range(3):
+        for col in range(3):
             mark = Mark(row, col)
             assert GAME.parse_action(GAME.format_action(mark)) == mark
     return
@@ -140,17 +125,14 @@ def test_parse_rejects_non_canonical_text(text: str) -> None:
     return
 
 
-def test_parse_config_defaults_to_tic_tac_toe() -> None:
-    assert GAME.parse_config({}) == TIC_TAC_TOE
-    assert GAME.parse_config(GAME.config_json(FOUR_IN_A_ROW)) == FOUR_IN_A_ROW
+@pytest.mark.parametrize("raw", [{}, {"num_players": 2}])
+def test_parse_config_accepts_two_players(raw: dict[str, int]) -> None:
+    assert GAME.parse_config(raw) == TicTacToeConfig()
     return
 
 
-@pytest.mark.parametrize(
-    "raw",
-    [{"k": 4}, {"num_players": 3}, {"cols": 27}, {"k": 1}],
-)
-def test_parse_config_rejects_unplayable_boards(raw: dict[str, int]) -> None:
+@pytest.mark.parametrize("raw", [{"num_players": 3}, {"rows": 4}, {"gravity": True}])
+def test_parse_config_rejects_other_options(raw: dict[str, int]) -> None:
     with pytest.raises(ConfigError):
         GAME.parse_config(raw)
     return
@@ -167,15 +149,8 @@ def test_render_text_shows_grid_and_legend() -> None:
     return
 
 
-def test_describe_action_with_gravity_names_the_landing_cell() -> None:
-    observation = GAME.observe(play([], FOUR_IN_A_ROW), P1)
-    description = GAME.describe_action(observation, Mark(0, 3))
-    assert description == "Drop X into column d; it lands on d1"
-    return
-
-
 def test_registered_under_its_id() -> None:
-    assert isinstance(create_game("k_in_a_row"), KInARow)
+    assert isinstance(create_game("tic_tac_toe"), TicTacToe)
     with pytest.raises(DuplicateGameError):
-        register_game(KInARow)
+        register_game(TicTacToe)
     return

@@ -88,7 +88,7 @@ def test_seat_values_override_file_defaults() -> None:
 
 def test_seat_null_takes_the_built_in_default_over_the_file_default() -> None:
     raw = {
-        "game": "k_in_a_row",
+        "game": "tic_tac_toe",
         "llm": {"max_tokens": 512, "reasoning_effort": "high"},
         "seats": [
             {
@@ -144,7 +144,7 @@ def test_file_that_is_not_a_mapping_is_a_config_error(tmp_path: Path) -> None:
 
 
 def test_seats_default_to_the_default_model_and_counts_must_match() -> None:
-    seats = seats_for(MatchConfig(game="k_in_a_row"), 2)
+    seats = seats_for(MatchConfig(game="tic_tac_toe"), 2)
     assert seats == [LlmSeat(), LlmSeat()]
     options = merged_options(LlmSeat(), LlmDefaults())
     assert llm_agent_settings(LlmSeat(), options, 1).model.model == DEFAULT_MODEL

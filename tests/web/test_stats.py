@@ -1,7 +1,7 @@
 import pytest
 
 from boardgames.agents import Agent
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
+from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.web.stats import agent_detail, leaderboard
 from boardgames.web.store import MatchSummary, summarize
 from tests.arena.support import ScriptedAgent
@@ -21,12 +21,12 @@ def scripted_match(
         CostlyAgent(ScriptedAgent(x_moves), "x-model", 0.01),
         o_player,
     ]
-    return summarize(play_records(KInARow(), TIC_TAC_TOE, agents, 0, match_id))
+    return summarize(play_records(TicTacToe(), TicTacToeConfig(), agents, 0, match_id))
 
 
 def test_leaderboard_counts_wins_usage_and_elo() -> None:
     matches = [scripted_match("w", *X_WINS), scripted_match("d", *DRAW)]
-    board = leaderboard(matches, "k_in_a_row")
+    board = leaderboard(matches, "tic_tac_toe")
     rows = {row.agent: row for row in board.rows}
     assert board.finished_matches == 2
     assert [row.agent for row in board.rows] == ["x-model", "o-model"]
@@ -40,14 +40,14 @@ def test_leaderboard_counts_wins_usage_and_elo() -> None:
 
 
 def test_bots_get_no_leaderboard_row() -> None:
-    board = leaderboard([scripted_match("w", *X_WINS, o_is_bot=True)], "k_in_a_row")
+    board = leaderboard([scripted_match("w", *X_WINS, o_is_bot=True)], "tic_tac_toe")
     assert [row.agent for row in board.rows] == ["x-model"]
     return
 
 
 def test_agent_detail_has_per_game_rows_and_head_to_head() -> None:
     detail = agent_detail([scripted_match("w", *X_WINS)], "x-model")
-    assert [row.game_id for row in detail.games] == ["k_in_a_row"]
+    assert [row.game_id for row in detail.games] == ["tic_tac_toe"]
     assert detail.overall is not None and detail.overall.matches == 1
     assert detail.opponents[0].model_dump() == {
         "opponent": "o-model",

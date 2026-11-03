@@ -21,8 +21,8 @@ def test_system_message_has_seat_rules_and_tool_instructions() -> None:
     prompt = build_prompt(tic_tac_toe_request(["a1"]), "", SETTINGS)
     system = prompt.messages[0]
     assert system.role == "system"
-    assert system.content.startswith("You are P2, a player in a game of k_in_a_row.")
-    assert "# Rules\n# k-in-a-row" in system.content
+    assert system.content.startswith("You are P2, a player in a game of tic_tac_toe.")
+    assert "# Rules\n# Tic-tac-toe" in system.content
     assert "calling the submit_action tool" in system.content
     return
 

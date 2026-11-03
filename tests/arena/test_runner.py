@@ -16,8 +16,8 @@ from boardgames.arena.runner import (
     play_match,
 )
 from boardgames.core import AnyGame, ConfigError, GameConfig, PlayerId
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
 from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import (
     DecisionRecord,
@@ -64,7 +64,7 @@ def run(
 
 def test_random_match_logs_start_steps_and_finish() -> None:
     sink = MemorySink()
-    result = run(KInARow(), TIC_TAC_TOE, random_agents(2), sink)
+    result = run(TicTacToe(), TicTacToeConfig(), random_agents(2), sink)
     records = sink.records
     decisions = [r for r in records if isinstance(r, DecisionRecord)]
     assert isinstance(records[0], MatchStarted)
@@ -77,7 +77,7 @@ def test_random_match_logs_start_steps_and_finish() -> None:
 
 def test_scripted_win_ranks_the_winner_first() -> None:
     agents = [ScriptedAgent(["a1", "b1", "c1"]), ScriptedAgent(["a2", "b2"])]
-    result = run(KInARow(), TIC_TAC_TOE, agents)
+    result = run(TicTacToe(), TicTacToeConfig(), agents)
     assert result.steps == 5
     assert result.ranks == {P1: 1, P2: 2}
     assert result.forfeited == ()
@@ -109,7 +109,7 @@ def test_recent_events_hold_only_what_the_player_may_see() -> None:
 def test_forfeit_ends_the_match_and_ranks_the_forfeiter_last() -> None:
     sink = MemorySink()
     result = run(
-        KInARow(), TIC_TAC_TOE, [ScriptedAgent(["b2"]), ForfeitingAgent()], sink
+        TicTacToe(), TicTacToeConfig(), [ScriptedAgent(["b2"]), ForfeitingAgent()], sink
     )
     assert result.forfeited == (P2,)
     assert result.ranks == {P1: 1, P2: 2}
@@ -122,19 +122,24 @@ def test_forfeit_ends_the_match_and_ranks_the_forfeiter_last() -> None:
 def test_illegal_choice_is_an_agent_contract_error() -> None:
     agents: list[Agent] = [ScriptedAgent(["b2"]), FixedAgent("b2")]
     with pytest.raises(AgentContractError, match="illegal 'b2'"):
-        run(KInARow(), TIC_TAC_TOE, agents)
+        run(TicTacToe(), TicTacToeConfig(), agents)
     return
 
 
 def test_step_limit_stops_a_long_match() -> None:
     with pytest.raises(StepLimitError):
-        run(KInARow(), TIC_TAC_TOE, random_agents(2), limits=MatchLimits(max_steps=3))
+        run(
+            TicTacToe(),
+            TicTacToeConfig(),
+            random_agents(2),
+            limits=MatchLimits(max_steps=3),
+        )
     return
 
 
 def test_seat_count_must_match_agent_count() -> None:
     with pytest.raises(ConfigError, match="2 seats but 3 agents"):
-        run(KInARow(), TIC_TAC_TOE, random_agents(3))
+        run(TicTacToe(), TicTacToeConfig(), random_agents(3))
     return
 
 
@@ -153,7 +158,7 @@ def test_private_events_keep_their_audience_in_the_log() -> None:
 def test_jsonl_file_writes_one_json_object_per_line(tmp_path: Path) -> None:
     path = tmp_path / "logs" / "match.jsonl"
     with JsonlFile(path) as log_file:
-        run(KInARow(), TIC_TAC_TOE, random_agents(2), log_file)
+        run(TicTacToe(), TicTacToeConfig(), random_agents(2), log_file)
     lines = path.read_text().splitlines()
     assert json.loads(lines[0])["type"] == "match_started"
     assert json.loads(lines[-1])["type"] == "match_finished"
@@ -169,8 +174,8 @@ def test_a_paused_match_waits_and_a_cancelled_one_logs_its_stop() -> None:
 
     async def pause_then_cancel() -> None:
         match = play_match(
-            KInARow(),
-            TIC_TAC_TOE,
+            TicTacToe(),
+            TicTacToeConfig(),
             7,
             random_agents(2),
             match_id="test",

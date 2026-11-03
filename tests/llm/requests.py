@@ -4,8 +4,8 @@ from typing import Any
 
 from boardgames.agents import DecisionRequest
 from boardgames.core import AnyGame, Event, GameConfig
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
 from boardgames.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
+from boardgames.games.tic_tac_toe import Mark, TicTacToe, TicTacToeConfig
 
 
 def request_at(
@@ -37,7 +37,7 @@ def request_at(
 def tic_tac_toe_request(
     moves: list[str], events: tuple[Event, ...] = ()
 ) -> DecisionRequest[Mark]:
-    return request_at(KInARow(), TIC_TAC_TOE, moves, events)
+    return request_at(TicTacToe(), TicTacToeConfig(), moves, events)
 
 
 def auction_request(coins: int = 10) -> DecisionRequest[Bid]:

@@ -2,8 +2,8 @@ import asyncio
 
 import pytest
 
-from boardgames.games.k_in_a_row import Mark
 from boardgames.games.sealed_auction import Bid
+from boardgames.games.tic_tac_toe import Mark
 from boardgames.llm.model import ModelSettings
 from boardgames.llm.parsing import (
     ActionExtractor,

@@ -8,11 +8,11 @@ from boardgames.core import (
     Observation,
     PlayerId,
 )
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
 from boardgames.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
+from boardgames.games.tic_tac_toe import Mark, TicTacToe, TicTacToeConfig
 from tests.core.test_actions import Move, Pass, Step, StepSpace, step_notation
 
-TIC_TAC_TOE_GAME = KInARow()
+TIC_TAC_TOE_GAME = TicTacToe()
 
 
 class StepText:
@@ -45,7 +45,7 @@ def step_request(space: ActionSpace[Step]) -> DecisionRequest[Step]:
 
 
 def tic_tac_toe_request() -> DecisionRequest[Mark]:
-    state = TIC_TAC_TOE_GAME.setup(TIC_TAC_TOE, 0).state
+    state = TIC_TAC_TOE_GAME.setup(TicTacToeConfig(), 0).state
     (decision,) = TIC_TAC_TOE_GAME.pending_decisions(state)
     observation = TIC_TAC_TOE_GAME.observe(state, decision.player)
     return DecisionRequest(

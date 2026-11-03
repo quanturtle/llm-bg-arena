@@ -17,7 +17,7 @@ def test_thoughts_log_writes_reasoning_tool_calls_and_notes_per_decision() -> No
     log.write(
         MatchStarted(
             match_id="m",
-            game_id="k_in_a_row",
+            game_id="tic_tac_toe",
             config={},
             seed=3,
             seats=[

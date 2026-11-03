@@ -13,7 +13,7 @@ from boardgames.agents import (
 )
 from boardgames.arena.runner import play_match
 from boardgames.core import AnyGame, GameConfig, JsonValue
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
+from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.schema import LogRecord, MatchFinished
 from boardgames.logs.sink import JsonlFile
 from tests.arena.support import FakeClock, MemorySink, random_agents
@@ -86,8 +86,8 @@ def write_match(
     config: GameConfig | None = None,
 ) -> list[LogRecord]:
     """Play one tic-tac-toe match (by default) and write its log to `directory`."""
-    game = game or KInARow()
-    config = config or TIC_TAC_TOE
+    game = game or TicTacToe()
+    config = config or TicTacToeConfig()
     records = play_records(
         game, config, agents or random_agents(config.num_players), seed, match_id
     )

@@ -1,5 +1,5 @@
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
 from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.schema import DecisionRecord
 from boardgames.web.timeline import build_timeline, outline
 from tests.arena.support import ForfeitingAgent, random_agents
@@ -7,7 +7,7 @@ from tests.web.support import costly_agents, play_records
 
 
 def test_one_frame_per_step_with_boards_and_the_decision() -> None:
-    records = play_records(KInARow(), TIC_TAC_TOE, costly_agents(2), 3, "m")
+    records = play_records(TicTacToe(), TicTacToeConfig(), costly_agents(2), 3, "m")
     first_move = next(r for r in records if isinstance(r, DecisionRecord))
     timeline = build_timeline(records)
     frame = timeline.frames[1]
@@ -20,7 +20,7 @@ def test_one_frame_per_step_with_boards_and_the_decision() -> None:
 
 
 def test_a_running_log_cut_after_a_decision_drops_that_step() -> None:
-    records = play_records(KInARow(), TIC_TAC_TOE, random_agents(2), 3, "m")
+    records = play_records(TicTacToe(), TicTacToeConfig(), random_agents(2), 3, "m")
     third = next(
         i for i, r in enumerate(records) if r.type == "decision" and r.step == 3
     )
@@ -31,7 +31,7 @@ def test_a_running_log_cut_after_a_decision_drops_that_step() -> None:
 
 
 def test_an_ended_log_that_diverges_shows_its_steps_up_to_there() -> None:
-    records = play_records(KInARow(), TIC_TAC_TOE, random_agents(2), 3, "m")
+    records = play_records(TicTacToe(), TicTacToeConfig(), random_agents(2), 3, "m")
     first = next(r for r in records if isinstance(r, DecisionRecord))
     diverged = [
         r.model_copy(update={"action": first.action})

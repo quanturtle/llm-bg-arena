@@ -7,8 +7,8 @@ import pytest
 from boardgames.agents import AgentChoice, Chosen, DecisionRequest, Forfeited
 from boardgames.agents.llm_agent import LlmAgent, LlmAgentSettings
 from boardgames.arena.runner import play_match
-from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
 from boardgames.games.sealed_auction import Bid
+from boardgames.games.tic_tac_toe import Mark, TicTacToe, TicTacToeConfig
 from boardgames.llm.model import (
     Completion,
     ModelSettings,
@@ -180,8 +180,8 @@ def test_llm_match_is_logged_and_replays() -> None:
     sink = MemorySink()
     asyncio.run(
         play_match(
-            KInARow(),
-            TIC_TAC_TOE,
+            TicTacToe(),
+            TicTacToeConfig(),
             4,
             [llm, opponent],
             match_id="m",

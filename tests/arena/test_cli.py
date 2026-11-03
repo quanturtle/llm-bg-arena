@@ -33,7 +33,7 @@ def test_existing_log_path_is_one_error_line(
 ) -> None:
     log = tmp_path / "match.jsonl"
     log.write_text("kept\n", encoding="utf-8")
-    config = write_config(tmp_path, f"game: k_in_a_row\nlog: {log}\n{BOTS}")
+    config = write_config(tmp_path, f"game: tic_tac_toe\nlog: {log}\n{BOTS}")
     assert error_lines(["play", str(config)], capsys) == [
         f"error: {log} already exists; logs are never overwritten"
     ]
@@ -65,10 +65,10 @@ def test_play_runs_the_configured_match_and_writes_its_log(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     log = tmp_path / "match.jsonl"
-    config = write_config(tmp_path, f"game: k_in_a_row\nseed: 3\nlog: {log}\n{BOTS}")
+    config = write_config(tmp_path, f"game: tic_tac_toe\nseed: 3\nlog: {log}\n{BOTS}")
     cli.run_command(cli.parse_arguments(["play", str(config)]))
     output = capsys.readouterr().out
-    assert "k_in_a_row (seed 3): P1 random, P2 random" in output
+    assert "tic_tac_toe (seed 3): P1 random, P2 random" in output
     assert "Ranks:" in output
     assert log.exists()
     return
@@ -77,12 +77,12 @@ def test_play_runs_the_configured_match_and_writes_its_log(
 def test_seed_and_log_flags_override_the_file(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    config = write_config(tmp_path, f"game: k_in_a_row\nseed: 3\n{BOTS}")
+    config = write_config(tmp_path, f"game: tic_tac_toe\nseed: 3\n{BOTS}")
     log = tmp_path / "override.jsonl"
     cli.run_command(
         cli.parse_arguments(["play", str(config), "--seed", "5", "--log", str(log)])
     )
-    assert "k_in_a_row (seed 5)" in capsys.readouterr().out
+    assert "tic_tac_toe (seed 5)" in capsys.readouterr().out
     assert log.exists()
     return
 
@@ -127,7 +127,7 @@ def test_reasoning_conflict_is_reported_before_the_key_check(
     monkeypatch.delenv(API_KEY_VARIABLE, raising=False)
     config = write_config(
         tmp_path,
-        "game: k_in_a_row\nllm: {reasoning_effort: high}\nseats:\n"
+        "game: tic_tac_toe\nllm: {reasoning_effort: high}\nseats:\n"
         "  - {agent: random}\n"
         "  - {agent: llm, model: openai/gpt-x, thinking_budget_tokens: 2048}\n",
     )
@@ -145,7 +145,7 @@ def test_llm_seat_without_a_key_exits_with_status_1(
     monkeypatch.chdir(tmp_path)
     config = write_config(
         tmp_path,
-        "game: k_in_a_row\nseats:\n  - {agent: llm, model: openai/gpt-x}\n"
+        "game: tic_tac_toe\nseats:\n  - {agent: llm, model: openai/gpt-x}\n"
         "  - {agent: random}\n",
     )
     with pytest.raises(SystemExit) as exit_info:
@@ -161,8 +161,8 @@ def test_games_lists_registered_ids(capsys: pytest.CaptureFixture[str]) -> None:
     cli.run_command(cli.parse_arguments(["games"]))
     assert capsys.readouterr().out.split() == [
         "catan",
-        "k_in_a_row",
         "puerto_rico",
         "sealed_auction",
+        "tic_tac_toe",
     ]
     return

@@ -23,10 +23,10 @@ window.boards = window.boards || {};
     return String.fromCharCode(97 + col) + (row + 1);
   }
 
-  // k-in-a-row: `board` lists rows top first; row 1 is the bottom line.
-  function renderKInARow(observation, context) {
-    const rows = observation.rows;
-    const cols = observation.cols;
+  // Tic-tac-toe: `board` lists rows top first; row 1 is the bottom line.
+  function renderTicTacToe(observation, context) {
+    const rows = observation.board.length;
+    const cols = observation.board[0].length;
     const winning = new Set(observation.line || []);
     const marked = (context.lastEvents || []).find((e) => e.kind === "marked");
     const last = marked ? marked.data.cell : null;
@@ -97,6 +97,6 @@ window.boards = window.boards || {};
     return h("div", { class: "auction stack" }, head, table);
   }
 
-  window.boards.k_in_a_row = renderKInARow;
+  window.boards.tic_tac_toe = renderTicTacToe;
   window.boards.sealed_auction = renderAuction;
 })();

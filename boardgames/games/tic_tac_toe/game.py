@@ -1,7 +1,6 @@
-"""k-in-a-row: players alternate marking cells; k marks in a straight line wins.
+"""Tic-tac-toe: two players alternate marking cells of a 3x3 board.
 
-Tic-tac-toe is 3 in a row on 3x3. With gravity on, a mark falls to the lowest
-empty cell of its column, as in four-in-a-row on 6 rows by 7 columns.
+Three marks in a straight line win; a full board with no line is a draw.
 """
 
 import re
@@ -41,24 +40,17 @@ from boardgames.core.records import (
 
 MARKS = ("X", "O")
 EMPTY = "."
-MAX_SIDE = 26
+SIZE = 3
+HEADER = "Three in a row wins on a 3x3 board."
 DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
 CELL_PATTERN = re.compile(r"([a-z])([1-9][0-9]*)")
 
 
 @dataclass(frozen=True)
-class KInARowConfig:
-    """A `rows` x `cols` board where `k` in a line wins; `gravity` drops marks down."""
+class TicTacToeConfig:
+    """Tic-tac-toe has no options; `num_players` is always 2."""
 
     num_players: int = 2
-    rows: int = 3
-    cols: int = 3
-    k: int = 3
-    gravity: bool = False
-
-
-TIC_TAC_TOE = KInARowConfig()
-FOUR_IN_A_ROW = KInARowConfig(rows=6, cols=7, k=4, gravity=True)
 
 
 @dataclass(frozen=True)
@@ -85,55 +77,48 @@ type Board = tuple[tuple[PlayerId | None, ...], ...]
 
 
 @dataclass(frozen=True)
-class KInARowState:
+class TicTacToeState:
     """`board[row][col]` is the owner of a cell or None; row 0 is the bottom."""
 
-    config: KInARowConfig
     board: Board
     to_move: PlayerId
     outcome: Outcome | None = None
 
 
 @register_game
-class KInARow:
-    """k-in-a-row for two players, with optional gravity."""
+class TicTacToe:
+    """Tic-tac-toe for two players on a 3x3 board."""
 
-    id: ClassVar[str] = "k_in_a_row"
+    id: ClassVar[str] = "tic_tac_toe"
 
-    def parse_config(self, raw: JsonObject) -> KInARowConfig:
-        config = dataclass_from_json(KInARowConfig, raw)
+    def parse_config(self, raw: JsonObject) -> TicTacToeConfig:
+        config = dataclass_from_json(TicTacToeConfig, raw)
         check_config(config)
         return config
 
-    def config_json(self, config: KInARowConfig) -> dict[str, JsonValue]:
+    def config_json(self, config: TicTacToeConfig) -> dict[str, JsonValue]:
         return to_json_object(config)
 
-    def setup(self, config: KInARowConfig, seed: int) -> Transition[KInARowState]:
-        board: Board = tuple((None,) * config.cols for _ in range(config.rows))
-        text = f"{config.k} in a row on {config.rows}x{config.cols}"
-        if config.gravity:
-            text += ", with gravity"
-        started = Event("started", f"New game: {text}.", to_json_object(config))
-        return Transition(KInARowState(config, board, PlayerId(0)), (started,))
+    def setup(self, config: TicTacToeConfig, seed: int) -> Transition[TicTacToeState]:
+        board: Board = ((None,) * SIZE,) * SIZE
+        started = Event("started", "New game of tic-tac-toe.", to_json_object(config))
+        return Transition(TicTacToeState(board, PlayerId(0)), (started,))
 
-    def pending_decisions(self, state: KInARowState) -> tuple[Decision, ...]:
+    def pending_decisions(self, state: TicTacToeState) -> tuple[Decision, ...]:
         if state.outcome is not None:
             return ()
-        prompt = "Choose an empty cell to mark."
-        if state.config.gravity:
-            prompt = "Choose a column by naming its lowest empty cell."
-        return (Decision(state.to_move, "mark", prompt),)
+        return (Decision(state.to_move, "mark", "Choose an empty cell to mark."),)
 
     def legal_actions(
-        self, state: KInARowState, decision: Decision
+        self, state: TicTacToeState, decision: Decision
     ) -> ActionSpace[Mark]:
         return FlatActionSpace(
             open_cells(state), cell_name, explain=partial(explain_mark, state)
         )
 
     def apply(
-        self, state: KInARowState, player: PlayerId, action: Mark
-    ) -> Transition[KInARowState]:
+        self, state: TicTacToeState, player: PlayerId, action: Mark
+    ) -> Transition[TicTacToeState]:
         check_move(state, player, action)
         board = with_mark(state.board, action, player)
         cell = cell_name(action)
@@ -144,7 +129,7 @@ class KInARow:
                 {"player": player, "cell": cell},
             )
         ]
-        outcome = outcome_after(state.config, board, action, player)
+        outcome = outcome_after(board, action, player)
         if isinstance(outcome, Won):
             line = [cell_name(mark) for mark in outcome.line]
             events.append(
@@ -157,14 +142,12 @@ class KInARow:
         elif isinstance(outcome, Drawn):
             events.append(Event("drawn", "The board is full with no line: draw."))
         next_player = PlayerId(1 - player)
-        return Transition(
-            KInARowState(state.config, board, next_player, outcome), tuple(events)
-        )
+        return Transition(TicTacToeState(board, next_player, outcome), tuple(events))
 
-    def is_terminal(self, state: KInARowState) -> bool:
+    def is_terminal(self, state: TicTacToeState) -> bool:
         return state.outcome is not None
 
-    def scores(self, state: KInARowState) -> Scores:
+    def scores(self, state: TicTacToeState) -> Scores:
         players = (PlayerId(0), PlayerId(1))
         if isinstance(state.outcome, Won):
             winner = state.outcome.player
@@ -173,16 +156,12 @@ class KInARow:
             return Scores({p: 0.5 for p in players})
         return Scores({p: 0.0 for p in players})
 
-    def observe(self, state: KInARowState, viewer: PlayerId | None) -> Observation:
+    def observe(self, state: TicTacToeState, viewer: PlayerId | None) -> Observation:
         winner = state.outcome.player if isinstance(state.outcome, Won) else None
         line = state.outcome.line if isinstance(state.outcome, Won) else ()
         return Observation(
             viewer,
             {
-                "rows": state.config.rows,
-                "cols": state.config.cols,
-                "k": state.config.k,
-                "gravity": state.config.gravity,
                 "board": board_lines(state.board),
                 "to_move": state.to_move if state.outcome is None else None,
                 "winner": winner,
@@ -193,10 +172,10 @@ class KInARow:
 
     def render_text(self, observation: Observation) -> str:
         data = observation.data
-        lines = [header_line(data), *seat_lines(observation.viewer)]
+        lines = [HEADER, *seat_lines(observation.viewer)]
         lines.append(status_line(data))
         lines.append("")
-        lines.extend(grid_lines(json_str_list(data, "board"), json_int(data, "cols")))
+        lines.extend(grid_lines(json_str_list(data, "board")))
         lines.append("")
         lines.append(
             "Legend: X = P1, O = P2, . = empty. A cell is column letter + row "
@@ -205,7 +184,7 @@ class KInARow:
         return "\n".join(lines)
 
     def rules_text(self) -> str:
-        rules = files("boardgames.games.k_in_a_row") / "rules.md"
+        rules = files("boardgames.games.tic_tac_toe") / "rules.md"
         return rules.read_text(encoding="utf-8")
 
     def format_action(self, action: Mark) -> str:
@@ -221,49 +200,27 @@ class KInARow:
     def describe_action(self, observation: Observation, action: Mark) -> str:
         viewer = observation.viewer
         mark = "a mark" if viewer is None else MARKS[viewer]
-        if json_bool(observation.data, "gravity"):
-            column = cell_name(action)[0]
-            return f"Drop {mark} into column {column}; it lands on {cell_name(action)}"
         return f"Place {mark} on {cell_name(action)}"
 
     def action_json(self, action: Mark) -> dict[str, JsonValue]:
         return tagged_json_object(action)
 
 
-def check_config(config: KInARowConfig) -> None:
-    """Raise ConfigError for a config that cannot produce a playable game."""
+def check_config(config: TicTacToeConfig) -> None:
+    """Raise ConfigError unless the config seats exactly two players."""
     if config.num_players != 2:
-        raise ConfigError(f"k-in-a-row needs 2 players, got {config.num_players}")
-    if not (1 <= config.rows <= MAX_SIDE and 1 <= config.cols <= MAX_SIDE):
-        raise ConfigError(f"rows and cols must be between 1 and {MAX_SIDE}")
-    if not 2 <= config.k <= max(config.rows, config.cols):
-        raise ConfigError(f"k must be between 2 and the longer side, got {config.k}")
+        raise ConfigError(f"tic-tac-toe needs 2 players, got {config.num_players}")
     return
 
 
-def open_cells(state: KInARowState) -> list[Mark]:
-    """Legal cells: top row first, or with gravity the lowest empty cell per column."""
-    board = state.board
-    if state.config.gravity:
-        return [
-            Mark(lowest, col)
-            for col in range(state.config.cols)
-            if (lowest := lowest_empty_row(board, col)) is not None
-        ]
+def open_cells(state: TicTacToeState) -> list[Mark]:
+    """Empty cells, top row first."""
     return [
         Mark(row, col)
-        for row in reversed(range(state.config.rows))
-        for col in range(state.config.cols)
-        if board[row][col] is None
+        for row in reversed(range(SIZE))
+        for col in range(SIZE)
+        if state.board[row][col] is None
     ]
-
-
-def lowest_empty_row(board: Board, col: int) -> int | None:
-    """Index of the lowest empty cell in a column, or None if the column is full."""
-    for row, cells in enumerate(board):
-        if cells[col] is None:
-            return row
-    return None
 
 
 def cell_name(mark: Mark) -> str:
@@ -271,26 +228,20 @@ def cell_name(mark: Mark) -> str:
     return f"{chr(ord('a') + mark.col)}{mark.row + 1}"
 
 
-def explain_mark(state: KInARowState, mark: Mark) -> str:
+def explain_mark(state: TicTacToeState, mark: Mark) -> str:
     """Why marking this cell is illegal now."""
-    config = state.config
     cell = cell_name(mark)
     if state.outcome is not None:
         return "The game is over."
-    if not (0 <= mark.row < config.rows and 0 <= mark.col < config.cols):
-        last = cell_name(Mark(config.rows - 1, config.cols - 1))
-        return f"{cell} is off the board, which runs from a1 to {last}."
+    if not (0 <= mark.row < SIZE and 0 <= mark.col < SIZE):
+        return f"{cell} is off the board, which runs from a1 to c3."
     owner = state.board[mark.row][mark.col]
     if owner is not None:
         return f"{cell} is already taken by {MARKS[owner]}."
-    lowest = lowest_empty_row(state.board, mark.col)
-    if config.gravity and lowest is not None and lowest != mark.row:
-        lowest_cell = cell_name(Mark(lowest, mark.col))
-        return f"With gravity, a mark in column {cell[0]} lands on {lowest_cell}."
     return f"{cell} is not a legal cell now."
 
 
-def check_move(state: KInARowState, player: PlayerId, mark: Mark) -> None:
+def check_move(state: TicTacToeState, player: PlayerId, mark: Mark) -> None:
     """Raise IllegalActionError unless `player` may mark this cell now."""
     if state.outcome is not None:
         raise IllegalActionError("the game is over")
@@ -313,13 +264,11 @@ def player_name(player: PlayerId) -> str:
     return f"{seat_label(player)} ({MARKS[player]})"
 
 
-def outcome_after(
-    config: KInARowConfig, board: Board, mark: Mark, player: PlayerId
-) -> Outcome | None:
-    """Won if `mark` completes a line of k, Drawn if the board is full, else None."""
+def outcome_after(board: Board, mark: Mark, player: PlayerId) -> Outcome | None:
+    """Won if `mark` completes a line, Drawn if the board is full, else None."""
     for direction in DIRECTIONS:
         line = line_through(board, mark, player, direction)
-        if len(line) >= config.k:
+        if len(line) == SIZE:
             return Won(player, line)
     if all(cell is not None for row in board for cell in row):
         return Drawn()
@@ -357,17 +306,6 @@ def board_lines(board: Board) -> list[str]:
     ]
 
 
-def header_line(data: JsonObject) -> str:
-    """Board size, k and gravity."""
-    text = (
-        f"{json_int(data, 'k')} in a row wins on a "
-        f"{json_int(data, 'rows')}x{json_int(data, 'cols')} board"
-    )
-    if json_bool(data, "gravity"):
-        text += "; gravity is on"
-    return f"{text}."
-
-
 def seat_lines(viewer: PlayerId | None) -> list[str]:
     """Which mark the viewer plays; nothing for a spectator."""
     if viewer is None:
@@ -386,9 +324,9 @@ def status_line(data: JsonObject) -> str:
     return f"{player_name(PlayerId(json_int(data, 'to_move')))} to move."
 
 
-def grid_lines(rows: list[str], cols: int) -> list[str]:
+def grid_lines(rows: list[str]) -> list[str]:
     """The board with column letters on top and row numbers on the left."""
-    letters = " ".join(chr(ord("a") + col) for col in range(cols))
+    letters = " ".join(chr(ord("a") + col) for col in range(SIZE))
     lines = [f"   {letters}"]
     for index, row in enumerate(rows):
         number = len(rows) - index

@@ -192,7 +192,7 @@ tr.link:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent)
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; }
 
-/* k-in-a-row board */
+/* tic-tac-toe board */
 .grid-board { display: inline-grid; gap: 3px; }
 .grid-board .cell {
   width: 38px; height: 38px;
