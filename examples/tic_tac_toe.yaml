@@ -1,3 +1,3 @@
 # Two random bots at tic-tac-toe. No seats listed means every seat is random.
-game: k_in_a_row
+game: tic_tac_toe
 seed: 7

@@ -8,9 +8,9 @@ Each game's rules are written once in Python. Two kinds of player can then take 
 
 Early. Three games ship today:
 
-- **k-in-a-row**: tic-tac-toe by default, plus four-in-a-row and other board sizes.
-- **Sealed auction**: 2 to 4 players bid coins in secret for lots, with a secret scoring color each.
+- **Tic-tac-toe**: two players on a 3x3 board; three in a row wins.
 - **Catan**: the standard 19-hex base game for 3 or 4 players, with settlements, cities, roads, harbours, trading, the robber and development cards.
+- **Puerto Rico**: the standard base game for 3 to 5 players, with roles, plantations, buildings, colonists, trading and shipping.
 
 Tournaments, ratings and a web replay viewer come next.
 
@@ -32,11 +32,11 @@ A match is described by a YAML file: the game, its config, and who sits at each 
 uv run arena play examples/tic_tac_toe.yaml
 ```
 
-Language models need an OpenRouter key. Create a file named `.env` in the project folder with one line, `OPENROUTER_API_KEY=<your-key>`, then seat them in the file:
+Language models need an OpenRouter key. Create a file named `.env` in the project folder with one line, `OPENROUTER_API_KEY=<your-key>`, then seat them in a file such as `match.yaml`:
 
 ```yaml
-game: sealed_auction
-config: {num_players: 3}
+game: puerto_rico
+config: {num_players: 3, max_rounds: 5}
 llm:                       # defaults for every llm seat
   temperature: 0.2
   cache: true
@@ -51,12 +51,10 @@ seats:
 ```
 
 ```sh
-uv run arena play examples/auction_llms.yaml
+uv run arena play match.yaml
 ```
 
-The example file is this config plus a fixed seed, `output_mode: tools`, seat labels, a `thinking_budget_tokens` for the second model, and some built-in defaults written out.
-
-Any OpenRouter model id works. Under `llm` or per seat you can set `temperature`, `top_p`, `max_tokens`, `reasoning_effort` or `thinking_budget_tokens`, `timeout_seconds`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. Leave `seats` out to seat random bots everywhere. `--seed` and `--log` override the file. The files in `examples/` cover four-in-a-row, the auction and a short three-player Catan game.
+Any OpenRouter model id works. Under `llm` or per seat you can set `temperature`, `top_p`, `max_tokens`, `reasoning_effort` or `thinking_budget_tokens`, `timeout_seconds`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. Leave `seats` out to seat random bots everywhere. `--seed` and `--log` override the file. The files in `examples/` cover tic-tac-toe and short three-player Catan and Puerto Rico games, all between random bots.
 
 Puerto Rico follows the role-selection cycle: the governor chooses first, every role's action phase runs immediately, and unchosen roles gain a doubloon at round end. `victory_point_supply` can lower the standard 75/100/122 chip supply for short games, and `max_rounds` adds a round limit. The full notation, buildings and scoring are in `boardgames/games/puerto_rico/rules.md`.
 
@@ -68,13 +66,18 @@ Every match writes two files to `runs/`: a JSONL log, and next to it a `.thought
 
 ```console
 $ uv run arena play examples/tic_tac_toe.yaml --log runs/demo.jsonl
-k_in_a_row (seed 7): P1 random, P2 random
-    New game: 3 in a row on 3x3.
+tic_tac_toe (seed 7): P1 random, P2 random
+    New game of tic-tac-toe.
 [1] P1 random: a2
     P1 (X) marked a2.
 [2] P2 random: a3
     P2 (O) marked a3.
-...
+[3] P1 random: b1
+    P1 (X) marked b1.
+[4] P2 random: b3
+    P2 (O) marked b3.
+[5] P1 random: b2
+    P1 (X) marked b2.
 [6] P2 random: c3
     P2 (O) marked c3.
     P2 (O) completed a line: a3 b3 c3.
@@ -83,9 +86,10 @@ Finished after 6 steps.
   #2 P1 random: 0 points
 Ranks: P1 #2, P2 #1
 Log: runs/demo.jsonl
+Thoughts: runs/demo.thoughts.md
 
 $ uv run arena replay runs/demo.jsonl
-Replay matches the log: k_in_a_row, 6 steps, 8 events.
+Replay matches the log: tic_tac_toe, 6 steps, 8 events.
 ```
 
 ## Watch
@@ -96,7 +100,7 @@ The web viewer lists every match in `runs/`, replays it move by move, and starts
 uv run arena serve
 ```
 
-Open http://127.0.0.1:8000/. Each replay shows the board at every step (a drawn board for k-in-a-row, the auction and Catan, the text view otherwise), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. The leaderboard ranks agents per game by Elo, with win rate, average rank, forfeits, the share of rejected answers, latency, tokens and cost per match; each agent has a page with its record per game and against each opponent. Each game has a page with its rules, default config, standings and matches. `--runs` points at another log directory and `--port` changes the port.
+Open http://127.0.0.1:8000/. Each replay shows the board at every step (a drawn board for tic-tac-toe, Catan and Puerto Rico), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. The leaderboard ranks agents per game by Elo, with win rate, average rank, forfeits, the share of rejected answers, latency, tokens and cost per match; each agent has a page with its record per game and against each opponent. Each game has a page with its rules, default config, standings and matches. `--runs` points at another log directory and `--port` changes the port.
 
 ## Develop
 

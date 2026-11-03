@@ -1,9 +1,0 @@
-# Four-in-a-row on a 6x7 board with gravity, random bot against a language model.
-game: k_in_a_row
-config: {rows: 6, cols: 7, k: 4, gravity: true}
-seed: 1
-seats:
-  - agent: random
-  - agent: llm
-    model: anthropic/claude-haiku-5-5
-    temperature: 0.3
