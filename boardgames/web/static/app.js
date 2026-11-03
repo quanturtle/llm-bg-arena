@@ -279,16 +279,19 @@
     return parts;
   }
 
-  // One row per event: the step in a column wide enough for five digits, then the message.
+  // One row per event: the step in a column wide enough for five digits, the kind's icon
+  // from window.eventIcons, then the message.
   function eventList(outline, step, viewer, omniscient) {
     const players = outline.match.seats.length;
+    const icons = (window.eventIcons || {})[outline.match.game_id] || {};
     const items = visibleEvents(outline, step, viewer, omniscient).map((event) => {
       const isPrivate = event.audience !== "everyone";
       const classes = [];
       if (event.step === step) classes.push("current");
       if (isPrivate) classes.push("private");
       const who = isPrivate ? ` (seen by ${event.audience.map((p) => `P${p + 1}`).join(", ")})` : "";
-      return h("li", { class: classes.join(" ") }, h("span", { class: "step" }, event.step), h("span", { class: "text" }, seatColored(event.text + who, players)));
+      const icon = h("span", { class: "icon", "aria-hidden": "true" }, icons[event.kind] || "");
+      return h("li", { class: classes.join(" ") }, h("span", { class: "step" }, event.step), icon, h("span", { class: "text" }, seatColored(event.text + who, players)));
     });
     const list = h("ul", { class: "events" }, items);
     // scroll the list itself, never the page, so controls stay put while a match runs

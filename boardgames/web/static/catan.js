@@ -414,4 +414,15 @@ window.boards = window.boards || {};
   }
 
   window.boards.catan = renderCatan;
+  window.eventIcons = window.eventIcons || {};
+  window.eventIcons.catan = {
+    started: "🏁", board_prepared: "🗺️", setup_started: "🏁", setup_turn: "👉", setup_road_skipped: "⏭️", setup_complete: "✅",
+    starting_resources: "🎁", turn_started: "▶️", turn_ended: "⏹️", dice_rolled: "🎲", production: "🌾", seven_rolled: "7️⃣",
+    discard_notice: "⚠️", discarded: "🗑️", robber_moved: "🦹", stolen: "🫳", stole_card: "🫳", card_stolen: "🫳",
+    road_built: "🛣️", settlement_built: "🏠", city_built: "🏙️",
+    bank_trade: "🏦", offer_made: "💬", offer_accepted: "🤝", offer_declined: "🙅",
+    dev_bought: "🃏", dev_drawn: "🃏", knight_played: "⚔️", monopoly_played: "💰", year_of_plenty_played: "🌈",
+    road_building_played: "🚧", free_roads_exhausted: "🚧",
+    longest_road: "🏅", longest_road_lost: "🏅", largest_army: "🛡️", largest_army_lost: "🛡️", game_over: "🏆",
+  };
 })();

@@ -508,4 +508,13 @@ window.boards = window.boards || {};
   }
 
   window.boards.puerto_rico = renderPuertoRico;
+  window.eventIcons = window.eventIcons || {};
+  window.eventIcons.puerto_rico = {
+    game_started: "🏁", role_selection: "🎭", role_taken: "🎭", privilege_good: "👑", privilege_declined: "👑",
+    settler_passed: "⏭️", builder_passed: "⏭️", captain_passed: "⏭️", trader_passed: "⏭️",
+    plantation_taken: "🌱", hacienda_plantation: "🌱", quarry_taken: "⛏️", building_built: "🏗️",
+    colonists_distributed: "👥", colonist_placed: "🧑‍🌾", colonist_picked_up: "🧍", university_colonist: "🎓", mayor_finished: "✅",
+    goods_produced: "📦", factory_bonus: "🏭", prospector_bonus: "💰", good_sold: "💰",
+    goods_shipped: "🚢", wharf_shipped: "⚓", goods_discarded: "🗑️",
+  };
 })();

@@ -1,6 +1,8 @@
 // Game-specific board renderers. Each takes the spectator observation of one
 // step and a context {layout, frame, match, lastEvents} and returns an element.
+// window.eventIcons[game_id] maps a game's event kinds to the icons the event log shows.
 window.boards = window.boards || {};
+window.eventIcons = window.eventIcons || {};
 
 (function () {
   function h(tag, attrs, ...children) {
@@ -64,4 +66,5 @@ window.boards = window.boards || {};
   }
 
   window.boards.tic_tac_toe = renderTicTacToe;
+  window.eventIcons.tic_tac_toe = { started: "🏁", marked: "✏️", won: "🏆", drawn: "🤝" };
 })();
