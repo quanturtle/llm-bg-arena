@@ -7,7 +7,10 @@ from typing import Literal, Protocol
 from boardgames.core import ArenaError, ConfigError, JsonObject, JsonValue
 
 type Role = Literal["system", "user", "assistant", "tool"]
-type ReasoningEffort = Literal["low", "medium", "high"]
+# OpenRouter's reasoning.effort levels, least first; reasoning: false turns it off
+type ReasoningEffort = Literal["minimal", "low", "medium", "high", "xhigh", "max"]
+# OpenRouter's top-level verbosity: answer length; on Claude, Anthropic's own effort
+type Verbosity = Literal["low", "medium", "high", "xhigh", "max"]
 
 
 class TransientModelError(ArenaError):
@@ -79,8 +82,9 @@ class ModelSettings:
 
     `reasoning` turns thinking on or off (None keeps the model's default); how much
     it thinks is an effort or a token budget, not both, and neither when it is off.
-    `extra` is merged into the request body as is, for provider routing and other
-    options. `max_tokens` also covers a thinking model's reasoning.
+    `verbosity` sets answer length, a separate request field. `extra` is merged
+    into the request body as is, for provider routing and other options.
+    `max_tokens` also covers a thinking model's reasoning.
     """
 
     model: str
@@ -91,6 +95,7 @@ class ModelSettings:
     reasoning: bool | None = None
     reasoning_effort: ReasoningEffort | None = None
     thinking_budget_tokens: int | None = None
+    verbosity: Verbosity | None = None
     seed: int | None = None
     extra: JsonObject = field(default_factory=dict)
 
@@ -113,6 +118,7 @@ class ModelSettings:
             "reasoning": self.reasoning,
             "reasoning_effort": self.reasoning_effort,
             "thinking_budget_tokens": self.thinking_budget_tokens,
+            "verbosity": self.verbosity,
             "seed": self.seed,
             "extra": dict(self.extra),
         }

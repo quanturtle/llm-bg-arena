@@ -17,7 +17,12 @@ from pydantic_core import ErrorDetails
 from boardgames.agents import FallbackPolicy
 from boardgames.agents.llm_agent import LlmAgentSettings
 from boardgames.core import ConfigError
-from boardgames.llm.model import ModelSettings, ReasoningEffort, reasoning_conflict
+from boardgames.llm.model import (
+    ModelSettings,
+    ReasoningEffort,
+    Verbosity,
+    reasoning_conflict,
+)
 from boardgames.llm.prompting import OutputMode, PromptSettings
 
 MODEL_FIELDS = frozenset(
@@ -29,6 +34,7 @@ MODEL_FIELDS = frozenset(
         "reasoning",
         "reasoning_effort",
         "thinking_budget_tokens",
+        "verbosity",
         "extra",
     }
 )
@@ -62,6 +68,7 @@ class LlmOptions(ConfigModel):
     reasoning: bool | None = None
     reasoning_effort: ReasoningEffort | None = None
     thinking_budget_tokens: int | None = Field(default=None, ge=1)
+    verbosity: Verbosity | None = None
     extra: dict[str, PlainJson] | None = None
     output_mode: OutputMode | None = None
     max_illegal_retries: int | None = Field(default=None, ge=0)

@@ -78,11 +78,16 @@ def test_request_body_forces_the_tool_and_skips_unset_options() -> None:
 
 def test_request_body_passes_set_options() -> None:
     settings = ModelSettings(
-        model="openai/gpt-x", temperature=0.2, reasoning_effort="low", seed=4
+        model="openai/gpt-x",
+        temperature=0.2,
+        reasoning_effort="minimal",
+        verbosity="low",
+        seed=4,
     )
     body = request_body(MESSAGES, settings, (), "auto")
     assert (body["temperature"], body["seed"]) == (0.2, 4)
-    assert body["reasoning"] == {"effort": "low"}
+    assert body["reasoning"] == {"effort": "minimal"}
+    assert body["verbosity"] == "low"
     assert "tools" not in body
     assert "tool_choice" not in body
     return

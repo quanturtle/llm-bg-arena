@@ -145,6 +145,8 @@ def request_body(
     reasoning = reasoning_json(settings)
     if reasoning:
         body["reasoning"] = reasoning
+    if settings.verbosity is not None:
+        body["verbosity"] = settings.verbosity
     if tools:
         body["tools"] = tools_json(tools)
         body["tool_choice"] = tool_choice_json(tool_choice)
