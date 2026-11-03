@@ -23,6 +23,12 @@ from boardgames.logs.schema import (
 from boardgames.logs.sink import LogFileError
 
 RESULT_CHARS = 600
+THOUGHTS_SUFFIX = ".thoughts.md"
+
+
+def thoughts_path(log_path: Path) -> Path:
+    """The thoughts file that sits next to the JSONL log at `log_path`."""
+    return log_path.with_suffix(THOUGHTS_SUFFIX)
 
 
 class ThoughtsLog:

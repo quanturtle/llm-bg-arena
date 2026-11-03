@@ -31,7 +31,7 @@ from boardgames.llm.openrouter_model import OpenRouterChatModel
 from boardgames.llm.parsing import ActionExtractor
 from boardgames.llm.retry import RetryingChatModel
 from boardgames.logs.sink import Broadcast, JsonlFile, RecordSink
-from boardgames.logs.thoughts import ThoughtsFile
+from boardgames.logs.thoughts import ThoughtsFile, thoughts_path
 
 DEFAULT_CACHE_DIR = Path(".arena_cache")
 API_KEY_VARIABLE = "OPENROUTER_API_KEY"
@@ -142,7 +142,7 @@ def prepare_match(
         agents=agents,
         match_id=match_id,
         log_path=log_path,
-        thoughts_path=log_path.with_suffix(".thoughts.md"),
+        thoughts_path=thoughts_path(log_path),
     )
 
 
