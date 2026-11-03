@@ -14,11 +14,15 @@ from boardgames.agents.base import DecisionRequest
 from boardgames.core import ActionSpace, Tokens, seat_label
 from boardgames.llm.model import Message, ToolSpec
 
-type OutputMode = Literal["tool", "text"]
+type OutputMode = Literal["tool", "text", "tools"]
 
 TOOL_NAME = "submit_action"
 MAX_TEMPLATE_OPTIONS = 12
 MAX_TEMPLATE_LINES = 80
+TOOLS_REMINDER = (
+    "Use list_legal_actions to see your options and check_action to test one, "
+    "then end by calling take_action."
+)
 
 
 @dataclass(frozen=True)
@@ -75,15 +79,17 @@ def build_prompt[A](
     """System and user messages for one decision."""
     numbered = request.actions.listing(settings.listing_limit)
     system = system_message(request, settings)
-    user = "\n\n".join(
-        [
-            f"# State\n{request.observation_text}",
-            f"# Since your last decision\n{recent_events_text(request, settings)}",
-            f"# Your notes\n{memory or '(empty)'}",
-            f"# Decision\n{request.decision.prompt}",
-            f"# Legal actions\n{actions_text(request, numbered)}",
-        ]
-    )
+    sections = [
+        f"# State\n{request.observation_text}",
+        f"# Since your last decision\n{recent_events_text(request, settings)}",
+        f"# Your notes\n{memory or '(empty)'}",
+        f"# Decision\n{request.decision.prompt}",
+    ]
+    if settings.output_mode == "tools":
+        sections.append(TOOLS_REMINDER)
+    else:
+        sections.append(f"# Legal actions\n{actions_text(request, numbered)}")
+    user = "\n\n".join(sections)
     return Prompt((Message("system", system), Message("user", user)), numbered)
 
 
@@ -100,6 +106,17 @@ def system_message[A](request: DecisionRequest[A], settings: PromptSettings) -> 
 
 def answer_format(settings: PromptSettings) -> str:
     """Instructions for the chosen output mode."""
+    if settings.output_mode == "tools":
+        return (
+            "Each decision shows the current state, what you saw happen since "
+            "your last decision, your notes and the decision to make. Tools give "
+            "you the rules, the state again, the legal actions and a check of any "
+            "action. Your notes are the only memory you keep between decisions: "
+            "use them for plans and observations about opponents, in at most "
+            f"{settings.memory_limit} characters.\n\nCall tools as needed, then "
+            "end by calling take_action with your brief reasoning, the action in "
+            "notation, and your updated notes."
+        )
     common = (
         "Each decision shows the current state, what you saw happen since your "
         "last decision, your notes, and the legal actions. Choose exactly one "

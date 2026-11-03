@@ -3,7 +3,9 @@
 Per decision: build a fresh prompt, call the model, parse and resolve the reply.
 A rejected answer is re-prompted with the reason ("b2 is already taken by X")
 up to `max_illegal_retries` times; after that the fallback policy applies.
-Every attempt is recorded in the decision trace.
+In "tools" mode the model instead calls game tools in a loop driven by the
+state machine in llm/tools.py, and ends by calling take_action. Every model
+call is recorded in the decision trace.
 """
 
 from collections.abc import Sequence
@@ -43,6 +45,16 @@ from boardgames.llm.prompting import (
     retry_messages,
     submit_tool,
 )
+from boardgames.llm.tools import (
+    NO_TOOL_NUDGE,
+    DecisionProgress,
+    ToolBudget,
+    ToolResult,
+    after_text_reply,
+    after_tool_calls,
+    answer_tool_call,
+    game_tools,
+)
 
 
 @dataclass(frozen=True)
@@ -50,20 +62,25 @@ class LlmAgentSettings:
     """After `max_illegal_retries` rejected re-prompts, `fallback` picks the action.
 
     The "default" fallback plays the decision's default (such as pass), else random.
+    `max_tool_calls` caps one decision's tool calls in "tools" mode.
     """
 
     model: ModelSettings
     prompt: PromptSettings = field(default_factory=PromptSettings)
     max_illegal_retries: int = 3
+    max_tool_calls: int = 12
     fallback: FallbackPolicy = "random"
     label: str | None = None
 
 
 @dataclass(frozen=True)
 class Attempt[A]:
-    """One model call: how its reply resolved, plus its log record and completions."""
+    """One model call: how its reply resolved, plus its log record and completions.
 
-    resolution: Resolved[A] | Rejected
+    `resolution` is None for a tools-mode round that only looked things up.
+    """
+
+    resolution: Resolved[A] | Rejected | None
     reply: ParsedReply | None
     record: dict[str, JsonValue]
     completions: tuple[Completion, ...]
@@ -106,12 +123,21 @@ class LlmAgent:
             "max_recent_events": prompt.max_recent_events,
             "persona": prompt.persona,
             "max_illegal_retries": self._settings.max_illegal_retries,
+            "max_tool_calls": self._settings.max_tool_calls,
             "fallback": self._settings.fallback,
             "extractor": self._extractor.model_name if self._extractor else None,
             "seed": self._seed,
         }
 
     async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
+        if self._settings.prompt.output_mode == "tools":
+            return await self._decide_with_tools(request)
+        return await self._decide_single_shot(request)
+
+    async def _decide_single_shot[A](
+        self, request: DecisionRequest[A]
+    ) -> AgentChoice[A]:
+        """One answer per model call; a rejected answer is re-prompted."""
         prompt_settings = self._settings.prompt
         prompt = build_prompt(request, self._memory, prompt_settings)
         tools: tuple[ToolSpec, ...] = ()
@@ -136,8 +162,46 @@ class LlmAgent:
                 reasoning = attempt.reply.reasoning if attempt.reply else None
                 trace = decision_trace(attempts, reasoning, self._memory, None)
                 return Chosen(attempt.resolution.action, trace)
-            feedback = attempt.resolution.feedback
-            messages = retry_messages(messages, reply_text(completion), feedback)
+            if isinstance(attempt.resolution, Rejected):
+                feedback = attempt.resolution.feedback
+                messages = retry_messages(messages, reply_text(completion), feedback)
+        return self._fall_back(request, attempts)
+
+    async def _decide_with_tools[A](
+        self, request: DecisionRequest[A]
+    ) -> AgentChoice[A]:
+        """Rounds of tool calls until take_action is accepted or the budget ends."""
+        prompt_settings = self._settings.prompt
+        prompt = build_prompt(request, self._memory, prompt_settings)
+        tools = game_tools(prompt_settings)
+        budget = ToolBudget(
+            self._settings.max_tool_calls, self._settings.max_illegal_retries
+        )
+        messages: tuple[Message, ...] = prompt.messages
+        logged = 0
+        progress: DecisionProgress[A] = DecisionProgress()
+        attempts: list[Attempt[A]] = []
+        while progress.phase == "exploring":
+            completion = await self._model.complete(
+                messages, self._settings.model, tools, "auto"
+            )
+            results = [
+                answer_tool_call(call, request, prompt_settings)
+                for call in completion.tool_calls
+            ]
+            if results:
+                progress = after_tool_calls(progress, results, budget)
+                messages = (*messages, *tool_round_messages(completion, results))
+            else:
+                progress = after_text_reply(progress, budget)
+                messages = (*messages, *nudge_messages(completion))
+            attempts.append(tool_round_attempt(completion, results, messages[logged:]))
+            logged = len(messages)
+        if progress.chosen is not None:
+            self._remember(progress.reply)
+            reasoning = progress.reply.reasoning if progress.reply else None
+            trace = decision_trace(attempts, reasoning, self._memory, None)
+            return Chosen(progress.chosen.action, trace)
         return self._fall_back(request, attempts)
 
     async def _interpret[A](
@@ -202,10 +266,55 @@ def reply_text(completion: Completion) -> str:
     return completion.text
 
 
+def tool_round_messages[A](
+    completion: Completion, results: Sequence[ToolResult[A]]
+) -> tuple[Message, ...]:
+    """The assistant turn with its calls, then one tool turn per answered call."""
+    assistant = Message("assistant", completion.text, tool_calls=completion.tool_calls)
+    answers = [
+        Message("tool", result.text, tool_call_id=call.id)
+        for call, result in zip(completion.tool_calls, results, strict=True)
+    ]
+    return (assistant, *answers)
+
+
+def nudge_messages(completion: Completion) -> tuple[Message, Message]:
+    """A text-only reply echoed back with the reminder to call a tool."""
+    return (
+        Message("assistant", completion.text or "(empty reply)"),
+        Message("user", NO_TOOL_NUDGE),
+    )
+
+
+def tool_round_attempt[A](
+    completion: Completion,
+    results: Sequence[ToolResult[A]],
+    new_messages: Sequence[Message],
+) -> Attempt[A]:
+    """Log one round of tool calls; a round without a call is a format rejection."""
+    answered = [result for result in results if result.outcome is not None]
+    resolved = [result for result in answered if isinstance(result.outcome, Resolved)]
+    decisive = resolved[0] if resolved else (answered[-1] if answered else None)
+    resolution = decisive.outcome if decisive is not None else None
+    reply = decisive.reply if decisive is not None else None
+    if not results:
+        resolution = Rejected("format", NO_TOOL_NUDGE)
+    calls: list[JsonValue] = [
+        {"name": call.name, "arguments": call.arguments, "result": result.text}
+        for call, result in zip(completion.tool_calls, results, strict=True)
+    ]
+    record: dict[str, JsonValue] = {
+        "messages": messages_json(new_messages),
+        **attempt_record(completion, reply, resolution, ()),
+        "tool_calls": calls,
+    }
+    return Attempt(resolution, reply, record, (completion,))
+
+
 def attempt_record[A](
     completion: Completion,
     reply: ParsedReply | None,
-    resolution: Resolved[A] | Rejected,
+    resolution: Resolved[A] | Rejected | None,
     extractor_completions: Sequence[Completion],
 ) -> dict[str, JsonValue]:
     """Log form of one attempt's reply and how it resolved."""
