@@ -94,15 +94,16 @@ function CatanStatus({ observation, match }: { observation: CatanObservation; ma
   );
 }
 
-// Wide boards put the players beside the map; narrow ones stack them below it.
+// Wide boards put the players beside the map; narrow ones stack them below it. On desktop the
+// map shrinks to the panel's height, so the whole board shows without scrolling.
 function CatanBoard({ observation, context }: { observation: CatanObservation; context: BoardContext }) {
   const layout = layoutSchema.safeParse(context.layout);
   if (!layout.success) return <p className="text-sm text-destructive">The Catan layout did not load: {layout.error.message}</p>;
   return (
-    <div className="@container flex flex-col gap-4">
+    <div className="@container flex flex-col gap-3 xl:h-full">
       <CatanStatus observation={observation} match={context.match} />
-      <div className="grid gap-4 @4xl:grid-cols-[minmax(0,1fr)_19rem]">
-        <div className="mx-auto w-full max-w-[760px]">
+      <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_18rem] xl:min-h-0 xl:flex-1">
+        <div className="relative mx-auto w-full max-w-[760px] xl:h-full">
           <CatanBoardSvg layout={layout.data} observation={observation} />
         </div>
         <CatanPlayers observation={observation} match={context.match} />

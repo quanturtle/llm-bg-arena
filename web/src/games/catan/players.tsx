@@ -90,7 +90,8 @@ function PlayerCard({ observation, match, player }: { observation: CatanObservat
 
 export function CatanPlayers({ observation, match }: { observation: CatanObservation; match: MatchSummary }) {
   return (
-    <div className="grid content-start gap-4 pt-2.5 @lg:grid-cols-2 @4xl:grid-cols-1">
+    <div className="grid content-start gap-4 pt-2.5 @lg:grid-cols-2 @3xl:grid-cols-1 xl:min-h-0 xl:overflow-y-auto">
+
       {observation.hand_sizes.map((_, player) => (
         <PlayerCard key={player} observation={observation} match={match} player={player} />
       ))}

@@ -218,7 +218,14 @@ function Buildings({ layout, observation }: { layout: CatanLayout; observation: 
 
 export function CatanBoardSvg({ layout, observation }: { layout: CatanLayout; observation: CatanObservation }) {
   return (
-    <svg viewBox={viewBox(layout)} role="img" aria-label="Catan board" className="h-auto w-full select-none" fontFamily="var(--font-geist-sans)">
+    // on desktop the SVG fills its box and keeps its proportions inside it
+    <svg
+      viewBox={viewBox(layout)}
+      role="img"
+      aria-label="Catan board"
+      className="block h-auto w-full select-none xl:absolute xl:inset-0 xl:h-full"
+      fontFamily="var(--font-geist-sans)"
+    >
       <Hexes layout={layout} observation={observation} />
       <Ports layout={layout} observation={observation} />
       <g stroke="rgb(29 29 27 / 0.18)" strokeWidth={1}>
