@@ -28,6 +28,8 @@ class AgentGameStats(Stat):
     agent: str
     kind: str
     game_id: str | None
+    # None when the row covers every prompt version
+    prompt_version: int | None
     models: list[str]
     matches: int
     wins: int
@@ -60,6 +62,9 @@ class HeadToHead(Stat):
 
 class Leaderboard(Stat):
     game_id: str | None
+    prompt_version: int | None
+    # versions among the game's finished matches, for choosing one
+    prompt_versions: list[int]
     finished_matches: int
     rows: list[AgentGameStats]
 
@@ -69,6 +74,8 @@ class AgentDetail(Stat):
     kind: str
     overall: AgentGameStats | None
     games: list[AgentGameStats]
+    # one row per prompt version, across games
+    prompts: list[AgentGameStats]
     opponents: list[HeadToHead]
 
 
@@ -164,12 +171,17 @@ def ratio(numerator: float, denominator: float) -> float:
 
 
 def stats_row(
-    agent: str, game_id: str | None, tally: Tally, elo: float | None
+    agent: str,
+    game_id: str | None,
+    prompt_version: int | None,
+    tally: Tally,
+    elo: float | None,
 ) -> AgentGameStats:
     return AgentGameStats(
         agent=agent,
         kind=tally.kind,
         game_id=game_id,
+        prompt_version=prompt_version,
         matches=tally.matches,
         wins=tally.wins,
         win_rate=ratio(tally.wins, tally.matches),
@@ -193,13 +205,20 @@ def stats_row(
     )
 
 
-def leaderboard(matches: Sequence[MatchSummary], game_id: str | None) -> Leaderboard:
-    """Rows per model agent at `game_id` by Elo; across all games (None) by win rate."""
-    finished = [
+def leaderboard(
+    matches: Sequence[MatchSummary],
+    game_id: str | None,
+    prompt_version: int | None = None,
+) -> Leaderboard:
+    """Rows per model agent at `game_id` by Elo; across all games (None) by win rate.
+
+    A `prompt_version` keeps only the matches played with that prompt."""
+    of_game = [
         m
         for m in finished_in_order(matches)
         if game_id in (None, m.game_id) and model_seats(m)
     ]
+    finished = [m for m in of_game if prompt_version in (None, m.prompt_version)]
     tallies: defaultdict[str, Tally] = defaultdict(Tally)
     ratings = Ratings()
     for match in finished:
@@ -209,13 +228,25 @@ def leaderboard(matches: Sequence[MatchSummary], game_id: str | None) -> Leaderb
         if game_id is not None:
             ratings.update(match)
     rows = [
-        stats_row(agent, game_id, tally, ratings.rating(agent) if game_id else None)
+        stats_row(
+            agent,
+            game_id,
+            prompt_version,
+            tally,
+            ratings.rating(agent) if game_id else None,
+        )
         for agent, tally in tallies.items()
     ]
     rows.sort(
         key=lambda row: (-(row.elo or 0.0), -row.win_rate, row.average_rank, row.agent)
     )
-    return Leaderboard(game_id=game_id, finished_matches=len(finished), rows=rows)
+    return Leaderboard(
+        game_id=game_id,
+        prompt_version=prompt_version,
+        prompt_versions=sorted({m.prompt_version for m in of_game}),
+        finished_matches=len(finished),
+        rows=rows,
+    )
 
 
 def head_to_head(matches: Sequence[MatchSummary], agent: str) -> list[HeadToHead]:
@@ -260,6 +291,12 @@ def agent_detail(matches: Sequence[MatchSummary], agent: str) -> AgentDetail:
     overall = next(
         (row for row in leaderboard(played, None).rows if row.agent == agent), None
     )
+    prompts = [
+        row
+        for version in sorted({m.prompt_version for m in played})
+        for row in leaderboard(played, None, version).rows
+        if row.agent == agent
+    ]
     kind = (
         overall.kind
         if overall
@@ -272,5 +309,6 @@ def agent_detail(matches: Sequence[MatchSummary], agent: str) -> AgentDetail:
         kind=kind,
         overall=overall,
         games=games,
+        prompts=prompts,
         opponents=head_to_head(played, agent),
     )

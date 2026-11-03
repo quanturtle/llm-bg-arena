@@ -39,6 +39,17 @@ def test_leaderboard_counts_wins_usage_and_elo() -> None:
     return
 
 
+def test_prompt_versions_split_the_leaderboard_and_the_agent_page() -> None:
+    old = scripted_match("w", *X_WINS)
+    new = scripted_match("d", *DRAW).model_copy(update={"prompt_version": 2})
+    board = leaderboard([old, new], "tic_tac_toe", prompt_version=2)
+    assert (board.prompt_versions, board.finished_matches) == ([0, 2], 1)
+    assert board.rows[0].wins == 0
+    rows = agent_detail([old, new], "x-model").prompts
+    assert [(row.prompt_version, row.wins) for row in rows] == [(0, 1), (2, 0)]
+    return
+
+
 def test_bots_get_no_leaderboard_row() -> None:
     board = leaderboard([scripted_match("w", *X_WINS, o_is_bot=True)], "tic_tac_toe")
     assert [row.agent for row in board.rows] == ["x-model"]

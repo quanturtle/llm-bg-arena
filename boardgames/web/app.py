@@ -372,11 +372,15 @@ def match_frame(request: Request, match_id: str, step: int) -> Frame:
 
 
 @api.get("/leaderboard")
-def leaderboard_route(request: Request, game: str | None = None) -> Leaderboard:
-    """Agents ranked by Elo at one game, or by win rate across all games."""
+def leaderboard_route(
+    request: Request, game: str | None = None, prompt: int | None = None
+) -> Leaderboard:
+    """Agents ranked by Elo at one game, or by win rate across all games.
+
+    `prompt` keeps only matches played with that prompt version; 0 means unversioned."""
     if game is not None:
         create_game(game)
-    return leaderboard(store_of(request).catalog().matches, game)
+    return leaderboard(store_of(request).catalog().matches, game, prompt)
 
 
 @api.get("/agents/{agent}")

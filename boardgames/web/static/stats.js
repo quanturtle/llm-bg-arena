@@ -16,13 +16,19 @@
     return models.length ? h("span", { class: "muted small" }, ` ${models.join(", ")}`) : null;
   }
 
-  function statsHeader(withElo, withGame) {
+  // Version 0 is the logs recorded before prompts were versioned.
+  function promptText(version) {
+    return version ? `prompt v${version}` : "unversioned prompt";
+  }
+
+  function statsHeader(withElo, withGame, withPrompt) {
     return h(
       "tr",
       {},
       h("th", {}, "#"),
       h("th", {}, "Agent"),
       withGame ? h("th", {}, "Game") : null,
+      withPrompt ? h("th", {}, "Prompt") : null,
       withElo ? h("th", { class: "num" }, "Elo") : null,
       h("th", { class: "num" }, "Matches"),
       h("th", { class: "num" }, "Wins"),
@@ -38,13 +44,14 @@
     );
   }
 
-  function statsRow(row, index, withElo, withGame) {
+  function statsRow(row, index, withElo, withGame, withPrompt) {
     return h(
       "tr",
       {},
       h("td", { class: "muted" }, index + 1),
       h("td", {}, agentLink(row.agent), " ", h("span", { class: "badge" }, row.kind), modelNote(row)),
       withGame ? h("td", {}, h("a", { href: `#/games/${row.game_id}` }, row.game_id)) : null,
+      withPrompt ? h("td", {}, promptText(row.prompt_version)) : null,
       withElo ? h("td", { class: "num" }, h("strong", {}, Math.round(row.elo))) : null,
       h("td", { class: "num" }, row.matches),
       h("td", { class: "num" }, row.wins),
@@ -60,24 +67,36 @@
     );
   }
 
-  function statsTable(rows, withElo, withGame) {
-    return h("div", { class: "panel", style: "overflow: auto" }, h("table", {}, h("thead", {}, statsHeader(withElo, withGame)), h("tbody", {}, rows.map((row, i) => statsRow(row, i, withElo, withGame)))));
+  function statsTable(rows, withElo, withGame, withPrompt = false) {
+    return h("div", { class: "panel", style: "overflow: auto" }, h("table", {}, h("thead", {}, statsHeader(withElo, withGame, withPrompt)), h("tbody", {}, rows.map((row, i) => statsRow(row, i, withElo, withGame, withPrompt)))));
+  }
+
+  function leaderboardHash(game, prompt) {
+    const query = new URLSearchParams();
+    if (game) query.set("game", game);
+    if (prompt !== "") query.set("prompt", prompt);
+    return query.toString() ? `#/leaderboard?${query}` : "#/leaderboard";
   }
 
   async function renderLeaderboard(_, params) {
     setActiveNav("leaderboard");
     const game = params.get("game") || "";
-    const [board, games] = await Promise.all([api(`/api/leaderboard${game ? `?game=${encodeURIComponent(game)}` : ""}`), loadGames()]);
+    const prompt = params.get("prompt") || "";
+    const [board, games] = await Promise.all([api(`/api/leaderboard${leaderboardHash(game, prompt).replace("#/leaderboard", "")}`), loadGames()]);
     const select = h("select", {}, h("option", { value: "" }, "All games"), games.map((g) => h("option", { value: g.id }, g.id)));
     select.value = game;
-    select.addEventListener("change", () => { location.hash = select.value ? `#/leaderboard?game=${select.value}` : "#/leaderboard"; });
+    select.addEventListener("change", () => { location.hash = leaderboardHash(select.value, prompt); });
+    // compare how models play under each revision of the prompt
+    const promptSelect = h("select", {}, h("option", { value: "" }, "All prompts"), board.prompt_versions.map((version) => h("option", { value: version }, promptText(version))));
+    promptSelect.value = prompt;
+    promptSelect.addEventListener("change", () => { location.hash = leaderboardHash(game, promptSelect.value); });
     const note = game
       ? "Elo starts at 1000 with K = 32. In every finished match each pair of seats plays one rated game, ahead or behind by final rank, and a seat's change is the average over its opponents."
       : "Across games there is no shared rating; rows are ordered by win rate, then average rank. Pick a game for Elo.";
     const empty = board.rows.length ? null : h("p", { class: "muted" }, "No finished matches yet.");
     app.replaceChildren(
       h("h1", {}, "Leaderboard"),
-      h("div", { class: "toolbar" }, h("label", {}, "Game ", select), h("span", { class: "muted small" }, `${board.finished_matches} finished matches`)),
+      h("div", { class: "toolbar" }, h("label", {}, "Game ", select), h("label", {}, "Prompt ", promptSelect), h("span", { class: "muted small" }, `${board.finished_matches} finished matches`)),
       statsTable(board.rows, Boolean(game), !game),
       empty || "",
       h("p", { class: "muted small" }, note, " Wins count sole first places; illegal is the share of answers rejected before a legal action."),
@@ -115,7 +134,7 @@
     app.replaceChildren(
       h("h1", {}, name, " ", h("span", { class: "badge" }, detail.kind)),
       detail.overall ? summaryCards(detail.overall) : "",
-      h("div", { class: "stack" }, h("h2", {}, "By game"), statsTable(detail.games, true, true), h("h2", {}, "Head to head"), h("div", { class: "panel" }, opponentsTable(detail.opponents)), h("h2", {}, "Matches"), h("div", { class: "panel" }, recent)),
+      h("div", { class: "stack" }, h("h2", {}, "By game"), statsTable(detail.games, true, true), h("h2", {}, "By prompt version"), statsTable(detail.prompts, false, false, true), h("h2", {}, "Head to head"), h("div", { class: "panel" }, opponentsTable(detail.opponents)), h("h2", {}, "Matches"), h("div", { class: "panel" }, recent)),
     );
   }
 
