@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from boardgames.agents import Agent
+from boardgames.agents import Agent, AgentChoice, DecisionRequest
 from boardgames.arena.control import PauseGate
 from boardgames.arena.runner import (
     DEFAULT_LIMITS,
@@ -15,9 +15,10 @@ from boardgames.arena.runner import (
     StepLimitError,
     play_match,
 )
-from boardgames.core import AnyGame, ConfigError, GameConfig, PlayerId
+from boardgames.core import AnyGame, ConfigError, GameConfig, JsonValue, PlayerId
 from boardgames.games.catan import Catan, CatanConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
+from boardgames.llm.model import ModelUnavailableError
 from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import (
     DecisionRecord,
@@ -151,6 +152,29 @@ def test_jsonl_file_writes_one_json_object_per_line(tmp_path: Path) -> None:
     assert json.loads(lines[-1])["type"] == "match_finished"
     with pytest.raises(LogFileError, match="already exists"):
         JsonlFile(path)
+    return
+
+
+class UnavailableAgent:
+    """A model seat whose model never answers."""
+
+    @property
+    def name(self) -> str:
+        return "down"
+
+    def settings(self) -> dict[str, JsonValue]:
+        return {"kind": "llm"}
+
+    async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
+        raise ModelUnavailableError("down failed 6 times")
+
+
+def test_a_failed_match_logs_its_stop_and_raises() -> None:
+    sink = MemorySink()
+    agents = [*random_agents(1), UnavailableAgent()]
+    with pytest.raises(ModelUnavailableError):
+        run(TicTacToe(), TicTacToeConfig(), agents, sink)
+    assert sink.records[-1] == MatchStopped(steps=1, stopped_at=FakeClock().now_iso())
     return
 
 

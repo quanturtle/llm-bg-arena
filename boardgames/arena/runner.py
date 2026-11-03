@@ -186,15 +186,16 @@ async def play_rounds[S, A, C: GameConfig](
 ) -> tuple[Progress[S], tuple[PlayerId, ...]]:
     """Rounds until the end or a forfeit, waiting while paused.
 
-    A cancellation logs match_stopped at the last complete step; a round cut
-    short leaves no record, since its answers are applied only once all are in.
+    A cancellation or a failure, such as a model that stays unavailable, logs
+    match_stopped at the last complete step and propagates; a round cut short
+    leaves no record, since its answers are applied only once all are in.
     """
     forfeited: tuple[PlayerId, ...] = ()
     try:
         while not context.game.is_terminal(progress.state) and not forfeited:
             await control.wait_until_resumed()
             progress, forfeited = await play_round(context, progress)
-    except asyncio.CancelledError:
+    except BaseException:
         stopped = MatchStopped(steps=progress.step, stopped_at=context.clock.now_iso())
         context.sink.write(stopped)
         raise
