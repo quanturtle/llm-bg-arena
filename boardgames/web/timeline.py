@@ -6,6 +6,7 @@ view, the step's events with their audience, and the decision that made it.
 """
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -29,6 +30,8 @@ from boardgames.logs.schema import (
     plain_object,
 )
 from boardgames.web.store import MatchSummary, summarize
+
+ERROR_TEXT_LIMIT = 240
 
 
 class View(BaseModel):
@@ -82,8 +85,12 @@ class Frame(View):
 
 
 class Timeline(View):
+    """Frames up to the last step that replays; `replay_error` says why it stopped
+    early when the log no longer matches the current game rules."""
+
     match: MatchSummary
     frames: list[Frame]
+    replay_error: str | None = None
 
 
 class MoveView(View):
@@ -106,6 +113,7 @@ class Outline(View):
     events: list[EventRecord]
     forfeits: list[ForfeitView]
     scores: list[list[ScoreView]]
+    replay_error: str | None
 
 
 def board_views(game: AnyGame, state: Any, num_players: int) -> list[BoardView]:
@@ -200,33 +208,56 @@ def without_last_decision(records: Sequence[LogRecord]) -> list[LogRecord]:
     return [] if last is None else list(records[:last])
 
 
-def replay_complete_steps(
-    records: Sequence[LogRecord],
-) -> tuple[Replayed, list[LogRecord]]:
-    """Replay a log; a running match's last steps, still being written, are dropped.
+@dataclass(frozen=True)
+class CompleteSteps:
+    """The replayable part of a log; `mismatch` is set when the log diverged from
+    the current rules, rather than ending in a step still being written."""
 
-    A finished or stopped log, or one whose cut-off is not at the end, raises
-    ReplayMismatchError.
+    replayed: Replayed
+    records: list[LogRecord]
+    mismatch: str | None
+
+
+def replay_complete_steps(records: Sequence[LogRecord]) -> CompleteSteps:
+    """Replay a log, dropping decisions from the end until the rest replays.
+
+    Dropping one decision from a running log is normal: it is still being
+    written. Anything more means the log no longer matches the game's rules.
+    A log whose setup does not replay raises ReplayMismatchError.
     """
     remaining = list(records)
-    is_ended = any(isinstance(r, MatchFinished | MatchStopped) for r in records)
+    first_error: str | None = None
+    dropped = 0
     while True:
         try:
-            return replay_states(remaining), remaining
-        except ReplayMismatchError:
-            trimmed = without_last_decision(remaining)
-            if is_ended or not trimmed:
+            replayed = replay_states(remaining)
+        except ReplayMismatchError as error:
+            first_error = first_error or str(error)
+            remaining = without_last_decision(remaining)
+            if not remaining:
                 raise
-            remaining = trimmed
+            dropped += 1
+            continue
+        is_ended = any(isinstance(r, MatchFinished | MatchStopped) for r in records)
+        diverged = dropped > 1 or (dropped == 1 and is_ended)
+        mismatch = shortened(first_error) if diverged and first_error else None
+        return CompleteSteps(replayed, remaining, mismatch)
+
+
+def shortened(text: str, limit: int = ERROR_TEXT_LIMIT) -> str:
+    """`text` cut to `limit` characters, with an ellipsis when cut."""
+    return text if len(text) <= limit else text[:limit] + "…"
 
 
 def build_timeline(records: Sequence[LogRecord]) -> Timeline:
-    """Replay the log and lay out one frame per step; unfinished logs are allowed."""
-    replayed, records = replay_complete_steps(records)
-    events = events_by_step(records)
-    decisions = {r.step: r for r in records if isinstance(r, DecisionRecord)}
+    """Replay the log and lay out one frame per step, up to the last step that
+    replays; an ended log's summary covers the whole log, so it keeps its status."""
+    complete = replay_complete_steps(records)
+    replayed = complete.replayed
+    events = events_by_step(complete.records)
+    decisions = {r.step: r for r in complete.records if isinstance(r, DecisionRecord)}
     forfeits: dict[int, list[ForfeitRecord]] = {}
-    for record in records:
+    for record in complete.records:
         if isinstance(record, ForfeitRecord):
             forfeits.setdefault(record.step, []).append(record)
     frames = [
@@ -239,7 +270,13 @@ def build_timeline(records: Sequence[LogRecord]) -> Timeline:
         )
         for step in range(replayed.last_step + 1)
     ]
-    return Timeline(match=summarize(list(records)), frames=frames)
+    is_ended = any(isinstance(r, MatchFinished | MatchStopped) for r in records)
+    summarized = list(records) if is_ended else complete.records
+    return Timeline(
+        match=summarize(summarized),
+        frames=frames,
+        replay_error=complete.mismatch,
+    )
 
 
 def move_view(decision: DecisionView, step: int) -> MoveView:
@@ -262,4 +299,5 @@ def outline(timeline: Timeline) -> Outline:
         events=[event for f in timeline.frames for event in f.events],
         forfeits=[forfeit for f in timeline.frames for forfeit in f.forfeits],
         scores=[f.scores for f in timeline.frames],
+        replay_error=timeline.replay_error,
     )

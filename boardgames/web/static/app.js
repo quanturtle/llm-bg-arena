@@ -468,6 +468,9 @@
       app.replaceChildren(
         matchHeader(match, launch),
         liveControls() || "",
+        outline.replay_error
+          ? h("p", { class: "panel error small" }, `Only steps 0–${last()} can be shown: this log stops matching the current ${match.game_id} rules after that, probably because the rules changed after it was recorded. `, h("span", { class: "muted" }, outline.replay_error))
+          : "",
         controls(),
         h(
           "div",

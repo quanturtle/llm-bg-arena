@@ -16,6 +16,7 @@ from pydantic import JsonValue as PlainJson
 
 from boardgames.core import ArenaError, UnknownGameError, create_game
 from boardgames.games import game_ids
+from boardgames.logs.replay import ReplayMismatchError
 from boardgames.logs.schema import plain_object
 from boardgames.web.launcher import (
     Example,
@@ -26,13 +27,24 @@ from boardgames.web.launcher import (
 from boardgames.web.layouts import game_layout
 from boardgames.web.stats import AgentDetail, Leaderboard, agent_detail, leaderboard
 from boardgames.web.store import Catalog, MatchStore, MatchSummary, UnknownMatchError
-from boardgames.web.timeline import Frame, Outline, Timeline, build_timeline, outline
+from boardgames.web.timeline import (
+    Frame,
+    Outline,
+    Timeline,
+    build_timeline,
+    outline,
+    shortened,
+)
 
 TIMELINE_CACHE_SIZE = 16
 
 
 class UnknownFrameError(ArenaError):
     """A step outside the match's timeline."""
+
+
+class UnreplayableLogError(ArenaError):
+    """A log whose setup no longer replays under the current game rules."""
 
 
 class UnknownAgentError(ArenaError):
@@ -184,8 +196,16 @@ def match_summary(request: Request, match_id: str) -> MatchSummary:
 
 
 def timeline_of(request: Request, match_id: str) -> Timeline:
+    """The match's timeline; a log whose setup no longer replays gets a short reason."""
     store = store_of(request)
-    return cache_of(request).timeline(store, store.match(match_id))
+    summary = store.match(match_id)
+    try:
+        return cache_of(request).timeline(store, summary)
+    except ReplayMismatchError as error:
+        raise UnreplayableLogError(
+            f"This {summary.game_id} log does not replay under the current rules, "
+            f"which changed after it was recorded: {shortened(str(error))}"
+        ) from error
 
 
 @api.get("/matches/{match_id}/timeline")

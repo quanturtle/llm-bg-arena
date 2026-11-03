@@ -30,6 +30,22 @@ def test_a_running_log_cut_after_a_decision_drops_that_step() -> None:
     return
 
 
+def test_an_ended_log_that_diverges_shows_its_steps_up_to_there() -> None:
+    records = play_records(KInARow(), TIC_TAC_TOE, random_agents(2), 3, "m")
+    first = next(r for r in records if isinstance(r, DecisionRecord))
+    diverged = [
+        r.model_copy(update={"action": first.action})
+        if isinstance(r, DecisionRecord) and r.step == 3
+        else r
+        for r in records
+    ]
+    timeline = build_timeline(diverged)
+    assert (timeline.match.status, len(timeline.frames)) == ("finished", 3)
+    assert timeline.replay_error is not None
+    assert outline(timeline).replay_error == timeline.replay_error
+    return
+
+
 def test_private_events_and_forfeits_are_kept() -> None:
     config = SealedAuctionConfig(num_players=3, lots=2)
     agents = [*random_agents(2), ForfeitingAgent()]
