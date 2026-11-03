@@ -9,6 +9,8 @@ log: runs/auction.jsonl
 llm:
   temperature: 0.2
   max_tokens: 1024
+  output_mode: tools      # inspect the game through tools, then take_action
+  max_tool_calls: 12
   max_illegal_retries: 3
   fallback: random
   cache: true

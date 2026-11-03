@@ -32,7 +32,7 @@ MODEL_FIELDS = frozenset(
     }
 )
 PROMPT_FIELDS = frozenset({"output_mode", "persona"})
-AGENT_FIELDS = frozenset({"max_illegal_retries", "fallback"})
+AGENT_FIELDS = frozenset({"max_illegal_retries", "max_tool_calls", "fallback"})
 SEAT_ONLY_FIELDS = frozenset({"agent", "model", "label", "seed"})
 
 
@@ -52,6 +52,7 @@ class LlmOptions(ConfigModel):
     extra: dict[str, PlainJson] | None = None
     output_mode: OutputMode | None = None
     max_illegal_retries: int | None = None
+    max_tool_calls: int | None = None
     fallback: FallbackPolicy | None = None
     persona: str | None = None
     extractor: str | None = None

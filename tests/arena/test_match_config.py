@@ -23,6 +23,8 @@ log: runs/auction.jsonl
 llm:
   temperature: 0.2
   max_tokens: 512
+  output_mode: tools
+  max_tool_calls: 8
   cache: true
   extractor: openai/gpt-5-mini
 seats:
@@ -72,6 +74,7 @@ def test_seat_values_override_file_defaults() -> None:
     assert (settings.model.reasoning_effort, settings.model.seed) == ("high", 3)
     assert (settings.label, settings.fallback) == ("haiku", "forfeit")
     assert settings.max_illegal_retries == 3
+    assert (settings.prompt.output_mode, settings.max_tool_calls) == ("tools", 8)
     second = llm_seat(config, 1)
     options = merged_options(second, config.llm)
     settings = llm_agent_settings(second, options, seed=4)
