@@ -1,1 +1,1 @@
-"""Boardgames: board games coded once, played by LLMs, bots and humans."""
+"""Boardgames: board games coded once, played by LLMs and bots."""

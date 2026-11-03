@@ -101,7 +101,7 @@ def add_replay_command(commands: Commands) -> None:
 def parse_arguments(argv: list[str]) -> argparse.Namespace:
     """Parsed command line."""
     parser = argparse.ArgumentParser(
-        prog="arena", description="Play board games between LLMs, bots and humans."
+        prog="arena", description="Play board games between LLMs and bots."
     )
     commands = parser.add_subparsers(dest="command", required=True)
     add_games_command(commands)

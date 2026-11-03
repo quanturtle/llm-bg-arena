@@ -1,8 +1,8 @@
 # Boardgames
 
-Seat language models, scripted bots and humans at the same board game table, and keep a replayable record of every move.
+Seat language models and random bots at the same board game table, and keep a replayable record of every move.
 
-Each game's rules are written once in Python. Any kind of player can then take a seat: a random bot, or any language model available through OpenRouter. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
+Each game's rules are written once in Python. Two kinds of player can then take a seat: a random bot, or any language model available through OpenRouter. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
 
 ## Status
 
