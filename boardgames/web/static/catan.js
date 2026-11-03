@@ -327,33 +327,33 @@ window.boards = window.boards || {};
   }
 
   function awardCell(observation, player) {
-    const cell = htmlElement("td", "awards");
+    const cell = htmlElement("td", "num awards");
     if (observation.longest_road === player) {
-      cell.appendChild(htmlElement("span", "badge", "longest road"));
+      cell.appendChild(htmlElement("span", "badge", "🏅 longest road"));
     }
     if (observation.largest_army === player) {
-      cell.appendChild(htmlElement("span", "badge", "largest army"));
+      cell.appendChild(htmlElement("span", "badge", "🛡️ largest army"));
     }
     return cell;
   }
 
   const DEV_CARD_NAMES = {
-    knight: "knight",
-    road_building: "road building",
-    year_of_plenty: "year of plenty",
-    monopoly: "monopoly",
-    victory_point: "victory point",
+    knight: "⚔️ knight",
+    road_building: "🚧 road building",
+    year_of_plenty: "🌈 year of plenty",
+    monopoly: "💰 monopoly",
+    victory_point: "⭐ victory point",
   };
 
-  // A player's card count, followed by the kinds once the game ends and reveals them.
+  // A player's card count, with the kinds below it once the game ends and reveals them.
   function devCell(observation, player) {
     const count = (observation.dev_counts || [])[player];
-    const cell = htmlElement("td", "dev-cards", count === undefined ? "" : String(count));
+    const cell = htmlElement("td", "num dev-cards", count === undefined ? "" : String(count));
     const cards = observation.revealed_dev ? observation.revealed_dev[player] : null;
     const names = Object.entries(cards || {})
       .filter(([, copies]) => copies > 0)
       .map(([kind, copies]) => `${DEV_CARD_NAMES[kind] || kind}${copies > 1 ? ` ×${copies}` : ""}`);
-    if (names.length) cell.appendChild(htmlElement("span", "muted small", ` ${names.join(", ")}`));
+    if (names.length) cell.appendChild(htmlElement("div", "muted small", names.join(", ")));
     return cell;
   }
 
@@ -372,11 +372,11 @@ window.boards = window.boards || {};
     const headRow = htmlElement("tr");
     for (const [label, className, title] of [
       ["Player", ""],
-      ["VP", "num", "Victory points others can see; hidden victory-point cards count once the game ends."],
-      ["Hand", "num"],
-      ["Development cards", "", "Cards in hand; their kinds stay hidden until the game ends. A seat picked under View lists its own cards in the text view."],
-      ["Knights", "num"],
-      ["Awards", ""],
+      ["🏆 VP", "num", "Victory points others can see; hidden victory-point cards count once the game ends."],
+      ["✋ Hand", "num", "Resource cards in hand."],
+      ["🃏 Development cards", "num", "Cards in hand; their kinds stay hidden until the game ends. A seat picked under View lists its own cards in the text view."],
+      ["⚔️ Knights", "num", "Knights played."],
+      ["🎖️ Awards", "num"],
     ]) {
       const cell = htmlElement("th", className, label);
       if (title) cell.title = title;
