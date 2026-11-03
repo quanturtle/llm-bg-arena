@@ -337,19 +337,30 @@ window.boards = window.boards || {};
     return cell;
   }
 
+  // Public points during play, which leave out hidden victory-point cards; final scores once the game ends.
+  function victoryPoints(observation, player) {
+    if (observation.final_scores) {
+      const score = observation.final_scores.find((entry) => entry.player === player);
+      return score ? score.points : null;
+    }
+    return (observation.public_points || [])[player];
+  }
+
   function playerTable(observation, context) {
     const table = htmlElement("table", "players");
     const head = htmlElement("thead");
     const headRow = htmlElement("tr");
-    for (const [label, className] of [
+    for (const [label, className, title] of [
       ["Player", ""],
-      ["VP", "num"],
+      ["VP", "num", "Victory points others can see; hidden victory-point cards count once the game ends."],
       ["Hand", "num"],
       ["Dev", "num"],
       ["Knights", "num"],
       ["Awards", ""],
     ]) {
-      headRow.appendChild(htmlElement("th", className, label));
+      const cell = htmlElement("th", className, label);
+      if (title) cell.title = title;
+      headRow.appendChild(cell);
     }
     head.appendChild(headRow);
     table.appendChild(head);
@@ -358,7 +369,7 @@ window.boards = window.boards || {};
     for (let player = 0; player < count; player += 1) {
       const row = htmlElement("tr", observation.active === player && !observation.game_over ? "active" : "");
       row.appendChild(seatCell(context, player));
-      row.appendChild(numberCell((observation.public_points || [])[player]));
+      row.appendChild(numberCell(victoryPoints(observation, player)));
       row.appendChild(numberCell((observation.hand_sizes || [])[player]));
       row.appendChild(numberCell((observation.dev_counts || [])[player]));
       row.appendChild(numberCell((observation.knights || [])[player]));
