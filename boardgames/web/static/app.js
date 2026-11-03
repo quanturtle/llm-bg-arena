@@ -236,9 +236,14 @@
       return h("li", { class: classes.join(" ") }, h("span", { class: "step" }, event.step), event.text, who);
     });
     const list = h("ul", { class: "events" }, items);
+    // scroll the list itself, never the page, so controls stay put while a match runs
     requestAnimationFrame(() => {
       const current = list.querySelector(".current");
-      if (current) current.scrollIntoView({ block: "nearest" });
+      if (!current) return;
+      const item = current.getBoundingClientRect();
+      const box = list.getBoundingClientRect();
+      if (item.bottom > box.bottom) list.scrollTop += item.bottom - box.bottom;
+      else if (item.top < box.top) list.scrollTop -= box.top - item.top;
     });
     return list;
   }
