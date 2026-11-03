@@ -10,18 +10,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TextIO
 
-from boardgames.agents import Agent, RandomAgent
+from boardgames.agents import Agent
 from boardgames.agents.llm_agent import LlmAgent
 from boardgames.arena.clock import SystemClock
 from boardgames.arena.console import ConsoleLog
 from boardgames.arena.control import MatchControl
 from boardgames.arena.match_config import (
-    LlmDefaults,
     LlmSeat,
     MatchConfig,
-    RandomSeat,
     llm_agent_settings,
-    merged_options,
     seats_for,
 )
 from boardgames.arena.runner import ALWAYS_RUNNING, MatchResult, play_match
@@ -51,12 +48,16 @@ class PreparedMatch:
     thoughts_path: Path
 
 
-def chat_model(use_cache: bool, api_key: str) -> ChatModel:
-    """OpenRouter with retries on transient errors, behind the cache if enabled."""
-    model: ChatModel = RetryingChatModel(OpenRouterChatModel(api_key))
-    if use_cache:
-        model = CachedChatModel(model, DirectoryResponseStore(DEFAULT_CACHE_DIR))
-    return model
+def openrouter_model(api_key: str) -> ChatModel:
+    """OpenRouter with retries on transient errors."""
+    return RetryingChatModel(OpenRouterChatModel(api_key))
+
+
+def with_cache(model: ChatModel, use_cache: bool) -> ChatModel:
+    """`model` behind the reply cache when the match asks for it."""
+    if not use_cache:
+        return model
+    return CachedChatModel(model, DirectoryResponseStore(DEFAULT_CACHE_DIR))
 
 
 def derive_seed(match_seed: int, seat: int) -> int:
@@ -66,30 +67,22 @@ def derive_seed(match_seed: int, seat: int) -> int:
 
 
 def agent_for_seat(
-    seat: LlmSeat | RandomSeat,
-    defaults: LlmDefaults,
+    seat: LlmSeat,
     match_seed: int,
     index: int,
-    model: ChatModel | None,
+    model: ChatModel,
 ) -> Agent:
-    """The agent for one seat; an LLM seat needs the chat model, so a key.
+    """The language model player for one seat.
 
     A seat's `seed` replaces the derived seed for the model only, reduced below 2**31.
     """
     seed = derive_seed(match_seed, index)
-    if isinstance(seat, RandomSeat):
-        return RandomAgent(seed)
-    options = merged_options(seat, defaults)
     model_seed = (seed if seat.seed is None else seat.seed) % 2**31
-    settings = llm_agent_settings(seat, options, model_seed)
-    if model is None:
-        raise ConfigError(
-            f"set {API_KEY_VARIABLE} in .env to seat {settings.model.model!r}"
-        )
+    settings = llm_agent_settings(seat, model_seed)
     extractor = None
-    if options.extractor is not None:
+    if seat.extractor is not None:
         extractor_settings = ModelSettings(
-            model=options.extractor, temperature=0.0, max_tokens=64
+            model=seat.extractor, temperature=0.0, max_tokens=64
         )
         extractor = ActionExtractor(model, extractor_settings)
     return LlmAgent(model, settings, seed, extractor)
@@ -97,20 +90,26 @@ def agent_for_seat(
 
 def prepare_match(
     config: MatchConfig,
-    api_key: str | None,
+    model: ChatModel | None,
     runs_dir: Path,
     *,
     seed: int | None = None,
     log: Path | None = None,
 ) -> PreparedMatch:
-    """Agents and log paths for a config; `seed` and `log` override the file."""
+    """Agents and log paths for a config; `seed` and `log` override the file.
+
+    `model` serves every seat; None (no API key) is a ConfigError.
+    """
     game = create_game(config.game)
     game_config = game.parse_config(config.config)
     match_seed = config.seed if seed is None else seed
     seats = seats_for(config, game_config.num_players)
-    model = chat_model(config.llm.cache, api_key) if api_key else None
+    if model is None:
+        first = llm_agent_settings(seats[0], 0).model.model
+        raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {first!r}")
+    stack = with_cache(model, config.cache)
     agents = [
-        agent_for_seat(seat, config.llm, match_seed, index, model)
+        agent_for_seat(seat, match_seed, index, stack)
         for index, seat in enumerate(seats)
     ]
     match_id = uuid.uuid4().hex[:12]

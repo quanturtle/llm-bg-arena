@@ -1,5 +1,6 @@
-"""A scripted ChatModel for tests."""
+"""Scripted ChatModels for tests."""
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -44,6 +45,23 @@ class QueuedChatModel:
         if isinstance(outcome, Exception):
             raise outcome
         return outcome
+
+
+class FirstListedMove:
+    """Plays the first numbered legal action of each prompt, so matches run offline."""
+
+    async def complete(
+        self,
+        messages: Sequence[Message],
+        settings: ModelSettings,
+        tools: Sequence[ToolSpec],
+        tool_choice: ToolChoice,
+    ) -> Completion:
+        prompt = next(m.content for m in reversed(messages) if m.role == "user")
+        first = next(line for line in prompt.splitlines() if line.startswith("1. "))
+        action = first.removeprefix("1. ").split(" — ")[0]
+        arguments = {"reasoning": "first listed", "action": action, "memory": ""}
+        return reply(tool_arguments=json.dumps(arguments))
 
 
 def reply(

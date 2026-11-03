@@ -32,6 +32,7 @@ from tests.arena.support import (
     ScriptedAgent,
     random_agents,
 )
+from tests.llm.fakes import FirstListedMove
 
 CATAN = CatanConfig(num_players=3, victory_points=3)
 
@@ -189,12 +190,12 @@ def test_read_log_rejects_a_malformed_line(tmp_path: Path) -> None:
 
 
 def test_cli_replay_reports_a_match(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(cli, "chat_model_from_environment", FirstListedMove)
     log = tmp_path / "match.jsonl"
     config = tmp_path / "match.yaml"
-    bots = "seats: [{agent: random}, {agent: random}]\n"
-    config.write_text(f"game: tic_tac_toe\n{bots}", encoding="utf-8")
+    config.write_text("game: tic_tac_toe\n", encoding="utf-8")
     cli.run_command(cli.parse_arguments(["play", str(config), "--log", str(log)]))
     cli.run_command(cli.parse_arguments(["replay", str(log)]))
     assert "Replay matches the log: tic_tac_toe, 7 steps" in capsys.readouterr().out

@@ -1,26 +1,16 @@
 """The match config file: the game, its config, the seats and each LLM seat's settings.
 
 A file is read once into frozen pydantic models. Unknown keys are errors. Every
-seat is a language model unless it says `agent: random`; with no `seats`, every
-player is one. An LLM seat's unset values, its model included, fall back to the
-file's `llm` defaults, then to the built-in defaults (DEFAULT_MODEL, ModelSettings,
-PromptSettings, LlmAgentSettings). A seat value set to null skips the `llm`
-default and takes the built-in one.
+seat is a language model; with no `seats`, every player is the default model.
+Each seat carries its own model and settings; what it leaves unset takes the
+built-in default (DEFAULT_MODEL, ModelSettings, PromptSettings, LlmAgentSettings).
 """
 
 from dataclasses import replace
 from pathlib import Path
-from typing import Annotated, Literal
 
 import yaml
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Discriminator,
-    Field,
-    Tag,
-    ValidationError,
-)
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic import JsonValue as PlainJson
 from pydantic_core import ErrorDetails
 
@@ -54,7 +44,6 @@ SUGGESTED_MODELS = (
     "anthropic/claude-haiku-5.5",
 )
 AGENT_FIELDS = frozenset({"max_illegal_retries", "max_tool_calls", "fallback"})
-SEAT_ONLY_FIELDS = frozenset({"agent", "label", "seed"})
 
 
 class ConfigModel(BaseModel):
@@ -80,48 +69,25 @@ class LlmOptions(ConfigModel):
     extractor: str | None = None
 
 
-class LlmDefaults(LlmOptions):
-    """The file's `llm` section: defaults for every LLM seat, plus the reply cache."""
-
-    model: str | None = DEFAULT_MODEL
-    cache: bool = False
-
-
 class LlmSeat(LlmOptions):
-    agent: Literal["llm"] = "llm"
+    """A language model seat: its model and settings; unset ones use the defaults."""
+
     label: str | None = None
     seed: int | None = None
 
 
-class RandomSeat(ConfigModel):
-    """A bot that picks uniformly among legal actions, only when asked for by name."""
-
-    agent: Literal["random"]
-
-
-def seat_kind(raw: object) -> str:
-    """The seat's `agent`, "llm" when the seat leaves it out."""
-    if isinstance(raw, dict):
-        agent = raw.get("agent", "llm")
-        return agent if isinstance(agent, str) else "llm"
-    return getattr(raw, "agent", "llm")
-
-
-type Seat = Annotated[
-    Annotated[LlmSeat, Tag("llm")] | Annotated[RandomSeat, Tag("random")],
-    Discriminator(seat_kind),
-]
-
-
 class MatchConfig(ConfigModel):
-    """One match: `seats` left out means every player is the default model."""
+    """One match: `seats` left out means every player is the default model.
+
+    `cache` reuses stored model replies for identical requests, for reruns.
+    """
 
     game: str
     config: dict[str, PlainJson] = {}
     seed: int = 0
     log: Path | None = None
-    llm: LlmDefaults = LlmDefaults()
-    seats: list[Seat] | None = None
+    cache: bool = False
+    seats: list[LlmSeat] | None = None
 
 
 def load_match_config(path: Path) -> MatchConfig:
@@ -157,14 +123,11 @@ def problem_text(problem: ErrorDetails) -> str:
 
 
 def check_reasoning(config: MatchConfig, source: str) -> None:
-    """Raise ConfigError if an LLM seat's merged options set both kinds of reasoning."""
+    """Raise ConfigError if a seat sets both kinds of reasoning."""
     for index, seat in enumerate(config.seats or []):
-        if not isinstance(seat, LlmSeat):
-            continue
-        options = merged_options(seat, config.llm)
         if (
-            options.reasoning_effort is not None
-            and options.thinking_budget_tokens is not None
+            seat.reasoning_effort is not None
+            and seat.thinking_budget_tokens is not None
         ):
             raise ConfigError(
                 f"{source}: seats.{index}: set reasoning_effort or "
@@ -173,7 +136,7 @@ def check_reasoning(config: MatchConfig, source: str) -> None:
     return
 
 
-def seats_for(config: MatchConfig, num_players: int) -> list[LlmSeat | RandomSeat]:
+def seats_for(config: MatchConfig, num_players: int) -> list[LlmSeat]:
     """The seats to fill, one per player; with no `seats`, each is the default model."""
     if config.seats is None:
         return [LlmSeat() for _ in range(num_players)]
@@ -185,43 +148,26 @@ def seats_for(config: MatchConfig, num_players: int) -> list[LlmSeat | RandomSea
     return list(config.seats)
 
 
-def merged_options(seat: LlmSeat, defaults: LlmDefaults) -> LlmOptions:
-    """Seat values over the file defaults; a seat's unset values show the defaults.
-
-    A seat value set to null stays None, so the built-in default applies.
-    """
-    values = defaults.model_dump(exclude={"cache"})
-    values.update(
-        seat.model_dump(include=set(seat.model_fields_set - SEAT_ONLY_FIELDS))
-    )
-    return LlmOptions.model_validate(values)
-
-
-def llm_agent_settings(
-    seat: LlmSeat, options: LlmOptions, seed: int
-) -> LlmAgentSettings:
-    """Agent settings for a seat; options still unset keep the built-in defaults."""
-    if options.model is None:
-        raise ConfigError(
-            "a language model seat needs a model; the seat and llm set none"
-        )
+def llm_agent_settings(seat: LlmSeat, seed: int) -> LlmAgentSettings:
+    """Agent settings for a seat; what it leaves unset keeps the built-in default,
+    and a seat without a model plays DEFAULT_MODEL."""
     model = replace(
-        ModelSettings(model=options.model, seed=seed),
-        **options.model_dump(include=set(MODEL_FIELDS), exclude_none=True),
+        ModelSettings(model=seat.model or DEFAULT_MODEL, seed=seed),
+        **seat.model_dump(include=set(MODEL_FIELDS), exclude_none=True),
     )
     prompt = replace(
         PromptSettings(),
-        **options.model_dump(include=set(PROMPT_FIELDS), exclude_none=True),
+        **seat.model_dump(include=set(PROMPT_FIELDS), exclude_none=True),
     )
     return replace(
         LlmAgentSettings(model=model, prompt=prompt, label=seat.label),
-        **options.model_dump(include=set(AGENT_FIELDS), exclude_none=True),
+        **seat.model_dump(include=set(AGENT_FIELDS), exclude_none=True),
     )
 
 
 def builtin_seat_defaults() -> dict[str, PlainJson]:
     """What a seat that sets nothing plays with, per option, from the settings code."""
-    settings = llm_agent_settings(LlmSeat(), LlmOptions(model=DEFAULT_MODEL), seed=0)
+    settings = llm_agent_settings(LlmSeat(), seed=0)
     values: dict[str, PlainJson] = {"model": DEFAULT_MODEL}
     values |= {key: getattr(settings.model, key) for key in MODEL_FIELDS - {"extra"}}
     values |= {key: getattr(settings.prompt, key) for key in PROMPT_FIELDS}

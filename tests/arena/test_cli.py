@@ -6,12 +6,18 @@ from boardgames.arena import cli
 from boardgames.arena.lineup import (
     API_KEY_VARIABLE,
     agent_for_seat,
-    chat_model,
     derive_seed,
+    openrouter_model,
 )
-from boardgames.arena.match_config import LlmDefaults, LlmSeat
+from boardgames.arena.match_config import LlmSeat
+from tests.llm.fakes import FirstListedMove
 
-BOTS = "seats: [{agent: random}, {agent: random}]\n"
+
+@pytest.fixture
+def offline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every seat plays the first listed move, without a key or network."""
+    monkeypatch.setattr(cli, "chat_model_from_environment", FirstListedMove)
+    return
 
 
 def write_config(tmp_path: Path, text: str) -> Path:
@@ -29,11 +35,11 @@ def error_lines(argv: list[str], capsys: pytest.CaptureFixture[str]) -> list[str
 
 
 def test_existing_log_path_is_one_error_line(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: None
 ) -> None:
     log = tmp_path / "match.jsonl"
     log.write_text("kept\n", encoding="utf-8")
-    config = write_config(tmp_path, f"game: tic_tac_toe\nlog: {log}\n{BOTS}")
+    config = write_config(tmp_path, f"game: tic_tac_toe\nlog: {log}\n")
     assert error_lines(["play", str(config)], capsys) == [
         f"error: {log} already exists; logs are never overwritten"
     ]
@@ -62,22 +68,23 @@ def test_config_that_is_not_utf8_is_one_error_line(
 
 
 def test_play_runs_the_configured_match_and_writes_its_log(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: None
 ) -> None:
     log = tmp_path / "match.jsonl"
-    config = write_config(tmp_path, f"game: tic_tac_toe\nseed: 3\nlog: {log}\n{BOTS}")
+    config = write_config(tmp_path, f"game: tic_tac_toe\nseed: 3\nlog: {log}\n")
     cli.run_command(cli.parse_arguments(["play", str(config)]))
     output = capsys.readouterr().out
-    assert "tic_tac_toe (seed 3): P1 random, P2 random" in output
+    model = "qwen/qwen3.7-flash"
+    assert f"tic_tac_toe (seed 3): P1 {model}, P2 {model}" in output
     assert "Ranks:" in output
     assert log.exists()
     return
 
 
 def test_seed_and_log_flags_override_the_file(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: None
 ) -> None:
-    config = write_config(tmp_path, f"game: tic_tac_toe\nseed: 3\n{BOTS}")
+    config = write_config(tmp_path, "game: tic_tac_toe\nseed: 3\n")
     log = tmp_path / "override.jsonl"
     cli.run_command(
         cli.parse_arguments(["play", str(config), "--seed", "5", "--log", str(log)])
@@ -98,10 +105,14 @@ def test_unknown_game_exits_with_status_1(
     return
 
 
-def test_llm_seat_builds_an_llm_agent_with_merged_settings() -> None:
-    seat = LlmSeat(agent="llm", model="anthropic/claude-haiku-5-5", fallback="forfeit")
-    defaults = LlmDefaults(max_illegal_retries=1, extractor="openai/gpt-5-mini")
-    agent = agent_for_seat(seat, defaults, 7, 1, chat_model(False, "k"))
+def test_llm_seat_builds_an_llm_agent_with_its_settings() -> None:
+    seat = LlmSeat(
+        model="anthropic/claude-haiku-5-5",
+        fallback="forfeit",
+        max_illegal_retries=1,
+        extractor="openai/gpt-5-mini",
+    )
+    agent = agent_for_seat(seat, 7, 1, openrouter_model("k"))
     settings = agent.settings()
     assert agent.name == "anthropic/claude-haiku-5-5"
     assert settings["kind"] == "llm"
@@ -111,8 +122,8 @@ def test_llm_seat_builds_an_llm_agent_with_merged_settings() -> None:
 
 
 def test_seat_seed_sets_only_the_model_seed_modulo_2_31() -> None:
-    seat = LlmSeat(agent="llm", model="openai/gpt-x", seed=2**31 + 5)
-    agent = agent_for_seat(seat, LlmDefaults(), 7, 1, chat_model(False, "k"))
+    seat = LlmSeat(model="openai/gpt-x", seed=2**31 + 5)
+    agent = agent_for_seat(seat, 7, 1, openrouter_model("k"))
     settings = agent.settings()
     model = settings["model"]
     assert isinstance(model, dict)
@@ -127,9 +138,9 @@ def test_reasoning_conflict_is_reported_before_the_key_check(
     monkeypatch.delenv(API_KEY_VARIABLE, raising=False)
     config = write_config(
         tmp_path,
-        "game: tic_tac_toe\nllm: {reasoning_effort: high}\nseats:\n"
-        "  - {agent: random}\n"
-        "  - {agent: llm, model: openai/gpt-x, thinking_budget_tokens: 2048}\n",
+        "game: tic_tac_toe\nseats:\n"
+        "  - {}\n"
+        "  - {model: a/b, reasoning_effort: high, thinking_budget_tokens: 2}\n",
     )
     assert error_lines(["play", str(config)], capsys) == [
         f"error: {config}: seats.1: set reasoning_effort or thinking_budget_tokens, "
@@ -145,8 +156,7 @@ def test_llm_seat_without_a_key_exits_with_status_1(
     monkeypatch.chdir(tmp_path)
     config = write_config(
         tmp_path,
-        "game: tic_tac_toe\nseats:\n  - {agent: llm, model: openai/gpt-x}\n"
-        "  - {agent: random}\n",
+        "game: tic_tac_toe\nseats:\n  - {model: openai/gpt-x}\n  - {}\n",
     )
     with pytest.raises(SystemExit) as exit_info:
         cli.run_command(cli.parse_arguments(["play", str(config)]))

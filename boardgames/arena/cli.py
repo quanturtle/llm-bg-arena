@@ -20,10 +20,16 @@ from pathlib import Path
 import uvicorn
 from dotenv import load_dotenv
 
-from boardgames.arena.lineup import API_KEY_VARIABLE, prepare_match, run_prepared
+from boardgames.arena.lineup import (
+    API_KEY_VARIABLE,
+    openrouter_model,
+    prepare_match,
+    run_prepared,
+)
 from boardgames.arena.match_config import load_match_config
 from boardgames.core import ArenaError
 from boardgames.games import game_ids
+from boardgames.llm.model import ChatModel
 from boardgames.logs.replay import read_log, replay_match
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
@@ -115,16 +121,21 @@ def list_games(args: argparse.Namespace) -> None:
     return
 
 
-def openrouter_api_key() -> str | None:
-    """The OpenRouter key from the environment, which `main` loads from .env."""
-    return os.environ.get(API_KEY_VARIABLE) or None
+def chat_model_from_environment() -> ChatModel | None:
+    """OpenRouter with the key `main` loads from .env, or None without a key."""
+    api_key = os.environ.get(API_KEY_VARIABLE) or None
+    return openrouter_model(api_key) if api_key else None
 
 
 def play(args: argparse.Namespace) -> None:
     """Play the match a config file describes, print it unless --quiet, log it."""
     config = load_match_config(args.match)
     prepared = prepare_match(
-        config, openrouter_api_key(), DEFAULT_LOG_DIR, seed=args.seed, log=args.log
+        config,
+        chat_model_from_environment(),
+        DEFAULT_LOG_DIR,
+        seed=args.seed,
+        log=args.log,
     )
     console = None if args.quiet else sys.stdout
     result = asyncio.run(run_prepared(prepared, console))
@@ -151,7 +162,7 @@ def check_replay(args: argparse.Namespace) -> None:
 def serve(args: argparse.Namespace) -> None:
     """Serve the web viewer until interrupted; matches started there run in-process."""
     game_ids()
-    launcher = MatchLauncher(args.runs, openrouter_api_key(), args.examples)
+    launcher = MatchLauncher(args.runs, chat_model_from_environment(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
     uvicorn.run(
         create_app(MatchStore(args.runs), launcher), host=args.host, port=args.port

@@ -19,6 +19,7 @@ from boardgames.arena.control import PauseGate
 from boardgames.arena.lineup import PreparedMatch, prepare_match, run_prepared
 from boardgames.arena.match_config import parse_match_config
 from boardgames.core import ArenaError, ConfigError
+from boardgames.llm.model import ChatModel
 
 type LaunchStatus = Literal["running", "paused", "stopped", "finished", "failed"]
 type Ending = Literal["stopped", "finished", "failed"]
@@ -62,10 +63,11 @@ class MatchLauncher:
     """Starts matches into `runs_dir`, pauses and stops them, and keeps their status."""
 
     def __init__(
-        self, runs_dir: Path, api_key: str | None, examples_dir: Path | None
+        self, runs_dir: Path, model: ChatModel | None, examples_dir: Path | None
     ) -> None:
+        """`model` serves every seat; with None (no API key) each start raises."""
         self._runs_dir = runs_dir
-        self._api_key = api_key
+        self._model = model
         self._examples_dir = examples_dir
         self._launched: dict[str, Running] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -87,7 +89,7 @@ class MatchLauncher:
         except yaml.YAMLError as error:
             raise ConfigError(f"the config is not valid YAML: {error}") from error
         config = parse_match_config(raw, "config")
-        running = Running(prepare_match(config, self._api_key, self._runs_dir))
+        running = Running(prepare_match(config, self._model, self._runs_dir))
         match_id = running.prepared.match_id
         self._launched[match_id] = running
         self._tasks[match_id] = asyncio.ensure_future(self._run(running))
