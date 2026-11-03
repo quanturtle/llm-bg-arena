@@ -1,8 +1,9 @@
-"""Static board layouts for drawn boards; the game modules own the geometry."""
+"""Static layout data for drawn boards and game tables; games own the tables."""
 
 from pydantic import JsonValue as PlainJson
 
 from boardgames.games.catan import geometry
+from boardgames.games.puerto_rico.constants import BUILDINGS, GOODS
 
 
 def catan_layout() -> dict[str, PlainJson]:
@@ -28,7 +29,27 @@ def catan_layout() -> dict[str, PlainJson]:
     }
 
 
-LAYOUTS = {"catan": catan_layout}
+def puerto_rico_layout() -> dict[str, PlainJson]:
+    """The building table and good order the Puerto Rico board renderer draws."""
+    return {
+        "buildings": [
+            {
+                "name": spec.name,
+                "cost": spec.cost,
+                "victory_points": spec.victory_points,
+                "max_colonists": spec.max_colonists,
+                "production": spec.production,
+                "kind": spec.kind,
+                "size": spec.size,
+                "copies": spec.copies,
+            }
+            for spec in BUILDINGS.values()
+        ],
+        "goods": list(GOODS),
+    }
+
+
+LAYOUTS = {"catan": catan_layout, "puerto_rico": puerto_rico_layout}
 
 
 def game_layout(game_id: str) -> dict[str, PlainJson] | None:

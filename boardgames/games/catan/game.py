@@ -204,8 +204,7 @@ class Catan:
                         for board_hex in board_hexes
                     ],
                     "ports": [
-                        {"edge": port.edge, "resource": port.resource}
-                        for port in ports
+                        {"edge": port.edge, "resource": port.resource} for port in ports
                     ],
                 },
             ),

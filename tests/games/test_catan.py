@@ -261,8 +261,7 @@ def test_first_settlement_grants_nothing() -> None:
 def test_production_counts_settlements_and_cities_but_not_the_robber() -> None:
     state = start()
     board = [
-        replace(board_hex, terrain="desert", number=None)
-        for board_hex in state.hexes
+        replace(board_hex, terrain="desert", number=None) for board_hex in state.hexes
     ]
     board[0] = replace(board[0], terrain="forest", number=6)
     board[1] = replace(board[1], terrain="pasture", number=8)
@@ -372,9 +371,7 @@ def test_player_offer_accept_transfers_one_card_each_way() -> None:
     )
     offered = action_state(replace(state, hands=hands))
     (offer,) = [
-        action
-        for action in listing(offered)
-        if isinstance(action, OfferTrade)
+        action for action in listing(offered) if isinstance(action, OfferTrade)
     ][:1]
     pending = GAME.apply(offered, P1, offer).state
     assert pending.phase == "trade_response"
@@ -439,9 +436,7 @@ def test_discard_is_private_and_then_the_robber_moves() -> None:
     first = GAME.apply(state, P1, Discard("wood"))
     assert first.state.discard_remaining == (1, 0, 0)
     assert first.state.phase == "discard"
-    private = [
-        event for event in first.events if isinstance(event.audience, frozenset)
-    ]
+    private = [event for event in first.events if isinstance(event.audience, frozenset)]
     assert len(private) == 1
     assert private[0].audience == frozenset({P1})
     second = GAME.apply(first.state, P1, Discard("wood")).state
@@ -496,9 +491,7 @@ def test_knight_moves_robber_and_counts_for_largest_army() -> None:
         dice=(1, 2),
         dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
     )
-    knight = next(
-        action for action in listing(armed) if isinstance(action, PlayKnight)
-    )
+    knight = next(action for action in listing(armed) if isinstance(action, PlayKnight))
     transition = GAME.apply(armed, P1, knight)
     after = transition.state
     assert after.robber == knight.hex
@@ -540,9 +533,7 @@ def test_year_of_plenty_and_monopoly() -> None:
         hands=(empty_hand(), empty_hand(), empty_hand()),
         dev_hands=(dev_hand_from(year_of_plenty=1), empty_hand(), empty_hand()),
     )
-    after_plenty = GAME.apply(
-        plenty, P1, PlayYearOfPlenty("wood", "ore")
-    ).state
+    after_plenty = GAME.apply(plenty, P1, PlayYearOfPlenty("wood", "ore")).state
     assert after_plenty.hands[P1] == hand_from(wood=1, ore=1)
     assert after_plenty.dev_hands[P1] == empty_hand()
 
@@ -787,9 +778,7 @@ def path_edges(length: int) -> list[int]:
     raise AssertionError("no path found")
 
 
-def extend_path(
-    vertex: int, visited: set[int], edges: list[int]
-) -> list[int] | None:
+def extend_path(vertex: int, visited: set[int], edges: list[int]) -> list[int] | None:
     if len(edges) == 5:
         return list(edges)
     for edge in VERTEX_EDGES[vertex]:
@@ -797,9 +786,7 @@ def extend_path(
         next_vertex = second if first == vertex else first
         if next_vertex in visited:
             continue
-        found = extend_path(
-            next_vertex, {*visited, next_vertex}, [*edges, edge]
-        )
+        found = extend_path(next_vertex, {*visited, next_vertex}, [*edges, edge])
         if found is not None:
             return found
     return None

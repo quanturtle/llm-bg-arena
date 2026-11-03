@@ -432,8 +432,7 @@ def final_lines(data: JsonObject) -> list[str]:
         points = json_number(score, "points")
         breakdown = json_object(score, "breakdown")
         lines.append(
-            f"  {seat_label(player)}: {points:g} points "
-            f"({breakdown_text(breakdown)})."
+            f"  {seat_label(player)}: {points:g} points ({breakdown_text(breakdown)})."
         )
     return lines
 
