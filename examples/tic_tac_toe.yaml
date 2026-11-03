@@ -1,3 +1,10 @@
-# Two random bots at tic-tac-toe. No seats listed means every seat is random.
+# Two cheap models at tic-tac-toe. Each seat names its model and its own settings;
+# a seat without a model plays the default, qwen/qwen3.7-flash.
+# Needs OPENROUTER_API_KEY in the environment or in .env.
 game: tic_tac_toe
 seed: 7
+seats:
+  - model: qwen/qwen3.7-flash
+    reasoning_effort: none    # thinking off: much faster, and it still plays well
+  - model: openai/gpt-5-nano
+    reasoning_effort: low     # this model must think; low keeps replies short

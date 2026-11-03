@@ -1,8 +1,8 @@
 # Boardgames
 
-Seat language models and random bots at the same board game table, and keep a replayable record of every move.
+Seat language models at the same board game table, and keep a replayable record of every move.
 
-Each game's rules are written once in Python. Two kinds of player can then take a seat: a random bot, or any language model available through OpenRouter. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
+Each game's rules are written once in Python. Every seat is a language model available through OpenRouter; a seat that names none plays `qwen/qwen3.7-flash`. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
 
 ## Status
 
@@ -12,7 +12,7 @@ Early. Three games ship today:
 - **Catan**: the standard 19-hex base game for 3 or 4 players, with settlements, cities, roads, harbours, trading, the robber and development cards.
 - **Puerto Rico**: the standard base game for 3 to 5 players, with roles, plantations, buildings, colonists, trading and shipping.
 
-Tournaments, ratings and a web replay viewer come next.
+Tournaments come next.
 
 ## Install
 
@@ -26,35 +26,27 @@ uv sync
 
 ## Play
 
-A match is described by a YAML file: the game, its config, and who sits at each seat. Two random bots at tic-tac-toe:
+Players are language models on OpenRouter, so you need a key. Create a file named `.env` in the project folder with one line, `OPENROUTER_API_KEY=<your-key>`.
+
+A match is described by a YAML file: the game, its config, and one entry per player with its model and that model's settings. Two cheap models at tic-tac-toe, from `examples/tic_tac_toe.yaml`:
+
+```yaml
+game: tic_tac_toe
+seed: 7
+seats:
+  - model: qwen/qwen3.7-flash
+    reasoning_effort: none    # thinking off: much faster, and it still plays well
+  - model: openai/gpt-5-nano
+    reasoning_effort: low     # this model must think; low keeps replies short
+```
 
 ```sh
 uv run arena play examples/tic_tac_toe.yaml
 ```
 
-Language models need an OpenRouter key. Create a file named `.env` in the project folder with one line, `OPENROUTER_API_KEY=<your-key>`, then seat them in a file such as `match.yaml`:
+That match costs well under a cent. Any OpenRouter model id works, and a seat without a `model` plays `qwen/qwen3.7-flash`; leave `seats` out and every player does. Each seat can set `temperature`, `top_p`, `max_tokens`, `reasoning_effort` (`none`, `low`, `medium`, `high`) or `thinking_budget_tokens`, `timeout_seconds`, `label`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. `cache: true` at the top of the file reuses stored replies for identical requests. `--seed` and `--log` override the file. The files in `examples/` also cover short three-player Catan and Puerto Rico games between cheap models.
 
-```yaml
-game: puerto_rico
-config: {num_players: 3, max_rounds: 5}
-llm:                       # defaults for every llm seat
-  temperature: 0.2
-  cache: true
-seats:
-  - agent: llm
-    model: anthropic/claude-haiku-5-5
-    reasoning_effort: high
-  - agent: llm
-    model: openai/gpt-5-mini
-    extra: {provider: {order: [openai]}}
-  - agent: random
-```
-
-```sh
-uv run arena play match.yaml
-```
-
-Any OpenRouter model id works. Under `llm` or per seat you can set `temperature`, `top_p`, `max_tokens`, `reasoning_effort` or `thinking_budget_tokens`, `timeout_seconds`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. Leave `seats` out to seat random bots everywhere. `--seed` and `--log` override the file. The files in `examples/` cover tic-tac-toe and short three-player Catan and Puerto Rico games, all between random bots.
+Some models think before they answer, and that thinking counts toward `max_tokens` (default 4096). `qwen/qwen3.7-flash` ignores `low` and token budgets and can think for minutes on one move, so give it `reasoning_effort: none`; `openai/gpt-5-nano` must think and rejects `none`, so give it `low`.
 
 Puerto Rico follows the role-selection cycle: the governor chooses first, every role's action phase runs immediately, and unchosen roles gain a doubloon at round end. `victory_point_supply` can lower the standard 75/100/122 chip supply for short games, and `max_rounds` adds a round limit. The full notation, buildings and scoring are in `boardgames/games/puerto_rico/rules.md`.
 
@@ -66,30 +58,29 @@ Every match writes two files to `runs/`: a JSONL log, and next to it a `.thought
 
 ```console
 $ uv run arena play examples/tic_tac_toe.yaml --log runs/demo.jsonl
-tic_tac_toe (seed 7): P1 random, P2 random
+tic_tac_toe (seed 7): P1 qwen/qwen3.7-flash, P2 openai/gpt-5-nano
     New game of tic-tac-toe.
-[1] P1 random: a2
-    P1 (X) marked a2.
-[2] P2 random: a3
-    P2 (O) marked a3.
-[3] P1 random: b1
-    P1 (X) marked b1.
-[4] P2 random: b3
-    P2 (O) marked b3.
-[5] P1 random: b2
+[1] P1 qwen/qwen3.7-flash: b2
+      reasoning: This is the first move of the game. I will choose the center square (b2) as it is the most strategic position, ...
     P1 (X) marked b2.
-[6] P2 random: c3
+[2] P2 openai/gpt-5-nano: c3
+      reasoning: I will block the key diagonal threat from X. With X at b2, the diagonal a1-b2-c3 could lead to a win for X ...
     P2 (O) marked c3.
-    P2 (O) completed a line: a3 b3 c3.
-Finished after 6 steps.
-  #1 P2 random: 1 point
-  #2 P1 random: 0 points
-Ranks: P1 #2, P2 #1
+...
+[7] P1 qwen/qwen3.7-flash: b1
+      reasoning: I have X at a1, b2, and c1. The bottom row (row 1) consists of cells a1, b1, and c1. ...
+      rejected: The tool call needs a non-empty "action" string.
+    P1 (X) marked b1.
+    P1 (X) completed a line: a1 b1 c1.
+Finished after 7 steps.
+  #1 P1 qwen/qwen3.7-flash: 1 point (14508 tokens, $0.0007)
+  #2 P2 openai/gpt-5-nano: 0 points (5021 tokens, $0.0013)
+Ranks: P1 #1, P2 #2
 Log: runs/demo.jsonl
 Thoughts: runs/demo.thoughts.md
 
 $ uv run arena replay runs/demo.jsonl
-Replay matches the log: tic_tac_toe, 6 steps, 8 events.
+Replay matches the log: tic_tac_toe, 7 steps, 9 events.
 ```
 
 ## Watch

@@ -1,4 +1,13 @@
-# A short three-player Catan game between random bots: first to 6 victory points.
+# A short three-player Catan game between cheap models: first to 5 victory points.
+# A Catan game takes a few hundred moves, one model call each, so it runs for a while.
+# Needs OPENROUTER_API_KEY in the environment or in .env.
 game: catan
-config: {num_players: 3, victory_points: 6}
+config: {num_players: 3, victory_points: 5}
 seed: 1
+seats:
+  - model: qwen/qwen3.7-flash
+    reasoning_effort: none
+  - model: deepseek/deepseek-v4.1-flash
+    reasoning_effort: low
+  - model: z-ai/glm-5.3-flash
+    reasoning_effort: low
