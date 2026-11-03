@@ -162,10 +162,27 @@ def tool_call_line(call: object) -> str:
 
 
 def finish_text(record: MatchFinished, agents: dict[int, str]) -> str:
-    """Final ranks and points."""
+    """The result in one line, then final ranks and points."""
     lines = [
         f"- #{score.rank} {seat_label(PlayerId(score.player))} "
         f"{agents.get(score.player, '?')}: {score.points:g} points"
         for score in sorted(record.scores, key=lambda score: score.rank)
     ]
-    return f"## Finished after {record.steps} steps\n\n" + "\n".join(lines) + "\n"
+    heading = f"## Finished after {record.steps} steps"
+    return f"{heading}\n\n{result_line(record, agents)}\n\n" + "\n".join(lines) + "\n"
+
+
+def result_line(record: MatchFinished, agents: dict[int, str]) -> str:
+    """The winner and their points, a shared first place, or a draw."""
+    first = [score for score in record.scores if score.rank == 1]
+    names = " and ".join(
+        f"{seat_label(PlayerId(score.player))} {agents.get(score.player, '?')}"
+        for score in first
+    )
+    points = first[0].points if first else 0
+    point_text = f"{points:g} point{'' if points == 1 else 's'}"
+    if len(first) == 1:
+        return f"**Winner: {names}, {point_text}.**"
+    if len(first) == len(record.scores):
+        return f"**Draw: {names}.**"
+    return f"**Shared first place: {names}, {point_text}.**"

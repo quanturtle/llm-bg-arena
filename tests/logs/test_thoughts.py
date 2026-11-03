@@ -75,5 +75,6 @@ def test_thoughts_log_writes_reasoning_tool_calls_and_notes_per_decision() -> No
     assert "**Rejected** `b2`: b2 is taken." in text
     assert "Center is strongest." in text and "took center" in text
     assert "_120 tokens, $0.0010_" in text
+    assert "**Winner: P1 haiku, 1 point.**" in text
     assert "- #1 P1 haiku: 1 points" in text
     return
