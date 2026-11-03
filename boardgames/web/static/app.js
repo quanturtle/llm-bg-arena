@@ -135,6 +135,19 @@
     const empty = catalog.matches.length ? null : h("p", { class: "muted" }, "No matches yet. Play one with `arena play` and it appears here.");
     const unreadable = catalog.unreadable.length ? h("p", { class: "small error" }, `${catalog.unreadable.length} log file(s) could not be read: `, catalog.unreadable.map((u) => `${u.path}`).join(", ")) : null;
     app.replaceChildren(h("h1", {}, "Matches"), toolbar, h("div", { class: "panel" }, table, empty), unreadable);
+    return catalog.matches.some((m) => m.status === "running");
+  }
+
+  // The list refreshes every few seconds while a match is running.
+  function matchesPage(params) {
+    let timer = null;
+    let disposed = false;
+    const refresh = async () => {
+      if (disposed) return;
+      const running = await renderMatches(params);
+      if (running && !disposed) timer = setTimeout(() => refresh().catch(showError), 3000);
+    };
+    return { start: refresh, dispose: () => { disposed = true; clearTimeout(timer); } };
   }
 
   function navigateMatches(filters) {
@@ -327,8 +340,16 @@
       else if (event.key === " ") { event.preventDefault(); play(); }
     };
 
+    // While a match runs, a poll may catch the log between a decision and its
+    // events; that read fails and the next poll retries.
     const refreshOutline = async () => {
-      const fresh = await api(`/api/matches/${matchId}/timeline`);
+      let fresh;
+      try {
+        fresh = await api(`/api/matches/${matchId}/timeline`);
+      } catch (error) {
+        if (outline) return;
+        throw error;
+      }
       const grew = outline && fresh.frame_count > outline.frame_count;
       const wasAtEnd = outline && step === last();
       outline = fresh;
@@ -425,8 +446,10 @@
   // --- router -------------------------------------------------------------
 
   let current = null;
+  // A route renders the page, or returns {start, dispose} for a page that keeps updating.
   const routes = {
-    matches: (_, params) => renderMatches(params),
+    matches: (_, params) => matchesPage(params),
+    match: (args, params) => matchPage(args[0], params),
   };
   // Other scripts add pages to `routes` and reuse these helpers.
   window.viewer = { h, api, loadGames, formatCost, formatSeconds, formatDate, seatChip, matchRow, setActiveNav, showError, routes, app };
@@ -445,12 +468,12 @@
     if (current && current.dispose) current.dispose();
     current = { id };
     try {
-      if (name === "match" && args[0]) {
-        const page = matchPage(args[0], params);
-        current.dispose = page.dispose;
-        await page.start();
-      } else if (routes[name]) {
-        await routes[name](args, params);
+      if (routes[name]) {
+        const page = await routes[name](args, params);
+        if (page && page.start) {
+          current.dispose = page.dispose;
+          await page.start();
+        }
       } else {
         app.replaceChildren(h("div", { class: "panel" }, h("p", { class: "error" }, `Unknown page: ${name}`)));
       }

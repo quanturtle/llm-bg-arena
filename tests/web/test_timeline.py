@@ -19,6 +19,17 @@ def test_one_frame_per_step_with_boards_and_the_decision() -> None:
     return
 
 
+def test_a_running_log_cut_after_a_decision_drops_that_step() -> None:
+    records = play_records(KInARow(), TIC_TAC_TOE, random_agents(2), 3, "m")
+    third = next(
+        i for i, r in enumerate(records) if r.type == "decision" and r.step == 3
+    )
+    timeline = build_timeline(records[: third + 1])
+    assert (timeline.match.status, timeline.match.steps) == ("running", 2)
+    assert len(timeline.frames) == 3
+    return
+
+
 def test_private_events_and_forfeits_are_kept() -> None:
     config = SealedAuctionConfig(num_players=3, lots=2)
     agents = [*random_agents(2), ForfeitingAgent()]

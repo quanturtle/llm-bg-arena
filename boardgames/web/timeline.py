@@ -12,12 +12,18 @@ from pydantic import BaseModel, ConfigDict
 from pydantic import JsonValue as PlainJson
 
 from boardgames.core import AnyGame, Observation, PlayerId, seats
-from boardgames.logs.replay import Replayed, events_by_step, replay_states
+from boardgames.logs.replay import (
+    Replayed,
+    ReplayMismatchError,
+    events_by_step,
+    replay_states,
+)
 from boardgames.logs.schema import (
     DecisionRecord,
     EventRecord,
     ForfeitRecord,
     LogRecord,
+    MatchFinished,
     TraceRecord,
     plain_object,
 )
@@ -180,9 +186,41 @@ def frame(
     )
 
 
+def without_last_decision(records: Sequence[LogRecord]) -> list[LogRecord]:
+    """The log cut before its last decision record, or empty when there is none."""
+    last = next(
+        (
+            i
+            for i in reversed(range(len(records)))
+            if isinstance(records[i], DecisionRecord)
+        ),
+        None,
+    )
+    return [] if last is None else list(records[:last])
+
+
+def replay_complete_steps(
+    records: Sequence[LogRecord],
+) -> tuple[Replayed, list[LogRecord]]:
+    """Replay a log; a running match's last steps, still being written, are dropped.
+
+    A finished log, or one whose cut-off is not at the end, raises ReplayMismatchError.
+    """
+    remaining = list(records)
+    is_finished = any(isinstance(r, MatchFinished) for r in records)
+    while True:
+        try:
+            return replay_states(remaining), remaining
+        except ReplayMismatchError:
+            trimmed = without_last_decision(remaining)
+            if is_finished or not trimmed:
+                raise
+            remaining = trimmed
+
+
 def build_timeline(records: Sequence[LogRecord]) -> Timeline:
     """Replay the log and lay out one frame per step; unfinished logs are allowed."""
-    replayed = replay_states(records)
+    replayed, records = replay_complete_steps(records)
     events = events_by_step(records)
     decisions = {r.step: r for r in records if isinstance(r, DecisionRecord)}
     forfeits: dict[int, list[ForfeitRecord]] = {}
