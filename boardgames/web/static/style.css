@@ -109,6 +109,8 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 button:disabled { opacity: 0.5; cursor: default; }
 button.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
 .live-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.row-actions { text-align: right; white-space: nowrap; }
+button.small { font-size: 13px; padding: 3px 8px; }
 .new-match .toolbar { display: flex; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
 /* new-match form: labelled fields in a grid, one card per seat */
 .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; }

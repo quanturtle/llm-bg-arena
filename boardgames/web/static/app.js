@@ -31,7 +31,13 @@
       }
       throw new Error(message);
     }
+    if (response.status === 204) return null;
     return response.json();
+  }
+
+  // DELETE a resource; errors carry the server's message.
+  function remove(path) {
+    return api(path, { method: "DELETE" });
   }
 
   // POST a JSON body (or none) and return the JSON reply; errors carry the server's message.
@@ -131,7 +137,29 @@
     return row;
   }
 
-  async function renderMatches(params) {
+  // A row's delete control: the first click asks, the second removes the log for good.
+  // Matches this server is still playing have none; stop them first.
+  function deleteCell(match, playing, state, refresh) {
+    const cell = h("td", { class: "row-actions", onclick: (event) => event.stopPropagation() });
+    if (playing) return cell;
+    if (state.confirming !== match.match_id) {
+      cell.append(h("button", { class: "small", title: "Delete this match's log and thoughts file", onclick: () => { state.confirming = match.match_id; refresh(); } }, "Delete"));
+      return cell;
+    }
+    const confirm = async () => {
+      state.confirming = null;
+      try {
+        await remove(`/api/matches/${match.match_id}`);
+      } catch (error) {
+        return showError(error);
+      }
+      refresh();
+    };
+    cell.append(h("button", { class: "small danger", onclick: confirm }, "Delete for good"), " ", h("button", { class: "small", onclick: () => { state.confirming = null; refresh(); } }, "Cancel"));
+    return cell;
+  }
+
+  async function renderMatches(params, state, refresh) {
     setActiveNav("matches");
     const query = new URLSearchParams();
     if (params.get("game")) query.set("game", params.get("game"));
@@ -140,6 +168,7 @@
     // The log says running for a paused match; the launcher knows it is paused.
     const paused = new Set(launches.filter((launch) => launch.status === "paused").map((launch) => launch.match_id));
     const shown = catalog.matches.map((match) => (match.status === "running" && paused.has(match.match_id) ? { ...match, status: "paused" } : match));
+    const playing = new Set(launches.filter((launch) => ["running", "paused"].includes(launch.status)).map((launch) => launch.match_id));
     const gameSelect = h("select", { onchange: (event) => navigateMatches({ game: event.target.value, agent: params.get("agent") }) }, h("option", { value: "" }, "All games"), gameList.map((g) => h("option", { value: g.id, selected: g.id === params.get("game") ? "" : null }, `${g.id} (${g.matches})`)));
     if (!params.get("game")) gameSelect.value = "";
     const agentInput = h("input", { type: "text", placeholder: "agent name", value: params.get("agent") || "" });
@@ -148,8 +177,12 @@
     const table = h(
       "table",
       {},
-      h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"))),
-      h("tbody", {}, shown.map((match) => matchRow(match))),
+      h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"), h("th", {}))),
+      h("tbody", {}, shown.map((match) => {
+        const row = matchRow(match);
+        row.append(deleteCell(match, playing.has(match.match_id), state, refresh));
+        return row;
+      })),
     );
     const empty = catalog.matches.length ? null : h("p", { class: "muted" }, "No matches yet. Play one with `arena play` and it appears here.");
     const unreadable = catalog.unreadable.length ? h("p", { class: "small error" }, `${catalog.unreadable.length} log file(s) could not be read: `, catalog.unreadable.map((u) => `${u.path}`).join(", ")) : null;
@@ -161,9 +194,12 @@
   function matchesPage(params) {
     let timer = null;
     let disposed = false;
+    // which row's delete is waiting for its second click; kept across refreshes
+    const state = { confirming: null };
     const refresh = async () => {
       if (disposed) return;
-      const running = await renderMatches(params);
+      const running = await renderMatches(params, state, () => refresh().catch(showError));
+      clearTimeout(timer);
       if (running && !disposed) timer = setTimeout(() => refresh().catch(showError), 3000);
     };
     return { start: refresh, dispose: () => { disposed = true; clearTimeout(timer); } };
@@ -358,6 +394,8 @@
     let launch = null;
     // Bumped by every pause, resume or stop, so an older status poll cannot undo it.
     let launchEpoch = 0;
+    // Deleting removes the log for good, so it waits for a second click.
+    let confirmingDelete = false;
     // The page's slots and replay controls, built once by `buildView`.
     let view = null;
 
@@ -465,6 +503,23 @@
       return h("div", { class: "live-controls" }, toggle, stopButton);
     };
 
+    const deleteMatch = async () => {
+      try {
+        await remove(`/api/matches/${matchId}`);
+      } catch (error) {
+        return showError(error);
+      }
+      location.hash = "#/matches";
+    };
+
+    // For a match this server is not playing: delete its log, after a second click.
+    const deleteControls = () => {
+      const ask = () => { confirmingDelete = true; render(); };
+      const cancel = () => { confirmingDelete = false; render(); };
+      if (!confirmingDelete) return h("div", { class: "live-controls" }, h("button", { onclick: ask, title: "Removes this match's log and thoughts file." }, "Delete match"));
+      return h("div", { class: "live-controls" }, h("button", { class: "danger", onclick: deleteMatch }, "Delete for good"), h("button", { onclick: cancel }, "Cancel"), h("span", { class: "muted small" }, "Its log and thoughts file are removed from disk."));
+    };
+
     // The replay controls stay the same elements for the page's life; `updateControls` refreshes them.
     const buildControls = () => {
       const slider = h("input", { type: "range", min: 0 });
@@ -540,7 +595,7 @@
       const match = outline.match;
       if (!view.root.isConnected) app.replaceChildren(view.root);
       fill(view.header, headerKey(match), () => matchHeader(match, launch, liveState()));
-      fill(view.bar, String(launch && launch.status), liveControls);
+      fill(view.bar, `${launch && launch.status}|${confirmingDelete}`, () => liveControls() || deleteControls());
       fill(view.notice, `${outline.replay_error}|${last()}`, () => outline.replay_error
         ? h("p", { class: "panel error small" }, `Only steps 0–${last()} can be shown: this log stops matching the current ${match.game_id} rules after that, probably because the rules changed after it was recorded. `, h("span", { class: "muted" }, outline.replay_error))
         : null);
