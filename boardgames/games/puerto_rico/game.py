@@ -96,6 +96,7 @@ from boardgames.games.puerto_rico.model import (
     next_unacted,
     owns_active,
     production,
+    public_points,
     replace_at,
     replace_player,
     replace_role,
@@ -305,6 +306,17 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 "bonus": end_game_bonus(player),
             }
         return Scores(points, breakdown)
+
+    def public_scores(self, state: PuertoRicoState) -> Scores:
+        """VP chips stay hidden until the game ends and reveals them."""
+        if self.is_terminal(state):
+            return self.scores(state)
+        return Scores(
+            {
+                PlayerId(seat): float(public_points(player))
+                for seat, player in enumerate(state.players)
+            }
+        )
 
     def observe(self, state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
         from boardgames.games.puerto_rico.view import observe

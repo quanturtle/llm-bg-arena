@@ -332,6 +332,17 @@ class Catan:
         points = {player: sum(parts.values()) for player, parts in breakdown.items()}
         return Scores(points, breakdown)
 
+    def public_scores(self, state: CatanState) -> Scores:
+        """Victory point cards stay hidden until the game ends and reveals them."""
+        if self.is_terminal(state):
+            return self.scores(state)
+        breakdown = {
+            player: point_breakdown(state, player, include_hidden=False)
+            for player in seats(state.config.num_players)
+        }
+        points = {player: sum(parts.values()) for player, parts in breakdown.items()}
+        return Scores(points, breakdown)
+
     def observe(self, state: CatanState, viewer: PlayerId | None) -> Observation:
         return observe(state, viewer)
 

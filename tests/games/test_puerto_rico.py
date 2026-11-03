@@ -1094,6 +1094,7 @@ def test_victory_point_chips_are_private_until_the_end() -> None:
     assert you["vp_chips"] == 3
     spectator = GAME.observe(state, None)
     assert spectator.data["you"] is None
+    assert GAME.public_scores(state).points[p1] == GAME.scores(state).points[p1] - 5
 
 
 def test_final_scores_are_revealed_at_game_over() -> None:

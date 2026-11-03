@@ -72,6 +72,10 @@ class Game[S, A, C: GameConfig](Protocol):
         """Current points; final points once the state is terminal."""
         ...
 
+    def public_scores(self, state: S) -> Scores:
+        """Points a spectator may know, without hidden ones; scores() once terminal."""
+        ...
+
     def observe(self, state: S, viewer: PlayerId | None) -> Observation:
         """What `viewer` may see; None is a spectator, who sees public data only."""
         ...

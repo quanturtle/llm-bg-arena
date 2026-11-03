@@ -156,6 +156,10 @@ class TicTacToe:
             return Scores({p: 0.5 for p in players})
         return Scores({p: 0.0 for p in players})
 
+    def public_scores(self, state: TicTacToeState) -> Scores:
+        """Nothing is hidden, so these are the scores."""
+        return self.scores(state)
+
     def observe(self, state: TicTacToeState, viewer: PlayerId | None) -> Observation:
         winner = state.outcome.player if isinstance(state.outcome, Won) else None
         line = state.outcome.line if isinstance(state.outcome, Won) else ()

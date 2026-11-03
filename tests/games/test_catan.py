@@ -626,6 +626,8 @@ def test_victory_point_cards_are_hidden_from_opponents() -> None:
     points = number_values(public, "public_points")
     assert points[P1] == 2
     assert own["points"] == 3
+    assert GAME.public_scores(hidden).points[P1] == 2
+    assert GAME.scores(hidden).points[P1] == 3
 
 
 def test_bought_cards_cannot_be_played_the_same_turn() -> None:

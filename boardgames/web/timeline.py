@@ -160,8 +160,8 @@ def forfeit_view(record: ForfeitRecord) -> ForfeitView:
 
 
 def score_views(game: AnyGame, state: Any) -> list[ScoreView]:
-    """Current points and ranks in seat order."""
-    scores = game.scores(state)
+    """Public points and ranks in seat order; hidden points show once the game ends."""
+    scores = game.public_scores(state)
     ranks = scores.ranks()
     return [
         ScoreView(
