@@ -294,6 +294,25 @@
     return parts;
   }
 
+  // The match result, as the log's last line once the final step of a finished match is on screen.
+  function resultEntry(outline, step) {
+    const match = outline.match;
+    const final = outline.frame_count - 1;
+    if (match.status !== "finished" || step !== final) return null;
+    const winners = match.seats.filter((seat) => seat.rank === 1);
+    if (!winners.length) return null;
+    const names = winners.map((seat) => `P${seat.player + 1} ${seatName(seat)}`).join(" and ");
+    const points = winners[0].points;
+    const pointText = `${points} point${points === 1 ? "" : "s"}`;
+    const isDraw = winners.length > 1 && winners.length === match.seats.length;
+    const text = winners.length === 1
+      ? `Winner: ${names}, ${pointText}.`
+      : isDraw
+        ? `Draw: ${names}.`
+        : `Shared first place: ${names}, ${pointText}.`;
+    return h("li", { class: "result" }, h("span", { class: "step" }, final), h("span", { class: "icon", "aria-hidden": "true" }, isDraw ? "🤝" : "🏆"), h("span", { class: "text" }, seatColored(text, match.seats.length)));
+  }
+
   // One row per event: the step in a column wide enough for five digits, the kind's icon
   // from window.eventIcons, then the message.
   function eventList(outline, step, viewer, omniscient) {
@@ -308,10 +327,10 @@
       const icon = h("span", { class: "icon", "aria-hidden": "true" }, icons[event.kind] || "");
       return h("li", { class: classes.join(" ") }, h("span", { class: "step" }, event.step), icon, h("span", { class: "text" }, seatColored(event.text + who, players)));
     });
-    const list = h("ul", { class: "events" }, items);
+    const list = h("ul", { class: "events" }, items, resultEntry(outline, step));
     // scroll the list itself, never the page, so controls stay put while a match runs
     requestAnimationFrame(() => {
-      const current = list.querySelector(".current");
+      const current = list.querySelector(".result") || list.querySelector(".current");
       if (!current) return;
       const item = current.getBoundingClientRect();
       const box = list.getBoundingClientRect();

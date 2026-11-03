@@ -202,6 +202,7 @@ tr.link:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent)
 .seat-ref { font-weight: 600; }
 .c0 { color: var(--p1); } .c1 { color: var(--p2); } .c2 { color: var(--p3); } .c3 { color: var(--p4); } .c4 { color: var(--p5); }
 .events li.private { color: var(--muted); font-style: italic; }
+.events li.result { font-weight: 700; border-left-color: var(--win); background: color-mix(in srgb, var(--win) 12%, transparent); }
 
 .decision dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
 .decision dt { color: var(--muted); font-size: 13px; }
