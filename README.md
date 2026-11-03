@@ -2,37 +2,37 @@
 
 ![A Catan replay in the viewer: the board, each player's cards, the deciding model's reasoning and notes, and the event log](img/llm-bg-arena.png)
 
-Seat language models at the same board game table, and keep a replayable record of every move.
+Put a few LLMs around a board game table and watch them play. Every move gets logged along with what each model saw, what it was thinking and what it cost, so you can replay any match step by step afterwards.
 
-Each game's rules are written once in Python. Every seat is a language model available through OpenRouter; a seat that names none plays `qwen/qwen3.7-flash`. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
+There are three games so far:
 
-## Status
+- **Tic-tac-toe**, the 3x3 classic. Handy for quick, cheap tests.
+- **Catan**, the base game for 3 or 4 players: settlements, cities, roads, harbours, trading, the robber and dev cards.
+- **Puerto Rico**, the base game for 3 to 5 players: roles, plantations, buildings, colonists, trading and shipping.
 
-Early. Three games ship today:
+Tournaments are next on the list.
 
-- **Tic-tac-toe**: two players on a 3x3 board; three in a row wins.
-- **Catan**: the standard 19-hex base game for 3 or 4 players, with settlements, cities, roads, harbours, trading, the robber and development cards.
-- **Puerto Rico**: the standard base game for 3 to 5 players, with roles, plantations, buildings, colonists, trading and shipping.
+## Setup
 
-Tournaments come next.
-
-## Install
-
-Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). The web viewer also needs Node.js 20.9+ and [pnpm](https://pnpm.io/) to build it once.
+You'll need Python 3.12+ and [uv](https://docs.astral.sh/uv/). The web viewer also needs Node.js 20.9+ and [pnpm](https://pnpm.io/).
 
 ```sh
-git clone <repo-url> boardgames
-cd boardgames
+git clone <repo-url> llm-bg-arena
+cd llm-bg-arena
 uv sync
 pnpm --dir web install
 pnpm --dir web build
 ```
 
-## Play
+Every player is a model on [OpenRouter](https://openrouter.ai/), so you'll need a key. Put it in a `.env` file in the project folder:
 
-Players are language models on OpenRouter, so you need a key. Create a file named `.env` in the project folder with one line, `OPENROUTER_API_KEY=<your-key>`.
+```
+OPENROUTER_API_KEY=<your-key>
+```
 
-A match is described by a YAML file: the game, its config, and one entry per player with its model and that model's settings. Two cheap models at tic-tac-toe, from `examples/tic_tac_toe.yaml`:
+## Play a match
+
+A match is a small YAML file: the game, a seed, and who sits where. This is `examples/tic_tac_toe.yaml`, two cheap models going at it:
 
 ```yaml
 game: tic_tac_toe
@@ -47,17 +47,35 @@ seats:
 uv run arena play examples/tic_tac_toe.yaml
 ```
 
-That match costs well under a cent. Any OpenRouter model id works, and a seat without a `model` plays `qwen/qwen3.7-flash`; leave `seats` out and every player does. Each seat can set `temperature`, `top_p`, `max_tokens`, `reasoning` (`true` or `false`; off unless the seat sets it or asks for an effort or budget), `reasoning_effort` (`minimal`, `low`, `medium`, `high`, `xhigh`, `max`; each model takes only some) or `thinking_budget_tokens`, `verbosity` (answer length: `low` to `max`, for models that take it), `timeout_seconds`, `label`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. A player is called by its `label`, or else by its model; players on the same model become `qwen/qwen3.7-flash #1`, `qwen/qwen3.7-flash #2`. `cache: true` at the top of the file reuses stored replies for identical requests. `--seed` and `--log` override the file. The files in `examples/` also cover short three-player Catan and Puerto Rico games between cheap models.
+That one costs well under a cent. Any OpenRouter model id works. A seat with no `model` gets `qwen/qwen3.7-flash`, and if you leave out `seats` altogether, everyone does. `examples/` also has short three-player Catan and Puerto Rico games.
 
-Some models think before they answer, and that thinking counts toward `max_tokens` (default 4096). Reasoning is off by default, which keeps moves fast: `qwen/qwen3.7-flash` ignores `low` and token budgets and can think for minutes on one move. `openai/gpt-5-nano` must think and rejects reasoning off, so give it `reasoning_effort: low`.
+Things you can set per seat:
 
-Puerto Rico follows the role-selection cycle: the governor chooses first, every role's action phase runs immediately, and unchosen roles gain a doubloon at round end. `victory_point_supply` can lower the standard 75/100/122 chip supply for short games, and `max_rounds` adds a round limit. The full notation, buildings and scoring are in `boardgames/games/puerto_rico/rules.md`.
+| Setting | What it does |
+| --- | --- |
+| `temperature`, `top_p`, `max_tokens` | The usual sampling knobs. `max_tokens` defaults to 4096 and includes any thinking. |
+| `reasoning`, `reasoning_effort`, `thinking_budget_tokens` | Let the model think before it moves. Off unless you ask. Efforts go from `minimal` to `max`, and each model only takes some of them. |
+| `verbosity` | Shorter or longer answers, for models that support it. |
+| `label`, `persona` | A display name, and extra instructions like "play cautiously and trade often". |
+| `max_illegal_retries`, `fallback` | How many second chances after an illegal move, and what to do after that: play a random move, the game's default move, or forfeit. |
+| `output_mode: tools` | Let the model look at the state, the rules and the legal moves through tool calls before it answers. `max_tool_calls` caps how many. |
+| `extractor` | A second model that rescues malformed replies. |
+| `timeout_seconds`, `extra` | A time limit per reply, and raw options passed straight to OpenRouter. |
 
-Catan uses the standard board and costs. Player-to-player trades are one card for one card, development cards are played after the roll, and offers are capped per turn to keep games moving; the full notation and rules are in the game's `rules.md`.
+Players go by their `label`, or by their model if they don't have one. Two seats on the same model show up as `qwen/qwen3.7-flash #1` and `#2`. Add `cache: true` at the top of the file to reuse replies for identical requests, and use `--seed` or `--log` on the command line to override the file.
 
-## Check a match
+About reasoning: it's off by default because it makes moves slow. `qwen/qwen3.7-flash` ignores `low` and token budgets and will happily think for minutes about one move. `openai/gpt-5-nano` goes the other way and refuses to run with reasoning off, so give it `reasoning_effort: low`.
 
-Every match writes two files to `runs/`: a JSONL log, and next to it a `.thoughts.md` you can read while the match runs, with each model's reasoning, tool calls, rejected answers and notes per move. Replaying the log rebuilds the game from the seed and compares every move, observation and event:
+A couple of game notes:
+
+- **Puerto Rico** follows the usual role cycle. The governor picks first, each role plays out right away, and roles nobody took collect a doubloon at the end of the round. For shorter games, lower `victory_point_supply` (the standard is 75/100/122 chips) or set `max_rounds`.
+- **Catan** trades between players are one card for one card, dev cards are played after the roll, and offers are capped per turn so games keep moving.
+
+Full rules and move notation for each game are in its `rules.md`, for example `boardgames/games/catan/rules.md`.
+
+## Logs and replays
+
+Each match leaves two files in `runs/`: a JSONL log, and a `.thoughts.md` with every model's reasoning, tool calls, rejected answers and notes. The thoughts file is written as the match goes, so you can follow along while it runs. `arena replay` rebuilds the match from its seed and checks the log move by move:
 
 ```console
 $ uv run arena play examples/tic_tac_toe.yaml --log runs/demo.jsonl
@@ -86,17 +104,24 @@ $ uv run arena replay runs/demo.jsonl
 Replay matches the log: tic_tac_toe, 7 steps, 9 events.
 ```
 
-## Watch
-
-The web viewer lists every match in `runs/`, replays it move by move, and starts new ones: the "New match" page is a form where you pick the game and its settings, add players, and set each player's model, whether it reasons before moving, and other model settings. The form reads OpenRouter's model list, offers only the settings each model accepts, and starts cheap: reasoning off where a model allows it, otherwise its lowest effort. A started match runs inside the server, so the viewer follows it live. Its page has Pause, Resume and Stop buttons: pausing waits for the move in progress, and stopping ends the match at once and keeps its log. A match that is not playing can be deleted from its page or from the Matches list; that removes its log and thoughts file from `runs/`. Language model seats use the server's `OPENROUTER_API_KEY`.
+## The viewer
 
 ```sh
 uv run arena serve
 ```
 
-Open http://127.0.0.1:8765/. Each replay shows the board at every step (a drawn board for tic-tac-toe, Catan and Puerto Rico), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Stepping through a match keeps every panel in place: the board, the players and the event log hold their size from the first step to the last. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. The leaderboard ranks agents per game by Elo, with win rate, average rank, forfeits, the share of rejected answers, latency, tokens and cost per match; each agent has a page with its record per game and against each opponent. Each game has a page with its rules, default config, standings and matches. `--runs` points at another log directory, `--port` changes the port, and `--viewer` points at another viewer build (default `web/out`). Without a build, `arena serve` stops and prints the command that makes one.
+Then open http://127.0.0.1:8765/. In there you can:
 
-## Develop
+- Replay any match in `runs/` step by step: the board, what the model was asked, what it answered, its reasoning and notes, and points over time. You can switch to one player's view, or show the private events too.
+- Check the leaderboard: Elo per game, plus win rate, how often a model's answers got rejected, latency, tokens and cost. Each model has its own page with its record against every opponent.
+- Read each game's page, with its rules, default settings, standings and past matches.
+- Start a new match. Pick a game, add players and choose a model for each. The form reads OpenRouter's model list, only shows settings a model accepts, and starts out cheap: reasoning off when the model allows it, lowest effort when it doesn't.
+
+Matches started from the viewer run inside the server, so you can watch them live and pause, resume or stop them. Stopping keeps the log. You can delete old matches from the list or from their page.
+
+`--runs` points at a different log folder, `--port` changes the port, and `--viewer` points at a different viewer build (`web/out` by default). If there's no build yet, `arena serve` tells you how to make one.
+
+## Hacking on it
 
 ```sh
 uv run pytest
@@ -106,15 +131,15 @@ pnpm --dir web lint
 pnpm --dir web build
 ```
 
-To work on the viewer with live reload, keep `uv run arena serve` running and start `pnpm --dir web dev`, then open http://localhost:3000/. The dev server sends `/api` requests to port 8765. After an API change, `pnpm --dir web gen:api` regenerates the viewer's API types from the running server.
+For live reload on the viewer, leave `uv run arena serve` running, start `pnpm --dir web dev` and go to http://localhost:3000/. The dev server sends `/api` calls to port 8765. If you change the API, `pnpm --dir web gen:api` regenerates the viewer's types from the running server.
 
-## Credits and related projects
+## Credits
 
-The viewer's game art and logos come from these projects, which are also worth a look if you are building something similar:
+The game art and logos come from these projects. They're worth a look if you're into this kind of thing:
 
-- Puerto Rico cards, tiles, barrels and boards: [Middlederg/puerto-rico](https://github.com/Middlederg/puerto-rico). That repository declares no licence.
+- Puerto Rico cards, tiles, barrels and boards: [Middlederg/puerto-rico](https://github.com/Middlederg/puerto-rico). That repo doesn't declare a licence.
 - Catan terrain and sea art: [baige007/Catan-web-game-](https://github.com/baige007/Catan-web-game-) (MIT), which builds on [Erodenn/Simple-Catan](https://github.com/Erodenn/Simple-Catan).
-- Catan port and robber icons: [game-icons.net](https://game-icons.net/), by Delapouite and Lorc, under CC BY 3.0.
+- Catan port and robber icons: [game-icons.net](https://game-icons.net/), by Delapouite and Lorc (CC BY 3.0).
 - Model provider logos: [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) (MIT).
 
-Where each file came from is recorded in `web/public/puerto_rico/SOURCE.md` and `web/public/catan/SOURCE.md`.
+`web/public/puerto_rico/SOURCE.md` and `web/public/catan/SOURCE.md` say where each file came from.
