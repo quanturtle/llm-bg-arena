@@ -39,6 +39,7 @@ from boardgames.games.puerto_rico.model import (
     goods_json_map,
     island_spaces_used,
     occupied_island_spaces,
+    public_points,
     total_points,
 )
 
@@ -47,12 +48,7 @@ def observe(state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
     """What `viewer` may see: public board plus their own VP chips."""
     players = seats(state.config.num_players)
     is_over = state.phase == "game_over"
-    public_points = [
-        building_points(state.players[player])
-        + end_game_bonus(state.players[player])
-        - customs_house_bonus(state.players[player])
-        for player in players
-    ]
+    shown_points = [public_points(state.players[player]) for player in players]
     data: dict[str, JsonValue] = {
         "round": state.round,
         "phase": state.phase,
@@ -85,7 +81,7 @@ def observe(state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
         "available_buildings": list(state.available_buildings),
         "quarry_supply": state.quarry_supply,
         "goods_supply": goods_json_map(state.goods_supply),
-        "public_points": public_points,
+        "public_points": shown_points,
         "players": [player_data(state, player, is_over) for player in players],
         "game_over": is_over,
         "winner": state.winner,
@@ -106,17 +102,6 @@ def observe(state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
         "you": None if viewer is None else viewer_data(state, viewer),
     }
     return Observation(viewer, data)
-
-
-def customs_house_bonus(player: object) -> int:
-    """The hidden part of end-game scoring: the Customs House reads VP chips."""
-    from boardgames.games.puerto_rico.model import PlayerState
-
-    if not isinstance(player, PlayerState):
-        return 0
-    if not player.active("customs_house"):
-        return 0
-    return player.vp_chips // 4
 
 
 def point_breakdown(state: PuertoRicoState, player: PlayerId) -> dict[str, JsonValue]:
@@ -154,9 +139,7 @@ def player_data(
         "city_spaces_used": city_spaces_used(owner),
         "island_spaces_used": island_spaces_used(owner),
         "occupied_island_spaces": occupied_island_spaces(owner),
-        "public_points": building_points(owner)
-        + end_game_bonus(owner)
-        - customs_house_bonus(owner),
+        "public_points": public_points(owner),
     }
     if reveal:
         data["vp_chips"] = owner.vp_chips

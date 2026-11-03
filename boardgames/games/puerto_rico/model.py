@@ -476,6 +476,14 @@ def total_points(player: PlayerState) -> int:
     return player.vp_chips + building_points(player) + end_game_bonus(player)
 
 
+def public_points(player: PlayerState) -> int:
+    """Points others can see: buildings and bonuses, without hidden VP chips.
+
+    The Customs House bonus counts chips, so it stays hidden as well."""
+    customs = player.vp_chips // 4 if player.active("customs_house") else 0
+    return building_points(player) + end_game_bonus(player) - customs
+
+
 def sell_price(state: PuertoRicoState, player: PlayerId, good: Good) -> int:
     """Doubloons the trading house pays for one good."""
     owner = state.players[player]
