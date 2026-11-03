@@ -1,7 +1,7 @@
 """Replay: rebuild a match from its seed and actions, checking each step.
 
-Every observation digest, action and event is recomputed from the game rules, so
-a passing replay shows the game is deterministic and the log is complete.
+Every decision, observation, action and event is recomputed from the game rules,
+so a passing replay shows the game is deterministic and the log is complete.
 Games must be registered (import `boardgames.games`) before replaying.
 """
 
@@ -78,11 +78,15 @@ def replay_match(records: Sequence[LogRecord]) -> ReplayReport:
     for record in records:
         if isinstance(record, DecisionRecord):
             step = check_step(step, record)
-            check_observation(game, states, record)
+            seen = observed_state(states, record)
+            check_decision(game, seen, record)
+            check_observation(game, seen, record)
             states[step] = replay_decision(game, states[step - 1], record, events)
         elif isinstance(record, ForfeitRecord):
-            check_observation(game, states, record)
+            check_forfeit_step(step, record)
+            check_observation(game, observed_state(states, record), record)
             forfeited.append(PlayerId(record.player))
+    check_event_steps(events, states)
     check_finish(game, states[step], step, forfeited, finish)
     return ReplayReport(
         match_id=start.match_id,
@@ -138,15 +142,58 @@ def check_step(previous: int, record: DecisionRecord) -> int:
     return record.step
 
 
+def observed_state(
+    states: dict[int, Any], record: DecisionRecord | ForfeitRecord
+) -> Any:
+    """The replayed state at the record's `observed_at_step`."""
+    if record.observed_at_step not in states:
+        raise ReplayMismatchError(
+            f"step {record.step}: observed_at_step {record.observed_at_step} "
+            "is not a state the replay has reached"
+        )
+    return states[record.observed_at_step]
+
+
+def check_decision(game: AnyGame, state: Any, record: DecisionRecord) -> None:
+    """The player's open decision in the observed state must match the logged one."""
+    player = PlayerId(record.player)
+    open_decisions = {
+        pending.player: pending for pending in game.pending_decisions(state)
+    }
+    decision = open_decisions.get(player)
+    if decision is None:
+        raise ReplayMismatchError(
+            f"step {record.step}: P{player + 1} has no open decision"
+        )
+    logged = (record.kind, record.prompt)
+    replayed = (decision.kind, decision.prompt)
+    if logged != replayed:
+        raise ReplayMismatchError(
+            f"step {record.step}: P{player + 1} decision: log has {logged!r}, "
+            f"replay has {replayed!r}"
+        )
+    return
+
+
 def check_observation(
-    game: AnyGame, states: dict[int, Any], record: DecisionRecord | ForfeitRecord
+    game: AnyGame, state: Any, record: DecisionRecord | ForfeitRecord
 ) -> None:
-    """The player's observation of the state they decided on must match the log."""
-    state = states[record.observed_at_step]
-    digest = game.observe(state, PlayerId(record.player)).digest()
-    if digest != record.observation_digest:
+    """The player's observation of the state they decided on must match the log.
+
+    A decision record's full observation is compared, not only its digest.
+    """
+    observation = game.observe(state, PlayerId(record.player))
+    if observation.digest() != record.observation_digest:
         raise ReplayMismatchError(
             f"step {record.step}: P{record.player + 1} observation differs from the log"
+        )
+    if (
+        isinstance(record, DecisionRecord)
+        and plain_object(observation.data) != record.observation
+    ):
+        raise ReplayMismatchError(
+            f"step {record.step}: P{record.player + 1} logged observation data "
+            "differs from the replay"
         )
     return
 
@@ -170,6 +217,23 @@ def replay_decision(
         raise ReplayMismatchError(f"step {step}: machine form of {record.action!r}")
     check_events(step, events.get(step, []), transition.events)
     return transition.state
+
+
+def check_forfeit_step(step: int, record: ForfeitRecord) -> None:
+    """A forfeit is logged at the step the match has reached."""
+    if record.step != step:
+        raise ReplayMismatchError(f"forfeit at step {record.step} follows step {step}")
+    return
+
+
+def check_event_steps(
+    events: dict[int, list[EventRecord]], states: dict[int, Any]
+) -> None:
+    """Every logged event belongs to setup (step 0) or to a replayed decision."""
+    orphans = sorted(set(events) - set(states))
+    if orphans:
+        raise ReplayMismatchError(f"events at step {orphans[0]} follow no decision")
+    return
 
 
 def check_finish(
