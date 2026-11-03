@@ -1121,7 +1121,7 @@ def robber_actions(
     for hex_id in range(len(state.hexes)):
         if hex_id == state.robber:
             continue
-        victims = robber_victims(state, hex_id)
+        victims = robber_victims(state, hex_id, player)
         if victims:
             for victim in victims:
                 actions.append(
@@ -1229,9 +1229,10 @@ def move_robber_and_steal(
         return moved, events
     index, rng = moved.rng.below(len(cards))
     resource = cards[index]
-    victim_hand = hand_with(moved.hands[victim], resource, -1)
-    thief_hand = hand_with(moved.hands[player], resource, 1)
-    hands = replace_at(replace_at(moved.hands, victim, victim_hand), player, thief_hand)
+    robbed = replace_at(
+        moved.hands, victim, hand_with(moved.hands[victim], resource, -1)
+    )
+    hands = replace_at(robbed, player, hand_with(robbed[player], resource, 1))
     events.extend(
         [
             Event(
@@ -1607,7 +1608,9 @@ def explain_robber(
         return f"h{hex_id} is not on the board."
     if hex_id == state.robber:
         return "The robber is already on that hex; choose a different hex."
-    victims = robber_victims(state, hex_id)
+    if victim == player:
+        return "You cannot steal from yourself."
+    victims = robber_victims(state, hex_id, player)
     if victims and victim is None:
         return "You must steal from an eligible player on that hex."
     if victim is not None and victim not in victims:

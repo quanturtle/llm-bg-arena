@@ -144,11 +144,13 @@ def legal_free_road_edges(state: CatanState, player: PlayerId) -> tuple[int, ...
     )
 
 
-def robber_victims(state: CatanState, hex_id: int) -> tuple[PlayerId, ...]:
-    """Players with a building on `hex_id` who hold at least one card."""
+def robber_victims(
+    state: CatanState, hex_id: int, thief: PlayerId
+) -> tuple[PlayerId, ...]:
+    """Opponents of `thief` with a building on `hex_id` who hold at least one card."""
     victims: list[PlayerId] = []
     for player in seats(state.config.num_players):
-        if hand_total(state.hands[player]) == 0:
+        if player == thief or hand_total(state.hands[player]) == 0:
             continue
         if any(building_at(state, vertex) == player for vertex in HEX_VERTICES[hex_id]):
             victims.append(player)

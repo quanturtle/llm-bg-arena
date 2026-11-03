@@ -483,6 +483,30 @@ def test_robber_must_change_hex() -> None:
         GAME.apply(moving, P1, MoveRobber(state.robber, None))
 
 
+def test_robber_never_lists_the_mover_as_a_victim() -> None:
+    state = start()
+    hex_id = next(hex_id for hex_id in range(19) if hex_id != state.robber)
+    buildings: list[Building | None] = [None] * 54
+    buildings[HEX_VERTICES[hex_id][0]] = Building(P1, "settlement")
+    moving = replace(
+        state,
+        phase="move_robber",
+        buildings=tuple(buildings),
+        hands=(hand_from(wood=1), empty_hand(), empty_hand()),
+    )
+    assert [a for a in listing(moving) if a.hex == hex_id] == [MoveRobber(hex_id, None)]
+    armed = replace(
+        moving,
+        phase="actions",
+        dice=(1, 2),
+        dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
+    )
+    knights = [a for a in listing(armed) if isinstance(a, PlayKnight)]
+    assert [a for a in knights if a.hex == hex_id] == [PlayKnight(hex_id, None)]
+    with pytest.raises(IllegalActionError, match="steal from yourself"):
+        GAME.apply(moving, P1, MoveRobber(hex_id, P1))
+
+
 def test_knight_moves_robber_and_counts_for_largest_army() -> None:
     state, _ = play_setup()
     armed = replace(

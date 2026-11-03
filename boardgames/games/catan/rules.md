@@ -14,7 +14,7 @@ Players place two settlements and two roads each, in snake order: P1, P2, ... th
 
 ## Turn
 1. **Roll two dice.** A non-7 roll produces resources for every player. A 7 produces nothing: every player holding more than 7 cards discards half their hand, rounded down, and then the active player moves the robber to a different hex.
-2. **Move the robber.** Choose a hex other than the robber's current hex. If one or more players have a building on that hex and at least one card, choose one of them; you steal one random card. If nobody there has a card, no card is stolen.
+2. **Move the robber.** Choose a hex other than the robber's current hex. If one or more other players have a building on that hex and at least one card, choose one of them; you steal one random card. You never steal from yourself. If no other player there has a card, no card is stolen.
 3. **Act.** You may build, trade and play one development card, in any order, then end your turn. You may act as many times as your cards allow.
 
 ## Build costs and piece limits
