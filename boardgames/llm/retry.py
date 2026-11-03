@@ -22,14 +22,17 @@ type Sleep = Callable[[float], Awaitable[None]]
 
 
 class RetryingChatModel:
-    """Retries TransientModelError up to `max_attempts` calls, waiting 1s, 2s, 4s..."""
+    """Retries TransientModelError up to `max_attempts` calls, waiting 2s, 4s, 8s...
+
+    The defaults wait about a minute in all, to outlast a provider's brief rate limit.
+    """
 
     def __init__(
         self,
         inner: ChatModel,
         *,
-        max_attempts: int = 4,
-        base_delay_seconds: float = 1.0,
+        max_attempts: int = 6,
+        base_delay_seconds: float = 2.0,
         sleep: Sleep = asyncio.sleep,
     ) -> None:
         self._inner = inner

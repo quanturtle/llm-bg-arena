@@ -79,7 +79,7 @@ def test_retry_counts_transient_failures_and_backs_off() -> None:
     model = RetryingChatModel(inner, sleep=sleep)
     completion = complete(model)
     assert (completion.text, completion.api_retries) == ("ok", 2)
-    assert sleep.delays == [1.0, 2.0]
+    assert sleep.delays == [2.0, 4.0]
     return
 
 
