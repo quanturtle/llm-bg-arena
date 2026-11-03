@@ -1,17 +1,6 @@
 // New match page: pick an example or write a match config in YAML, then start it.
 (function () {
-  const { h, api, setActiveNav, showError, routes } = window.viewer;
-
-  async function post(path, body) {
-    const response = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || `${response.status} ${response.statusText}`);
-    return data;
-  }
+  const { h, api, send, setActiveNav, routes, app } = window.viewer;
 
   function launchRow(launch) {
     const link = h("a", { href: `#/match/${launch.match_id}` }, launch.match_id);
@@ -31,7 +20,7 @@
       message.textContent = "";
       start.disabled = true;
       try {
-        const launch = await post("/api/matches", { yaml: editor.value });
+        const launch = await send("/api/matches", { yaml: editor.value });
         location.hash = `#/match/${launch.match_id}`;
       } catch (error) {
         message.textContent = error.message;
@@ -39,13 +28,13 @@
       }
     } }, "Start match");
     if (examples.length) editor.value = examples[0].text;
-    return h("section", { class: "new-match" },
+    app.replaceChildren(h("section", { class: "new-match" },
       h("h1", {}, "New match"),
       h("p", { class: "muted" }, "The config names the game, its settings and who sits at each seat. Language model seats need the server's OpenRouter key."),
       h("div", { class: "toolbar" }, picker, start),
       editor,
       message,
-      launches.length ? h("div", {}, h("h2", {}, "Started from here"), h("ul", {}, launches.map(launchRow))) : null);
+      launches.length ? h("div", {}, h("h2", {}, "Started from here"), h("ul", {}, launches.map(launchRow))) : null));
   }
 
   routes.new = renderNew;

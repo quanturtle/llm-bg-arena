@@ -95,7 +95,7 @@
       h("div", { class: "match-grid" },
         h("div", { class: "stack" }, h("div", { class: "panel" }, h("h2", {}, "Rules"), markdown(game.rules))),
         h("div", { class: "stack" },
-          h("div", { class: "panel" }, h("h2", {}, "Default config"), config, h("p", { class: "muted small" }, "Override with ", h("code", {}, `arena play ${id} --config '{...}'`), ".")),
+          h("div", { class: "panel" }, h("h2", {}, "Default config"), config, h("p", { class: "muted small" }, "Change it in a match config on the ", h("a", { href: "#/new" }, "New match"), " page.")),
           h("div", { class: "panel" }, h("h2", {}, "Standings"), standings(board), h("p", { class: "small" }, h("a", { href: `#/leaderboard?game=${id}` }, "Full leaderboard"))),
           h("div", { class: "panel" }, h("h2", {}, `Matches (${catalog.matches.length})`), catalog.matches.length ? matches : h("p", { class: "muted" }, "None yet.")),
         ),

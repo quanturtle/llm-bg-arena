@@ -73,7 +73,7 @@
       h("h1", {}, "Leaderboard"),
       h("div", { class: "toolbar" }, h("label", {}, "Game ", select), h("span", { class: "muted small" }, `${board.finished_matches} finished matches`)),
       statsTable(board.rows, Boolean(game), !game),
-      empty,
+      empty || "",
       h("p", { class: "muted small" }, note, " Wins count sole first places; illegal is the share of answers rejected before a legal action."),
     );
   }
@@ -108,7 +108,7 @@
     const recent = h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"))), h("tbody", {}, catalog.matches.slice(0, 50).map(matchRow)));
     app.replaceChildren(
       h("h1", {}, name, " ", h("span", { class: "badge" }, detail.kind)),
-      detail.overall ? summaryCards(detail.overall) : null,
+      detail.overall ? summaryCards(detail.overall) : "",
       h("div", { class: "stack" }, h("h2", {}, "By game"), statsTable(detail.games, true, true), h("h2", {}, "Head to head"), h("div", { class: "panel" }, opponentsTable(detail.opponents)), h("h2", {}, "Matches"), h("div", { class: "panel" }, recent)),
     );
   }

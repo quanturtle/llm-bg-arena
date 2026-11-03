@@ -20,8 +20,8 @@
     return node;
   }
 
-  async function api(path) {
-    const response = await fetch(path);
+  async function api(path, options) {
+    const response = await fetch(path, options);
     if (!response.ok) {
       let message = `${response.status} ${response.statusText}`;
       try {
@@ -32,6 +32,16 @@
       throw new Error(message);
     }
     return response.json();
+  }
+
+  // POST a JSON body (or none) and return the JSON reply; errors carry the server's message.
+  function send(path, body) {
+    const options = { method: "POST" };
+    if (body !== undefined) {
+      options.headers = { "Content-Type": "application/json" };
+      options.body = JSON.stringify(body);
+    }
+    return api(path, options);
   }
 
   async function loadGames() {
@@ -134,7 +144,7 @@
     );
     const empty = catalog.matches.length ? null : h("p", { class: "muted" }, "No matches yet. Play one with `arena play` and it appears here.");
     const unreadable = catalog.unreadable.length ? h("p", { class: "small error" }, `${catalog.unreadable.length} log file(s) could not be read: `, catalog.unreadable.map((u) => `${u.path}`).join(", ")) : null;
-    app.replaceChildren(h("h1", {}, "Matches"), toolbar, h("div", { class: "panel" }, table, empty), unreadable);
+    app.replaceChildren(h("h1", {}, "Matches"), toolbar, h("div", { class: "panel" }, table, empty), unreadable || "");
     return catalog.matches.some((m) => m.status === "running");
   }
 
@@ -452,7 +462,7 @@
     match: (args, params) => matchPage(args[0], params),
   };
   // Other scripts add pages to `routes` and reuse these helpers.
-  window.viewer = { h, api, loadGames, formatCost, formatSeconds, formatDate, seatChip, matchRow, setActiveNav, showError, routes, app };
+  window.viewer = { h, api, send, loadGames, formatCost, formatSeconds, formatDate, seatChip, matchRow, setActiveNav, showError, routes, app };
 
   function parseHash() {
     const hash = location.hash.replace(/^#\/?/, "") || "matches";
