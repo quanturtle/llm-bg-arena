@@ -369,7 +369,8 @@
   // `live` is "on", "off", or null for a match that is not running.
   function matchHeader(match, launch, live) {
     const config = Object.entries(match.config).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(" ");
-    const current = launch && match.status === "running" ? { status: launch.status } : match;
+    // the launcher knows a match is paused or failed; its log only says running or stopped
+    const current = launch && (match.status === "running" || launch.status === "failed") ? { status: launch.status } : match;
     return h(
       "div",
       { class: "match-head" },
@@ -516,7 +517,8 @@
     const deleteControls = () => {
       const ask = () => { confirmingDelete = true; render(); };
       const cancel = () => { confirmingDelete = false; render(); };
-      if (!confirmingDelete) return h("div", { class: "live-controls" }, h("button", { onclick: ask, title: "Removes this match's log and thoughts file." }, "Delete match"));
+      const failure = launch && launch.error ? h("span", { class: "error small" }, `This match failed: ${launch.error}`) : null;
+      if (!confirmingDelete) return h("div", { class: "live-controls" }, h("button", { onclick: ask, title: "Removes this match's log and thoughts file." }, "Delete match"), failure);
       return h("div", { class: "live-controls" }, h("button", { class: "danger", onclick: deleteMatch }, "Delete for good"), h("button", { onclick: cancel }, "Cancel"), h("span", { class: "muted small" }, "Its log and thoughts file are removed from disk."));
     };
 
