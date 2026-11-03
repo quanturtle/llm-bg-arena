@@ -136,7 +136,10 @@
     const query = new URLSearchParams();
     if (params.get("game")) query.set("game", params.get("game"));
     if (params.get("agent")) query.set("agent", params.get("agent"));
-    const [catalog, gameList] = await Promise.all([api(`/api/matches?${query}`), loadGames()]);
+    const [catalog, gameList, launches] = await Promise.all([api(`/api/matches?${query}`), loadGames(), api("/api/launches")]);
+    // The log says running for a paused match; the launcher knows it is paused.
+    const paused = new Set(launches.filter((launch) => launch.status === "paused").map((launch) => launch.match_id));
+    const shown = catalog.matches.map((match) => (match.status === "running" && paused.has(match.match_id) ? { ...match, status: "paused" } : match));
     const gameSelect = h("select", { onchange: (event) => navigateMatches({ game: event.target.value, agent: params.get("agent") }) }, h("option", { value: "" }, "All games"), gameList.map((g) => h("option", { value: g.id, selected: g.id === params.get("game") ? "" : null }, `${g.id} (${g.matches})`)));
     if (!params.get("game")) gameSelect.value = "";
     const agentInput = h("input", { type: "text", placeholder: "agent name", value: params.get("agent") || "" });
@@ -146,7 +149,7 @@
       "table",
       {},
       h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"))),
-      h("tbody", {}, catalog.matches.map(matchRow)),
+      h("tbody", {}, shown.map((match) => matchRow(match))),
     );
     const empty = catalog.matches.length ? null : h("p", { class: "muted" }, "No matches yet. Play one with `arena play` and it appears here.");
     const unreadable = catalog.unreadable.length ? h("p", { class: "small error" }, `${catalog.unreadable.length} log file(s) could not be read: `, catalog.unreadable.map((u) => `${u.path}`).join(", ")) : null;
@@ -304,14 +307,21 @@
     slot.replaceChildren(build() || "");
   }
 
+  // A red dot while the page shows the step being played now; grey when paused or scrolled back.
+  function liveIndicator(state) {
+    const on = state === "on";
+    return h("span", { class: on ? "live on" : "live", title: on ? "Showing the move being played now" : "Not showing the latest step, or the match is paused" }, h("span", { class: "live-dot" }), "Live");
+  }
+
   // `launch` (or null) carries the live status, such as paused, of a match this server started.
-  function matchHeader(match, launch) {
+  // `live` is "on", "off", or null for a match that is not running.
+  function matchHeader(match, launch, live) {
     const config = Object.entries(match.config).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(" ");
-    const live = launch && match.status === "running" ? { status: launch.status } : match;
+    const current = launch && match.status === "running" ? { status: launch.status } : match;
     return h(
       "div",
       { class: "match-head" },
-      h("div", {}, h("h1", {}, h("a", { href: `#/games/${match.game_id}` }, match.game_id), " ", h("span", { class: "muted mono small" }, match.match_id), " ", statusBadge(live)), h("div", { class: "muted small mono" }, `seed ${match.seed} · ${config}`)),
+      h("div", {}, h("h1", {}, h("a", { href: `#/games/${match.game_id}` }, match.game_id), " ", h("span", { class: "muted mono small" }, match.match_id), " ", statusBadge(current), live ? [" ", liveIndicator(live)] : null), h("div", { class: "muted small mono" }, `seed ${match.seed} · ${config}`)),
       h("div", { class: "seat-list" }, match.seats.map((seat) => seatChip(match, seat.player, seat.rank === 1 && match.status === "finished" ? [" ", h("span", { class: "badge winner" }, "winner")] : seat.forfeited ? [" ", h("span", { class: "badge forfeit" }, "forfeit")] : null))),
     );
   }
@@ -436,8 +446,7 @@
         ? h("button", { class: "primary", onclick: () => act("resume") }, "Resume match")
         : h("button", { onclick: () => act("pause"), title: "Holds the match before its next round; a model call in progress finishes first." }, "Pause match");
       const stopButton = h("button", { class: "danger", onclick: () => act("stop"), title: "Ends the match now; it cannot be resumed. Its log is kept." }, "Stop match");
-      const note = paused ? "Paused." : "Live.";
-      return h("div", { class: "live-controls" }, toggle, stopButton, h("span", { class: "muted small" }, note));
+      return h("div", { class: "live-controls" }, toggle, stopButton);
     };
 
     // The replay controls stay the same elements for the page's life; `updateControls` refreshes them.
@@ -487,7 +496,14 @@
       return { ...slots, controls, root: h("div", {}, slots.header, slots.bar, slots.notice, controls.row, slots.grid) };
     };
 
-    const headerKey = (match) => [match.status, launch && launch.status, match.seats.map((s) => `${s.rank}/${s.forfeited}`).join(",")].join("|");
+    // "on" at the latest step of a match that is playing; "off" when paused or scrolled back.
+    const liveState = () => {
+      if (outline.match.status !== "running") return null;
+      const moving = launch === null || launch.status === "running";
+      return moving && step === last() ? "on" : "off";
+    };
+
+    const headerKey = (match) => [match.status, launch && launch.status, liveState(), match.seats.map((s) => `${s.rank}/${s.forfeited}`).join(",")].join("|");
 
     const render = async () => {
       if (disposed) return;
@@ -507,7 +523,7 @@
       if (current < last()) frameOf(current + 1);
       const match = outline.match;
       if (!view.root.isConnected) app.replaceChildren(view.root);
-      fill(view.header, headerKey(match), () => matchHeader(match, launch));
+      fill(view.header, headerKey(match), () => matchHeader(match, launch, liveState()));
       fill(view.bar, String(launch && launch.status), liveControls);
       fill(view.notice, `${outline.replay_error}|${last()}`, () => outline.replay_error
         ? h("p", { class: "panel error small" }, `Only steps 0–${last()} can be shown: this log stops matching the current ${match.game_id} rules after that, probably because the rules changed after it was recorded. `, h("span", { class: "muted" }, outline.replay_error))

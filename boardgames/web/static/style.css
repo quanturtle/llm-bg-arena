@@ -155,6 +155,12 @@ tr.link:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent)
 .badge.running { color: var(--warn); border-color: var(--warn); }
 .badge.paused { color: var(--accent); border-color: var(--accent); }
 .badge.stopped, .badge.failed { color: var(--bad); border-color: var(--bad); }
+.live { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--muted); vertical-align: middle; }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); opacity: 0.45; }
+.live.on { color: #e5322d; }
+.live.on .live-dot { background: #e5322d; opacity: 1; animation: live-pulse 1.6s ease-in-out infinite; }
+@keyframes live-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(229, 50, 45, 0.55); } 50% { box-shadow: 0 0 0 5px rgba(229, 50, 45, 0); } }
+@media (prefers-reduced-motion: reduce) { .live.on .live-dot { animation: none; } }
 .badge.winner { color: var(--win); border-color: var(--win); }
 .badge.forfeit { color: var(--bad); border-color: var(--bad); }
 
