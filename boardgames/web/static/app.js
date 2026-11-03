@@ -327,7 +327,6 @@
     let launch = null;
     // Bumped by every pause, resume or stop, so an older status poll cannot undo it.
     let launchEpoch = 0;
-    let confirmingStop = false;
     // The page's slots and replay controls, built once by `buildView`.
     let view = null;
 
@@ -415,7 +414,6 @@
     };
 
     const act = async (action) => {
-      confirmingStop = false;
       launchEpoch += 1;
       try {
         launch = await send(`/api/launches/${matchId}/${action}`);
@@ -432,11 +430,9 @@
       const toggle = paused
         ? h("button", { class: "primary", onclick: () => act("resume") }, "Resume match")
         : h("button", { onclick: () => act("pause"), title: "Holds the match before its next round; a model call in progress finishes first." }, "Pause match");
-      const stopping = confirmingStop
-        ? [h("button", { class: "danger", onclick: () => act("stop") }, "Confirm stop"), h("button", { onclick: () => { confirmingStop = false; render(); } }, "Keep playing")]
-        : [h("button", { onclick: () => { confirmingStop = true; render(); }, title: "Ends the match now; it cannot be resumed." }, "Stop match")];
-      const note = confirmingStop ? "Stopping ends the match for good. Its log is kept." : paused ? "Paused." : "Live.";
-      return h("div", { class: "live-controls" }, toggle, ...stopping, h("span", { class: "muted small" }, note));
+      const stopButton = h("button", { class: "danger", onclick: () => act("stop"), title: "Ends the match now; it cannot be resumed. Its log is kept." }, "Stop match");
+      const note = paused ? "Paused." : "Live.";
+      return h("div", { class: "live-controls" }, toggle, stopButton, h("span", { class: "muted small" }, note));
     };
 
     // The replay controls stay the same elements for the page's life; `updateControls` refreshes them.
@@ -507,7 +503,7 @@
       const match = outline.match;
       if (!view.root.isConnected) app.replaceChildren(view.root);
       fill(view.header, headerKey(match), () => matchHeader(match, launch));
-      fill(view.bar, `${launch && launch.status}|${confirmingStop}`, liveControls);
+      fill(view.bar, String(launch && launch.status), liveControls);
       fill(view.notice, `${outline.replay_error}|${last()}`, () => outline.replay_error
         ? h("p", { class: "panel error small" }, `Only steps 0–${last()} can be shown: this log stops matching the current ${match.game_id} rules after that, probably because the rules changed after it was recorded. `, h("span", { class: "muted" }, outline.replay_error))
         : null);
