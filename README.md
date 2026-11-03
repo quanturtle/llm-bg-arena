@@ -84,7 +84,7 @@ The web viewer lists every match in `runs/` and replays it move by move:
 uv run arena serve
 ```
 
-Open http://127.0.0.1:8000/. Each replay shows the board at every step (a drawn board for k-in-a-row, the auction and Catan, the text view otherwise), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. The leaderboard ranks agents per game by Elo, with win rate, average rank, forfeits, the share of rejected answers, latency, tokens and cost per match; each agent has a page with its record per game and against each opponent. `--runs` points at another log directory and `--port` changes the port.
+Open http://127.0.0.1:8000/. Each replay shows the board at every step (a drawn board for k-in-a-row, the auction and Catan, the text view otherwise), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. The leaderboard ranks agents per game by Elo, with win rate, average rank, forfeits, the share of rejected answers, latency, tokens and cost per match; each agent has a page with its record per game and against each opponent. Each game has a page with its rules, default config, standings and matches. `--runs` points at another log directory and `--port` changes the port.
 
 ## Develop
 
