@@ -147,6 +147,12 @@ tr.link:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent)
 
 .chart { width: 100%; height: 120px; display: block; }
 
+.rules h2 { font-size: 18px; margin-top: 16px; }
+.rules h3 { text-transform: none; letter-spacing: 0; color: var(--ink); font-size: 15px; margin-top: 14px; }
+.rules pre { background: var(--bg); padding: 8px 10px; border-radius: 6px; overflow: auto; }
+.rules table { margin: 8px 0; }
+.rules li { margin: 2px 0; }
+
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
 .card .value { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
