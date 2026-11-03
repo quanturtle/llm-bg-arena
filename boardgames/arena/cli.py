@@ -18,6 +18,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+import uvicorn
 from dotenv import load_dotenv
 
 import boardgames.games  # noqa: F401  (importing registers every game)
@@ -41,6 +42,8 @@ from boardgames.llm.prompting import OutputMode, PromptSettings
 from boardgames.llm.retry import RetryingChatModel
 from boardgames.logs.replay import read_log, replay_match
 from boardgames.logs.sink import Broadcast, JsonlFile, RecordSink
+from boardgames.web.app import create_app
+from boardgames.web.store import MatchStore
 
 DEFAULT_LOG_DIR = Path("runs")
 DEFAULT_CACHE_DIR = Path(".arena_cache")
@@ -141,6 +144,18 @@ def add_replay_command(commands: Commands) -> None:
     return
 
 
+def add_serve_command(commands: Commands) -> None:
+    """`arena serve`: the web viewer over a directory of logs."""
+    parser = commands.add_parser("serve", help="serve the web viewer")
+    parser.add_argument(
+        "--runs", type=Path, default=DEFAULT_LOG_DIR, help="log directory"
+    )
+    parser.add_argument("--host", default="127.0.0.1", help="bind address")
+    parser.add_argument("--port", type=int, default=8000, help="port (default 8000)")
+    parser.set_defaults(handler=serve)
+    return
+
+
 def parse_arguments(argv: list[str]) -> argparse.Namespace:
     """Parsed command line."""
     parser = argparse.ArgumentParser(
@@ -150,6 +165,7 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     add_games_command(commands)
     add_play_command(commands)
     add_replay_command(commands)
+    add_serve_command(commands)
     return parser.parse_args(argv)
 
 
@@ -278,6 +294,13 @@ def check_replay(args: argparse.Namespace) -> None:
         f"Replay matches the log: {report.game_id}, {report.steps} steps, "
         f"{report.events} events."
     )
+    return
+
+
+def serve(args: argparse.Namespace) -> None:
+    """Serve the web viewer until interrupted."""
+    print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
+    uvicorn.run(create_app(MatchStore(args.runs)), host=args.host, port=args.port)
     return
 
 
