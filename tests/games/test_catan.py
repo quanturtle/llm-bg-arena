@@ -50,6 +50,7 @@ from boardgames.games.catan.geometry import (
     COASTAL_EDGES,
     EDGE_HEXES,
     EDGE_VERTICES,
+    HEX_EDGES,
     HEX_VERTICES,
     HEXES,
     PORT_EDGES,
@@ -634,6 +635,16 @@ def test_longest_road_award_and_break() -> None:
     broken = replace(built, buildings=tuple(buildings))
     assert longest_road_length(broken, P1) < 5
     assert update_longest_road(broken)[0].longest_road is None
+
+
+def test_longest_road_is_a_trail_through_both_rings_of_a_theta() -> None:
+    first, second = next(hexes for hexes in EDGE_HEXES if len(hexes) == 2)
+    roads: list[PlayerId | None] = [None] * 72
+    for edge in (*HEX_EDGES[first], *HEX_EDGES[second]):
+        roads[edge] = P1
+    theta = replace(start(), roads=tuple(roads))
+    assert roads.count(P1) == 11
+    assert longest_road_length(theta, P1) == 11
 
 
 def test_largest_army_keeps_ties_and_changes_on_a_strict_lead() -> None:
