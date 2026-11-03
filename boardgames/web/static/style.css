@@ -79,7 +79,7 @@ h3 { font-size: 14px; margin: 0 0 6px; color: var(--muted); text-transform: uppe
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
 .toolbar label { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
 
-select, input[type="text"], button {
+select, input[type="text"], input[type="number"], textarea, button {
   font: inherit;
   color: var(--ink);
   background: var(--panel);
@@ -93,8 +93,19 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 button:disabled { opacity: 0.5; cursor: default; }
 button.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
 .live-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
-textarea.config { width: 100%; box-sizing: border-box; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; }
 .new-match .toolbar { display: flex; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+/* new-match form: labelled fields in a grid, one card per seat */
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; }
+.fields label, .model-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.fields label > span, .model-field > span { color: var(--muted); }
+.fields input, .fields select, .fields textarea, .model-field input { width: 100%; box-sizing: border-box; }
+.seats-head { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.seats-head h2 { margin: 0; }
+.seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); align-items: start; gap: 12px; margin-top: 10px; }
+.seat-head { display: flex; justify-content: space-between; align-items: center; }
+.model-field { margin: 10px 0 6px; }
+.seat-advanced .fields { margin-top: 8px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.config-preview { font-size: 12px; max-height: 320px; overflow: auto; }
 
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }

@@ -33,6 +33,17 @@ MODEL_FIELDS = frozenset(
     }
 )
 PROMPT_FIELDS = frozenset({"output_mode", "persona"})
+DEFAULT_MODEL = "qwen/qwen3.7-flash"
+# cheap OpenRouter models with tool calling, offered by the new-match form
+SUGGESTED_MODELS = (
+    "qwen/qwen3.7-flash",
+    "z-ai/glm-5.3-flash",
+    "deepseek/deepseek-v4.1-flash",
+    "openai/gpt-5-nano",
+    "mistralai/mistral-small-3.2-24b-instruct",
+    "google/gemini-2.5-flash-lite",
+    "anthropic/claude-haiku-5.5",
+)
 AGENT_FIELDS = frozenset({"max_illegal_retries", "max_tool_calls", "fallback"})
 SEAT_ONLY_FIELDS = frozenset({"agent", "model", "label", "seed"})
 

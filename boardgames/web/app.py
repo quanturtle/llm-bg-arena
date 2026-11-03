@@ -15,7 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from pydantic import JsonValue as PlainJson
 
-from boardgames.core import ArenaError, UnknownGameError, create_game
+from boardgames.arena.match_config import DEFAULT_MODEL, SUGGESTED_MODELS
+from boardgames.core import ArenaError, ConfigError, UnknownGameError, create_game
 from boardgames.games import game_ids
 from boardgames.logs.replay import ReplayMismatchError
 from boardgames.logs.schema import plain_object
@@ -38,6 +39,7 @@ from boardgames.web.timeline import (
 )
 
 TIMELINE_CACHE_SIZE = 16
+PROBED_PLAYER_COUNTS = range(1, 9)
 
 
 class UnknownFrameError(ArenaError):
@@ -62,6 +64,26 @@ class GameInfo(BaseModel):
 
 class GameDetail(GameInfo):
     rules: str
+
+
+class GameOption(BaseModel):
+    """What the new-match form needs per game: seat counts and default settings."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    player_counts: list[int]
+    settings: dict[str, PlainJson]
+
+
+class MatchOptions(BaseModel):
+    """Choices the new-match form offers."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    default_model: str
+    models: list[str]
+    games: list[GameOption]
 
 
 class StartRequest(BaseModel):
@@ -110,6 +132,27 @@ def launcher_of(request: Request) -> MatchLauncher:
     return launcher
 
 
+def game_option(game_id: str) -> GameOption:
+    """A game's valid seat counts, found by asking its config parser, and settings."""
+    game = create_game(game_id)
+    settings = plain_object(game.config_json(game.parse_config({})))
+    settings.pop("num_players", None)
+    return GameOption(
+        id=game_id,
+        player_counts=[n for n in PROBED_PLAYER_COUNTS if accepts_players(game_id, n)],
+        settings=settings,
+    )
+
+
+def accepts_players(game_id: str, count: int) -> bool:
+    """Whether the game's config parser accepts `count` players."""
+    try:
+        create_game(game_id).parse_config({"num_players": count})
+    except ConfigError:
+        return False
+    return True
+
+
 def game_info(game_id: str, catalog: Catalog) -> GameInfo:
     game = create_game(game_id)
     return GameInfo(
@@ -126,6 +169,16 @@ api = APIRouter(prefix="/api")
 def list_games(request: Request) -> list[GameInfo]:
     catalog = store_of(request).catalog()
     return [game_info(game_id, catalog) for game_id in game_ids()]
+
+
+@api.get("/match-options")
+def match_options() -> MatchOptions:
+    """Games with their seat counts and settings, the default model and cheap models."""
+    return MatchOptions(
+        default_model=DEFAULT_MODEL,
+        models=list(SUGGESTED_MODELS),
+        games=[game_option(game_id) for game_id in game_ids()],
+    )
 
 
 @api.get("/examples")
