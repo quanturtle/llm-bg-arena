@@ -292,6 +292,13 @@
     return h("div", { class: "panel board stack" }, content, text, scoreRow(match, frame));
   }
 
+  // Rebuilds a slot only when `key` changes, so a refresh never swaps a control under the pointer.
+  function fill(slot, key, build) {
+    if (slot.dataset.key === key) return;
+    slot.dataset.key = key;
+    slot.replaceChildren(build() || "");
+  }
+
   // `launch` (or null) carries the live status, such as paused, of a match this server started.
   function matchHeader(match, launch) {
     const config = Object.entries(match.config).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(" ");
@@ -318,7 +325,11 @@
     let disposed = false;
     // `launch` is set only for matches this server started, which it can pause and stop.
     let launch = null;
+    // Bumped by every pause, resume or stop, so an older status poll cannot undo it.
+    let launchEpoch = 0;
     let confirmingStop = false;
+    // The page's slots and replay controls, built once by `buildView`.
+    let view = null;
 
     const frameOf = async (n) => {
       if (!frames.has(n)) frames.set(n, api(`/api/matches/${matchId}/frames/${n}`));
@@ -340,7 +351,10 @@
     };
 
     const play = () => {
-      if (playing) return stop();
+      if (playing) {
+        stop();
+        return render();
+      }
       playing = true;
       timer = setInterval(() => {
         if (step >= last()) {
@@ -388,16 +402,21 @@
     // Returns whether the launch status changed; a 404 means another process runs it.
     const loadLaunch = async () => {
       const before = launch && launch.status;
+      const epoch = launchEpoch;
+      let fresh;
       try {
-        launch = await api(`/api/launches/${matchId}`);
+        fresh = await api(`/api/launches/${matchId}`);
       } catch (error) {
-        launch = null;
+        fresh = null;
       }
+      if (epoch !== launchEpoch) return false;
+      launch = fresh;
       return before !== (launch && launch.status);
     };
 
     const act = async (action) => {
       confirmingStop = false;
+      launchEpoch += 1;
       try {
         launch = await send(`/api/launches/${matchId}/${action}`);
         await refreshOutline();
@@ -420,9 +439,12 @@
       return h("div", { class: "live-controls" }, toggle, ...stopping, h("span", { class: "muted small" }, note));
     };
 
-    const controls = () => {
-      const slider = h("input", { type: "range", min: 0, max: last(), value: step });
+    // The replay controls stay the same elements for the page's life; `updateControls` refreshes them.
+    const buildControls = () => {
+      const slider = h("input", { type: "range", min: 0 });
       slider.addEventListener("input", (event) => seek(Number(event.target.value)));
+      const playButton = h("button", { onclick: play, title: "play/pause (space)" });
+      const stepLabel = h("span", { class: "step mono" });
       const viewerSelect = h("select", {}, h("option", { value: "" }, "Spectator"), outline.match.seats.map((seat) => h("option", { value: seat.player }, `P${seat.player + 1} ${seatName(seat)}`)));
       viewerSelect.value = viewer === null ? "" : String(viewer);
       viewerSelect.addEventListener("change", () => { viewer = viewerSelect.value === "" ? null : Number(viewerSelect.value); render(); });
@@ -432,21 +454,39 @@
       const allEvents = h("input", { type: "checkbox" });
       allEvents.checked = omniscient;
       allEvents.addEventListener("change", () => { omniscient = allEvents.checked; render(); });
-      return h(
+      const row = h(
         "div",
         { class: "controls" },
         h("button", { onclick: () => seek(0), title: "first (Home)" }, "⏮"),
         h("button", { onclick: () => seek(step - 1), title: "previous (←)" }, "◀"),
-        h("button", { class: playing ? "primary" : "", onclick: play, title: "play/pause (space)" }, playing ? "⏸" : "▶"),
+        playButton,
         h("button", { onclick: () => seek(step + 1), title: "next (→)" }, "▶|"),
         h("button", { onclick: () => seek(last()), title: "last (End)" }, "⏭"),
         speedSelect,
         slider,
-        h("span", { class: "step mono" }, `step ${step} / ${last()}`),
+        stepLabel,
         h("label", {}, "View ", viewerSelect),
         h("label", {}, allEvents, " all events"),
       );
+      return { row, slider, playButton, stepLabel };
     };
+
+    const updateControls = () => {
+      const { slider, playButton, stepLabel } = view.controls;
+      slider.max = last();
+      slider.value = step;
+      playButton.className = playing ? "primary" : "";
+      playButton.textContent = playing ? "⏸" : "▶";
+      stepLabel.textContent = `step ${step} / ${last()}`;
+    };
+
+    const buildView = () => {
+      const controls = buildControls();
+      const slots = { header: h("div", {}), bar: h("div", {}), notice: h("div", {}), grid: h("div", { class: "match-grid" }) };
+      return { ...slots, controls, root: h("div", {}, slots.header, slots.bar, slots.notice, controls.row, slots.grid) };
+    };
+
+    const headerKey = (match) => [match.status, launch && launch.status, match.seats.map((s) => `${s.rank}/${s.forfeited}`).join(",")].join("|");
 
     const render = async () => {
       if (disposed) return;
@@ -465,19 +505,16 @@
       if (disposed || current !== step) return;
       if (current < last()) frameOf(current + 1);
       const match = outline.match;
-      app.replaceChildren(
-        matchHeader(match, launch),
-        liveControls() || "",
-        outline.replay_error
-          ? h("p", { class: "panel error small" }, `Only steps 0–${last()} can be shown: this log stops matching the current ${match.game_id} rules after that, probably because the rules changed after it was recorded. `, h("span", { class: "muted" }, outline.replay_error))
-          : "",
-        controls(),
-        h(
-          "div",
-          { class: "match-grid" },
-          h("div", { class: "stack" }, boardPanel(match, frame, viewer, layout), h("div", { class: "panel" }, pointsChart(outline, step, seek))),
-          h("div", { class: "stack" }, decisionPanel(match, frame), h("div", { class: "panel" }, h("h3", {}, "Events"), eventList(outline, step, viewer, omniscient))),
-        ),
+      if (!view.root.isConnected) app.replaceChildren(view.root);
+      fill(view.header, headerKey(match), () => matchHeader(match, launch));
+      fill(view.bar, `${launch && launch.status}|${confirmingStop}`, liveControls);
+      fill(view.notice, `${outline.replay_error}|${last()}`, () => outline.replay_error
+        ? h("p", { class: "panel error small" }, `Only steps 0–${last()} can be shown: this log stops matching the current ${match.game_id} rules after that, probably because the rules changed after it was recorded. `, h("span", { class: "muted" }, outline.replay_error))
+        : null);
+      updateControls();
+      view.grid.replaceChildren(
+        h("div", { class: "stack" }, boardPanel(match, frame, viewer, layout), h("div", { class: "panel" }, pointsChart(outline, step, seek))),
+        h("div", { class: "stack" }, decisionPanel(match, frame), h("div", { class: "panel" }, h("h3", {}, "Events"), eventList(outline, step, viewer, omniscient))),
       );
     };
 
@@ -493,6 +530,7 @@
       step = Math.min(last(), Math.max(0, step));
       if (outline.match.status === "running") poll = setInterval(refreshOutline, 2000);
       document.addEventListener("keydown", onKey);
+      view = buildView();
       render();
     };
 
