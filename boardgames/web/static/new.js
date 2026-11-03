@@ -49,7 +49,7 @@
   }
 
   function newSeat(state) {
-    return { model: state.options.default_model, custom: false, reasoning: true, settings: {} };
+    return { model: state.options.default_model, custom: false, reasoning: state.options.seat_defaults.reasoning === true, settings: {} };
   }
 
   function currentGame(state) {

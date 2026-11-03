@@ -74,6 +74,13 @@ def test_each_seat_has_its_own_settings_and_defaults_fill_the_rest() -> None:
     return
 
 
+def test_reasoning_is_off_unless_a_seat_asks_for_it() -> None:
+    assert llm_agent_settings(LlmSeat(), 0).model.reasoning is False
+    assert llm_agent_settings(LlmSeat(reasoning_effort="low"), 0).model.reasoning
+    assert llm_agent_settings(LlmSeat(reasoning=True), 0).model.reasoning
+    return
+
+
 def test_a_shared_llm_section_and_random_seats_are_rejected() -> None:
     with pytest.raises(ConfigError, match=r"llm: Extra inputs"):
         parse_match_config({"game": "x", "llm": {"temperature": 0.2}}, "test")

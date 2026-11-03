@@ -151,7 +151,11 @@ def llm_agent_settings(seat: LlmSeat, seed: int) -> LlmAgentSettings:
     """Agent settings for a seat; what it leaves unset keeps the built-in default,
     and a seat without a model plays DEFAULT_MODEL."""
     model = replace(
-        ModelSettings(model=seat.model or DEFAULT_MODEL, seed=seed),
+        ModelSettings(
+            model=seat.model or DEFAULT_MODEL,
+            seed=seed,
+            reasoning=default_reasoning(seat),
+        ),
         **seat.model_dump(include=set(MODEL_FIELDS), exclude_none=True),
     )
     prompt = replace(
@@ -162,6 +166,11 @@ def llm_agent_settings(seat: LlmSeat, seed: int) -> LlmAgentSettings:
         LlmAgentSettings(model=model, prompt=prompt, label=seat.label),
         **seat.model_dump(include=set(AGENT_FIELDS), exclude_none=True),
     )
+
+
+def default_reasoning(seat: LlmSeat) -> bool:
+    """Reasoning when a seat leaves it unset: off, unless it sets effort or budget."""
+    return seat.reasoning_effort is not None or seat.thinking_budget_tokens is not None
 
 
 def builtin_seat_defaults() -> dict[str, PlainJson]:

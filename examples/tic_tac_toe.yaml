@@ -4,7 +4,6 @@
 game: tic_tac_toe
 seed: 7
 seats:
-  - model: qwen/qwen3.7-flash
-    reasoning: false          # thinking off: much faster, and it still plays well
+  - model: qwen/qwen3.7-flash    # reasoning is off unless a seat asks for it
   - model: openai/gpt-5-nano
     reasoning_effort: low     # this model must think; low keeps replies short

@@ -6,7 +6,6 @@ config: {num_players: 3, victory_points: 5}
 seed: 1
 seats:
   - model: qwen/qwen3.7-flash
-    reasoning: false
   - model: deepseek/deepseek-v4.1-flash
     reasoning_effort: low
   - model: z-ai/glm-5.3-flash
