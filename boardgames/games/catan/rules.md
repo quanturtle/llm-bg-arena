@@ -29,7 +29,7 @@ A new road must touch one of your roads, settlements or cities. Another player's
 
 ## Trade
 - **Bank or harbour:** give 4 of one resource for 1 of another at the normal rate, 3:1 at a generic harbour, or 2:1 at a harbour for the resource you give. The action lists your actual rate, so use that number.
-- **Players:** one card for one card. Offer one resource you hold to one player for one resource they hold. That player accepts or declines, and then your turn continues. You may make at most 3 offers in a turn by default; `max_offers_per_turn` can change that limit, and 0 means unlimited. The bank and harbours never run out.
+- **Players:** one card for one card. Offer one resource you hold to another player for one different resource. Hands are hidden, so you may ask for a card they lack; they can accept only if they hold it. That player accepts or declines, and then your turn continues. You may make at most 3 offers in a turn by default; `max_offers_per_turn` can change that limit, and 0 means unlimited. The bank and harbours never run out.
 
 ## Development cards
 There are 25 cards: 14 knights, 2 Road Building, 2 Year of Plenty, 2 Monopoly and 5 victory points.

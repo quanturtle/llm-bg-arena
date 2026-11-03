@@ -371,9 +371,8 @@ def test_player_offer_accept_transfers_one_card_each_way() -> None:
         empty_hand(),
     )
     offered = action_state(replace(state, hands=hands))
-    (offer,) = [
-        action for action in listing(offered) if isinstance(action, OfferTrade)
-    ][:1]
+    offer = OfferTrade("wood", "ore", P2)
+    assert offer in listing(offered)
     pending = GAME.apply(offered, P1, offer).state
     assert pending.phase == "trade_response"
     assert pending.pending_offer is not None
@@ -383,6 +382,25 @@ def test_player_offer_accept_transfers_one_card_each_way() -> None:
     assert accepted.hands[P1] == hand_from(ore=1)
     assert accepted.hands[P2] == hand_from(wood=1)
     assert accepted.pending_offer is None
+
+
+def test_offers_ignore_the_target_hand_and_accept_needs_the_card() -> None:
+    state, _ = play_setup()
+    offered = action_state(
+        replace(state, hands=(hand_from(wood=1), empty_hand(), hand_from(ore=1)))
+    )
+    assert [a for a in listing(offered) if isinstance(a, OfferTrade)] == [
+        OfferTrade("wood", take, target)
+        for target in (P2, P3)
+        for take in RESOURCES
+        if take != "wood"
+    ]
+    to_p2 = GAME.apply(offered, P1, OfferTrade("wood", "ore", P2)).state
+    assert notation(to_p2) == ["decline"]
+    with pytest.raises(IllegalActionError, match="You have no ore to give"):
+        GAME.apply(to_p2, P2, AcceptOffer())
+    to_p3 = GAME.apply(offered, P1, OfferTrade("wood", "ore", P3)).state
+    assert notation(to_p3) == ["accept", "decline"]
 
 
 def test_declining_an_offer_returns_to_the_action_phase() -> None:

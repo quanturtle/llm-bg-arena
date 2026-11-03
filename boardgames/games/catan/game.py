@@ -1039,7 +1039,6 @@ def legal_action_list(state: CatanState, player: PlayerId) -> list[Action]:
         if (
             offer is not None
             and offer.to_player == player
-            and hand_get(state.hands[offer.from_player], offer.give) > 0
             and hand_get(state.hands[player], offer.take) > 0
         ):
             actions.append(AcceptOffer())
@@ -1092,8 +1091,6 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
                     continue
                 for take in RESOURCES:
                     if take == give:
-                        continue
-                    if hand_get(state.hands[target], take) < 1:
                         continue
                     actions.append(OfferTrade(give, take, target))
     if not state.dev_played_this_turn:
@@ -1471,13 +1468,16 @@ def explain_illegal_inner(state: CatanState, player: PlayerId, action: Action) -
                 return f"There is no {seat_label(target)}."
             if hand_get(hand, give) < 1:
                 return f"You have no {give} to offer."
-            if hand_get(state.hands[target], take) < 1:
-                return f"{seat_label(target)} has no {take} to trade."
             return "You cannot offer that trade now."
         case AcceptOffer():
-            if state.pending_offer is None:
+            offer = state.pending_offer
+            if offer is None:
                 return "There is no open offer to accept."
-            return "That offer is not yours to accept."
+            if offer.to_player != player:
+                return "That offer is not yours to accept."
+            if hand_get(hand, offer.take) < 1:
+                return f"You have no {offer.take} to give for this offer."
+            return "You cannot accept that offer now."
         case DeclineOffer():
             if state.pending_offer is None:
                 return "There is no open offer to decline."
