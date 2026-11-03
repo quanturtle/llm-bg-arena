@@ -1,3 +1,5 @@
+import { PageTitle } from "@/components/page";
+
 export default function Home() {
-  return <main className="p-6 text-sm text-muted-foreground">Boardgames viewer</main>;
+  return <PageTitle title="Matches" description="Replays of every match in the log directory." />;
 }
