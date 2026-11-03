@@ -313,11 +313,13 @@ window.boards = window.boards || {};
     return parts.join(" · ");
   }
 
-  function seatCell(context, player) {
+  // The player's name, marked winner once the game is over.
+  function seatCell(context, player, isWinner) {
     const cell = htmlElement("td");
     const seat = htmlElement("span", "seat");
     seat.appendChild(htmlElement("span", `dot p${player}`));
     seat.appendChild(htmlElement("span", null, seatName(context, player)));
+    if (isWinner) seat.appendChild(htmlElement("span", "badge winner", "🏆 winner"));
     cell.appendChild(seat);
     return cell;
   }
@@ -388,7 +390,7 @@ window.boards = window.boards || {};
     const count = (observation.hand_sizes || observation.public_points || []).length;
     for (let player = 0; player < count; player += 1) {
       const row = htmlElement("tr", observation.active === player && !observation.game_over ? "active" : "");
-      row.appendChild(seatCell(context, player));
+      row.appendChild(seatCell(context, player, Boolean(observation.game_over) && observation.winner === player));
       row.appendChild(numberCell(victoryPoints(observation, player)));
       row.appendChild(numberCell((observation.hand_sizes || [])[player]));
       row.appendChild(devCell(observation, player));

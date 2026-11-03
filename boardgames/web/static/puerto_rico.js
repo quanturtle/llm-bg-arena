@@ -424,7 +424,7 @@ window.boards = window.boards || {};
       h(
         "tr",
         {},
-        h("td", {}, h("span", { class: "seat" }, seatDot(score.player), seatText(context, score.player))),
+        h("td", {}, h("span", { class: "seat" }, seatDot(score.player), seatText(context, score.player), observation.winner === score.player ? h("span", { class: "badge winner" }, "🏆 winner") : null)),
         h("td", { class: "num" }, score.points),
         h("td", { class: "num" }, score.vp_chips),
         h("td", { class: "mono small" }, JSON.stringify(score.breakdown)),
