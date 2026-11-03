@@ -81,7 +81,7 @@ window.boards = window.boards || {};
       h(
         "tr",
         {},
-        h("td", {}, h("span", { class: "seat" }, h("span", { class: `dot p${i}` }), `P${i + 1} ${seat.agent}`)),
+        h("td", {}, h("span", { class: "seat" }, h("span", { class: `dot p${i}` }), `P${i + 1} ${window.viewer.seatName(seat)}`)),
         h("td", { class: "num" }, observation.coins[i]),
         h("td", {}, observation.won[i].length ? observation.won[i].map(lotChip) : h("span", { class: "muted" }, "none")),
         h("td", {}, observation.has_bid[i] ? "sealed" : h("span", { class: "muted" }, "waiting")),

@@ -27,6 +27,7 @@ class AgentGameStats(Stat):
     agent: str
     kind: str
     game_id: str | None
+    models: list[str]
     matches: int
     wins: int
     win_rate: float
@@ -72,10 +73,11 @@ class AgentDetail(Stat):
 
 @dataclass
 class Tally:
-    """Running sums for one agent at one game."""
+    """Running sums for one agent at one game, and the models it played with."""
 
     kind: str = "unknown"
     matches: int = 0
+    models: set[str] = field(default_factory=set)
     wins: int = 0
     rank_sum: int = 0
     points_sum: float = 0.0
@@ -92,6 +94,8 @@ class Tally:
     def add(self, seat: SeatSummary, won_outright: bool) -> None:
         self.kind = seat.kind
         self.matches += 1
+        if seat.model is not None:
+            self.models.add(seat.model)
         self.wins += won_outright
         self.rank_sum += seat.rank or 0
         self.points_sum += seat.points or 0.0
@@ -165,6 +169,7 @@ def stats_row(
         win_rate=ratio(tally.wins, tally.matches),
         average_rank=ratio(tally.rank_sum, tally.matches),
         average_points=ratio(tally.points_sum, tally.matches),
+        models=sorted(tally.models),
         forfeits=tally.forfeits,
         decisions=tally.decisions,
         illegal_attempts=tally.illegal_attempts,

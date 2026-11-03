@@ -76,9 +76,15 @@
     return seconds < 1 ? `${Math.round(seconds * 1000)} ms` : `${seconds.toFixed(1)} s`;
   }
 
+  // The seat's agent name, followed by its model id when the name is a label.
+  function seatName(seat) {
+    if (!seat) return "";
+    return seat.model && seat.model !== seat.agent ? `${seat.agent} (${seat.model})` : seat.agent;
+  }
+
   function seatChip(match, player, extra) {
     const seat = match.seats[player];
-    return h("span", { class: "seat" }, h("span", { class: `dot p${player}` }), `P${player + 1} `, h("a", { href: `#/agent/${encodeURIComponent(seat.agent)}` }, seat.agent), extra);
+    return h("span", { class: "seat" }, h("span", { class: `dot p${player}` }), `P${player + 1} `, h("a", { href: `#/agent/${encodeURIComponent(seat.agent)}` }, seatName(seat)), extra);
   }
 
   function statusBadge(match) {
@@ -417,7 +423,7 @@
     const controls = () => {
       const slider = h("input", { type: "range", min: 0, max: last(), value: step });
       slider.addEventListener("input", (event) => seek(Number(event.target.value)));
-      const viewerSelect = h("select", {}, h("option", { value: "" }, "Spectator"), outline.match.seats.map((seat) => h("option", { value: seat.player }, `P${seat.player + 1} ${seat.agent}`)));
+      const viewerSelect = h("select", {}, h("option", { value: "" }, "Spectator"), outline.match.seats.map((seat) => h("option", { value: seat.player }, `P${seat.player + 1} ${seatName(seat)}`)));
       viewerSelect.value = viewer === null ? "" : String(viewer);
       viewerSelect.addEventListener("change", () => { viewer = viewerSelect.value === "" ? null : Number(viewerSelect.value); render(); });
       const speedSelect = h("select", {}, SPEEDS.map((s) => h("option", { value: s }, `${s}×`)));
@@ -506,7 +512,7 @@
     match: (args, params) => matchPage(args[0], params),
   };
   // Other scripts add pages to `routes` and reuse these helpers.
-  window.viewer = { h, api, send, loadGames, formatCost, formatSeconds, formatDate, seatChip, matchRow, setActiveNav, showError, routes, app };
+  window.viewer = { h, api, send, seatName, loadGames, formatCost, formatSeconds, formatDate, seatChip, matchRow, setActiveNav, showError, routes, app };
 
   function parseHash() {
     const hash = location.hash.replace(/^#\/?/, "") || "matches";

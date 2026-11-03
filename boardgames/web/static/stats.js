@@ -10,6 +10,12 @@
     return h("a", { href: `#/agent/${encodeURIComponent(name)}` }, name);
   }
 
+  // The models an agent name played with, when the name is a label rather than a model id.
+  function modelNote(row) {
+    const models = (row.models || []).filter((model) => model !== row.agent);
+    return models.length ? h("span", { class: "muted small" }, ` ${models.join(", ")}`) : null;
+  }
+
   function statsHeader(withElo, withGame) {
     return h(
       "tr",
@@ -37,7 +43,7 @@
       "tr",
       {},
       h("td", { class: "muted" }, index + 1),
-      h("td", {}, agentLink(row.agent), " ", h("span", { class: "badge" }, row.kind)),
+      h("td", {}, agentLink(row.agent), " ", h("span", { class: "badge" }, row.kind), modelNote(row)),
       withGame ? h("td", {}, h("a", { href: `#/games/${row.game_id}` }, row.game_id)) : null,
       withElo ? h("td", { class: "num" }, h("strong", {}, Math.round(row.elo))) : null,
       h("td", { class: "num" }, row.matches),

@@ -295,7 +295,7 @@ window.boards = window.boards || {};
     const seats = context && context.match && Array.isArray(context.match.seats) ? context.match.seats : [];
     const seat = seats[player];
     const label = SEAT_LABELS[player] || `P${player + 1}`;
-    return seat && seat.agent ? `${label} ${seat.agent}` : label;
+    return seat && seat.agent ? `${label} ${window.viewer.seatName(seat)}` : label;
   }
 
   function statusText(observation, context) {

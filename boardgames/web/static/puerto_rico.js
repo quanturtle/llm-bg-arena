@@ -59,7 +59,7 @@ window.boards = window.boards || {};
 
   function agentName(context, player) {
     const seat = context && context.match && context.match.seats && context.match.seats[player];
-    return seat ? seat.agent : `P${player + 1}`;
+    return seat ? window.viewer.seatName(seat) : `P${player + 1}`;
   }
 
   function seatText(context, player) {
