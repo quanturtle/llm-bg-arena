@@ -83,7 +83,7 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
               viewer={state.viewer}
               omniscient={state.omniscient}
               icons={GAMES[match.game_id]?.eventIcons ?? {}}
-              className="h-112 xl:h-auto xl:min-h-0 xl:flex-1"
+              className="h-112 xl:h-auto xl:min-h-40 xl:flex-1"
             />
           </div>
         </div>
