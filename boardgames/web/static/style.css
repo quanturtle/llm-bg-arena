@@ -82,12 +82,24 @@ h3 { font-size: 14px; margin: 0 0 6px; color: var(--muted); text-transform: uppe
 select, input[type="text"], input[type="number"], textarea, button {
   font: inherit;
   color: var(--ink);
-  background: var(--panel);
+  background-color: var(--panel);
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 5px 9px;
 }
+/* dropdowns drop the native look so they match text boxes: same height, border and corners */
+select, input[type="text"], input[type="number"] { box-sizing: border-box; height: 34px; line-height: 22px; }
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8f98' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+}
 select:disabled, input:disabled { opacity: 0.55; }
+select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
 .toggle { display: flex; align-items: center; gap: 8px; height: 34px; }
 .toggle input[type="checkbox"] { width: auto; margin: 0; }
 button { cursor: pointer; }
