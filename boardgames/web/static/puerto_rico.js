@@ -347,12 +347,18 @@ window.boards = window.boards || {};
     return h(
       "section",
       { class: classes.join(" ") },
+      governor || active
+        ? h(
+            "div",
+            { class: "pr-player-tabs" },
+            governor ? h("span", { class: "badge" }, "governor") : null,
+            active ? h("span", { class: "badge winner" }, "active") : null,
+          )
+        : null,
       h(
         "div",
         { class: "pr-player-head" },
         h("span", { class: "seat" }, seatDot(player.seat), seatText(context, player.seat)),
-        governor ? h("span", { class: "badge" }, "governor") : null,
-        active ? h("span", { class: "badge winner" }, "active") : null,
         h("span", { class: "vp" }, `${player.public_points} VP`),
       ),
       h(
