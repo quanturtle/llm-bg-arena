@@ -1,7 +1,8 @@
 // Art and colours for Puerto Rico: one colour and barrel per good, one card per role.
 import type { Good } from "@/games/puerto-rico/observation";
 
-const ASSET_ROOT = "/static/puerto_rico";
+// served from web/public/puerto_rico; SOURCE.md there says where the art comes from
+const ASSET_ROOT = "/puerto_rico";
 
 export function asset(path: string): string {
   return `${ASSET_ROOT}/${path}`;

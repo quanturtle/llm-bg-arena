@@ -1,4 +1,4 @@
-"""HTTP layer: JSON endpoints over the match store and the static single-page viewer.
+"""HTTP layer: JSON endpoints over the match store, and the built Next.js viewer.
 
 Handlers read the store from `request.app.state.store`, so tests build an app
 over a temporary directory with `create_app`.
@@ -6,11 +6,10 @@ over a temporary directory with `create_app`.
 
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable
-from importlib.resources import files
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request, Response
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from pydantic import JsonValue as PlainJson
@@ -51,6 +50,8 @@ from boardgames.web.timeline import (
 TIMELINE_CACHE_SIZE = 16
 PROBED_PLAYER_COUNTS = range(1, 9)
 IMAGE_MAX_AGE_SECONDS = 86400
+BUNDLE_PREFIX = "/_next/static/"
+BUNDLE_CACHE_CONTROL = "max-age=31536000, immutable"
 
 
 class UnknownFrameError(ArenaError):
@@ -419,14 +420,6 @@ def unavailable(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"error": str(error)}, status_code=503)
 
 
-def static_directory() -> Path:
-    return Path(str(files("boardgames.web") / "static"))
-
-
-def index(request: Request) -> FileResponse:
-    return FileResponse(static_directory() / "index.html")
-
-
 def health() -> dict[str, str]:
     """Liveness check for monitors: the server is up and answering."""
     return {"status": "ok"}
@@ -435,11 +428,13 @@ def health() -> dict[str, str]:
 async def revalidate_assets(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
-    """Pages, scripts and styles carry no-cache, so an edit shows without a hard reload.
-    Images stay cached for IMAGE_MAX_AGE_SECONDS; a new image needs a hard reload."""
+    """Pages carry no-cache, so a new viewer build shows without a hard reload.
+    Next's bundles have hashed names and never change; images keep for a day."""
     response = await call_next(request)
     path = request.url.path
-    if path.endswith(".png"):
+    if path.startswith(BUNDLE_PREFIX):
+        response.headers["Cache-Control"] = BUNDLE_CACHE_CONTROL
+    elif path.endswith(".png"):
         response.headers["Cache-Control"] = f"max-age={IMAGE_MAX_AGE_SECONDS}"
     elif not path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-cache"
@@ -447,11 +442,15 @@ async def revalidate_assets(
 
 
 def create_app(
-    store: MatchStore, launcher: MatchLauncher, catalog: ModelCatalog | None = None
+    store: MatchStore,
+    launcher: MatchLauncher,
+    catalog: ModelCatalog | None = None,
+    viewer_dir: Path | None = None,
 ) -> FastAPI:
     """The viewer application over `store`; `launcher` starts matches from it.
 
     `catalog` tells the new-match form what each model accepts; None shows them all.
+    `viewer_dir` is the built Next.js viewer (web/out); None serves the API alone.
     """
     app = FastAPI(
         title="Boardgames", docs_url="/api/docs", openapi_url="/api/openapi.json"
@@ -471,7 +470,8 @@ def create_app(
     app.add_exception_handler(CatalogUnavailableError, unavailable)
     app.add_exception_handler(ArenaError, unprocessable)
     app.middleware("http")(revalidate_assets)
-    app.mount("/static", StaticFiles(directory=static_directory()), name="static")
-    app.add_api_route("/", index, include_in_schema=False)
     app.add_api_route("/health", health)
+    # mounted last, so every API route above wins; /matches redirects to /matches/
+    if viewer_dir is not None:
+        app.mount("/", StaticFiles(directory=viewer_dir, html=True), name="viewer")
     return app

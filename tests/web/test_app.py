@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from boardgames.arena import cli
+from boardgames.core import ConfigError
 from boardgames.games.puerto_rico import PuertoRico, PuertoRicoConfig
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
@@ -45,8 +46,6 @@ def test_games_matches_and_frames(client: TestClient) -> None:
     assert buildings["city_hall"]["victory_points"] == 4
     assert buildings["city_hall"]["city_spaces"] == 2
     assert len(puerto_rico["goods"]) == 5
-    assert "window.boards.puerto_rico" in client.get("/static/puerto_rico.js").text
-    assert ".puerto-rico" in client.get("/static/puerto_rico.css").text
     matches = client.get("/api/matches", params={"agent": "model-1"}).json()
     assert [m["match_id"] for m in matches["matches"]] == ["ttt"]
     outline = client.get("/api/matches/ttt/timeline").json()
@@ -61,18 +60,41 @@ def test_games_matches_and_frames(client: TestClient) -> None:
     assert client.get("/api/agents/nobody").status_code == 404
     assert client.get("/api/matches/nope").status_code == 404
     assert client.get("/api/matches/ttt/frames/99").status_code == 404
-    assert "<title>Boardgames</title>" in client.get("/").text
-    assert client.get("/static/app.js").headers["cache-control"] == "no-cache"
-    image = client.get("/static/puerto_rico/boards/city.png")
-    assert image.headers["cache-control"].startswith("max-age=")
-    assert "cache-control" not in client.get("/api/games").headers
     assert client.get("/api/matches/ttt").json()["seats"][0]["model"] == "model-0"
+    return
+
+
+def test_serves_the_viewer_build_with_its_cache_headers(tmp_path: Path) -> None:
+    viewer = tmp_path / "out"
+    (viewer / "matches").mkdir(parents=True)
+    (viewer / "_next" / "static").mkdir(parents=True)
+    (viewer / "index.html").write_text("<title>Boardgames</title>")
+    (viewer / "matches" / "index.html").write_text("matches page")
+    (viewer / "_next" / "static" / "app.js").write_text("")
+    (viewer / "city.png").write_bytes(b"")
+    launcher = MatchLauncher(tmp_path, None, None)
+    app = create_app(MatchStore(tmp_path), launcher, viewer_dir=viewer)
+    client = TestClient(app)
+    page = client.get("/matches")
+    assert page.text == "matches page"
+    assert page.headers["cache-control"] == "no-cache"
+    bundle = client.get("/_next/static/app.js").headers["cache-control"]
+    assert bundle.endswith("immutable")
+    assert client.get("/city.png").headers["cache-control"].startswith("max-age=")
+    assert "cache-control" not in client.get("/api/games").headers
     return
 
 
 def test_serve_command_parses_its_options() -> None:
     args = cli.parse_arguments(["serve", "--runs", "logs", "--port", "9000"])
     assert (args.runs, args.port, args.handler) == (Path("logs"), 9000, cli.serve)
+    assert args.viewer == Path("web/out")
+    return
+
+
+def test_serve_command_needs_a_viewer_build(tmp_path: Path) -> None:
+    with pytest.raises(ConfigError, match="pnpm --dir web build"):
+        cli.viewer_build(tmp_path / "out")
     return
 
 

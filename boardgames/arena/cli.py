@@ -27,7 +27,7 @@ from boardgames.arena.lineup import (
     run_prepared,
 )
 from boardgames.arena.match_config import load_match_config
-from boardgames.core import ArenaError
+from boardgames.core import ArenaError, ConfigError
 from boardgames.games import game_ids
 from boardgames.llm.catalog import OpenRouterCatalog
 from boardgames.llm.model import ChatModel
@@ -38,6 +38,8 @@ from boardgames.web.store import MatchStore
 
 DEFAULT_LOG_DIR = Path("runs")
 DEFAULT_EXAMPLES_DIR = Path("examples")
+DEFAULT_VIEWER_DIR = Path("web/out")
+VIEWER_BUILD_COMMAND = "pnpm --dir web install && pnpm --dir web build"
 ENV_FILE = Path(".env")
 
 type Commands = argparse._SubParsersAction[argparse.ArgumentParser]
@@ -95,6 +97,12 @@ def add_serve_command(commands: Commands) -> None:
         type=Path,
         default=DEFAULT_EXAMPLES_DIR,
         help="match configs offered on the new-match page",
+    )
+    parser.add_argument(
+        "--viewer",
+        type=Path,
+        default=DEFAULT_VIEWER_DIR,
+        help=f"built web viewer (default web/out, from: {VIEWER_BUILD_COMMAND})",
     )
     parser.add_argument("--host", default="127.0.0.1", help="bind address")
     parser.add_argument("--port", type=int, default=8000, help="port (default 8000)")
@@ -160,12 +168,22 @@ def check_replay(args: argparse.Namespace) -> None:
     return
 
 
+def viewer_build(directory: Path) -> Path:
+    """The built viewer in `directory`; when missing, the error says how to build it."""
+    if not (directory / "index.html").is_file():
+        raise ConfigError(
+            f"no web viewer build in {directory}; build it with: {VIEWER_BUILD_COMMAND}"
+        )
+    return directory
+
+
 def serve(args: argparse.Namespace) -> None:
     """Serve the web viewer until interrupted; matches started there run in-process."""
     game_ids()
+    viewer = viewer_build(args.viewer)
     launcher = MatchLauncher(args.runs, chat_model_from_environment(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
-    app = create_app(MatchStore(args.runs), launcher, OpenRouterCatalog())
+    app = create_app(MatchStore(args.runs), launcher, OpenRouterCatalog(), viewer)
     uvicorn.run(app, host=args.host, port=args.port)
     return
 
