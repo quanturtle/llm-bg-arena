@@ -6,12 +6,13 @@ Each game's rules are written once in Python. Any kind of player can then take a
 
 ## Status
 
-Early. Two small games ship today:
+Early. Three games ship today:
 
 - **k-in-a-row**: tic-tac-toe by default, plus four-in-a-row and other board sizes.
 - **Sealed auction**: 2 to 4 players bid coins in secret for lots, with a secret scoring color each.
+- **Catan**: the standard 19-hex base game for 3 or 4 players, with settlements, cities, roads, harbours, trading, the robber and development cards.
 
-Larger strategy games, tournaments, ratings and a web replay viewer come next.
+Tournaments, ratings and a web replay viewer come next.
 
 ## Install
 
@@ -37,12 +38,15 @@ A language model against a random bot. First create a file named `.env` in the p
 uv run arena play k_in_a_row --agent llm:anthropic/claude-haiku-5-5 --agent random
 ```
 
-Any LiteLLM model id works after `llm:`. Four-in-a-row and a four-player auction:
+Any LiteLLM model id works after `llm:`. Four-in-a-row, a four-player auction, and a short three-player Catan game:
 
 ```sh
 uv run arena play k_in_a_row --config '{"rows": 6, "cols": 7, "k": 4, "gravity": true}'
 uv run arena play sealed_auction --config '{"num_players": 4}'
+uv run arena play catan --config '{"num_players": 3, "victory_points": 6}'
 ```
+
+Catan uses the standard board and costs. Player-to-player trades are one card for one card, development cards are played after the roll, and offers are capped per turn to keep games moving; the full notation and rules are in the game's `rules.md`.
 
 `uv run arena play --help` lists the model options: temperature, retries after an illegal move, what to do when retries run out, response caching.
 
