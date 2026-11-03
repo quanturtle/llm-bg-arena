@@ -12,6 +12,47 @@ def write_config(tmp_path: Path, text: str) -> Path:
     return path
 
 
+def error_lines(argv: list[str], capsys: pytest.CaptureFixture[str]) -> list[str]:
+    """Standard error of a command that must exit with status 1."""
+    with pytest.raises(SystemExit) as exit_info:
+        cli.run_command(cli.parse_arguments(argv))
+    assert exit_info.value.code == 1
+    return capsys.readouterr().err.splitlines()
+
+
+def test_existing_log_path_is_one_error_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = tmp_path / "match.jsonl"
+    log.write_text("kept\n", encoding="utf-8")
+    config = write_config(tmp_path, f"game: k_in_a_row\nlog: {log}\n")
+    assert error_lines(["play", str(config)], capsys) == [
+        f"error: {log} already exists; logs are never overwritten"
+    ]
+    assert log.read_text(encoding="utf-8") == "kept\n"
+    return
+
+
+def test_missing_replay_log_is_one_error_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log = tmp_path / "missing.jsonl"
+    assert error_lines(["replay", str(log)], capsys) == [
+        f"error: cannot read {log}: No such file or directory"
+    ]
+    return
+
+
+def test_config_that_is_not_utf8_is_one_error_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    config = tmp_path / "match.yaml"
+    config.write_bytes(b"\x89PNG\x00\xff\xfe")
+    (line,) = error_lines(["play", str(config)], capsys)
+    assert line.startswith(f"error: {config} is not UTF-8 text:")
+    return
+
+
 def test_play_runs_the_configured_match_and_writes_its_log(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

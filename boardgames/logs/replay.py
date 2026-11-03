@@ -32,6 +32,7 @@ from boardgames.logs.schema import (
     event_json,
     plain_object,
 )
+from boardgames.logs.sink import LogFileError
 
 
 class LogFormatError(ArenaError):
@@ -53,7 +54,11 @@ class ReplayReport:
 def read_log(path: Path) -> list[LogRecord]:
     """Records of a JSONL log file, validated against the schema."""
     records: list[LogRecord] = []
-    with path.open(encoding="utf-8") as file:
+    try:
+        file = path.open(encoding="utf-8")
+    except OSError as error:
+        raise LogFileError(f"cannot read {path}: {error.strerror}") from error
+    with file:
         for number, line in enumerate(file, start=1):
             if not line.strip():
                 continue

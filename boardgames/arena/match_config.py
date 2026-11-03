@@ -95,6 +95,8 @@ def load_match_config(path: Path) -> MatchConfig:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     except OSError as error:
         raise ConfigError(f"cannot read {path}: {error}") from error
+    except UnicodeDecodeError as error:
+        raise ConfigError(f"{path} is not UTF-8 text: {error}") from error
     except yaml.YAMLError as error:
         raise ConfigError(f"{path} is not valid YAML: {error}") from error
     return parse_match_config(raw, str(path))

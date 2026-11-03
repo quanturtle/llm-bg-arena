@@ -24,7 +24,7 @@ from boardgames.logs.schema import (
     MatchFinished,
     MatchStarted,
 )
-from boardgames.logs.sink import JsonlFile, RecordSink
+from boardgames.logs.sink import JsonlFile, LogFileError, RecordSink
 from tests.arena.support import (
     FakeClock,
     FixedAgent,
@@ -154,6 +154,6 @@ def test_jsonl_file_writes_one_json_object_per_line(tmp_path: Path) -> None:
     lines = path.read_text().splitlines()
     assert json.loads(lines[0])["type"] == "match_started"
     assert json.loads(lines[-1])["type"] == "match_finished"
-    with pytest.raises(FileExistsError):
+    with pytest.raises(LogFileError, match="already exists"):
         JsonlFile(path)
     return

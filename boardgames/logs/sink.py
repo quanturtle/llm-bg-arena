@@ -5,7 +5,12 @@ from pathlib import Path
 from types import TracebackType
 from typing import Protocol, Self
 
+from boardgames.core import ArenaError
 from boardgames.logs.schema import LogRecord
+
+
+class LogFileError(ArenaError):
+    """A log file cannot be created or opened."""
 
 
 class RecordSink(Protocol):
@@ -17,12 +22,17 @@ class RecordSink(Protocol):
 class JsonlFile:
     """Writes one record per line, flushed at once so a crash keeps the log so far.
 
-    Refuses to overwrite an existing file.
+    Refuses to overwrite an existing file: that raises LogFileError.
     """
 
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._file = path.open("x", encoding="utf-8")
+        try:
+            self._file = path.open("x", encoding="utf-8")
+        except FileExistsError as error:
+            raise LogFileError(
+                f"{path} already exists; logs are never overwritten"
+            ) from error
         return
 
     def write(self, record: LogRecord) -> None:
