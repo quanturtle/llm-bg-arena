@@ -22,6 +22,11 @@ from boardgames.arena.match_config import (
 )
 from boardgames.core import ArenaError, ConfigError, UnknownGameError, create_game
 from boardgames.games import game_ids
+from boardgames.llm.catalog import (
+    CatalogUnavailableError,
+    ModelCapabilities,
+    ModelCatalog,
+)
 from boardgames.logs.replay import ReplayMismatchError
 from boardgames.logs.schema import plain_object
 from boardgames.web.launcher import (
@@ -59,6 +64,10 @@ class UnknownAgentError(ArenaError):
     """No finished match has a seat with this agent name."""
 
 
+class UnknownModelError(ArenaError):
+    """OpenRouter's model list has no model with this id."""
+
+
 class GameInfo(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -85,12 +94,18 @@ class GameOption(BaseModel):
 
 
 class MatchOptions(BaseModel):
-    """Choices the new-match form offers, and what an untouched seat plays with."""
+    """Choices the new-match form offers, and what an untouched seat plays with.
+
+    `capabilities` has what each suggested model accepts; it is empty, with the
+    reason in `catalog_error`, when OpenRouter's model list could not be read.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     default_model: str
     models: list[str]
+    capabilities: dict[str, ModelCapabilities]
+    catalog_error: str | None
     seat_defaults: dict[str, PlainJson]
     games: list[GameOption]
 
@@ -209,14 +224,47 @@ def list_games(request: Request) -> list[GameInfo]:
 
 
 @api.get("/match-options")
-def match_options() -> MatchOptions:
-    """Games with their seat counts and settings, the default model and cheap models."""
+async def match_options(request: Request) -> MatchOptions:
+    """Games with seat counts and settings, and cheap models with what they take."""
+    capabilities, catalog_error = await suggested_capabilities(catalog_of(request))
     return MatchOptions(
         default_model=DEFAULT_MODEL,
         models=list(SUGGESTED_MODELS),
+        capabilities=capabilities,
+        catalog_error=catalog_error,
         seat_defaults=builtin_seat_defaults(),
         games=[game_option(game_id) for game_id in game_ids()],
     )
+
+
+def catalog_of(request: Request) -> ModelCatalog | None:
+    catalog: ModelCatalog | None = request.app.state.catalog
+    return catalog
+
+
+async def suggested_capabilities(
+    catalog: ModelCatalog | None,
+) -> tuple[dict[str, ModelCapabilities], str | None]:
+    """What each suggested model accepts, or why that is unknown."""
+    if catalog is None:
+        return {}, None
+    try:
+        found = {model: await catalog.lookup(model) for model in SUGGESTED_MODELS}
+    except CatalogUnavailableError as error:
+        return {}, str(error)
+    return {model: info for model, info in found.items() if info is not None}, None
+
+
+@api.get("/model-capabilities")
+async def model_capabilities(request: Request, model: str) -> ModelCapabilities:
+    """What one OpenRouter model accepts; 404 for ids OpenRouter does not list."""
+    catalog = catalog_of(request)
+    if catalog is None:
+        raise CatalogUnavailableError("this server does not read OpenRouter's models")
+    found = await catalog.lookup(model)
+    if found is None:
+        raise UnknownModelError(f"OpenRouter lists no model {model!r}")
+    return found
 
 
 @api.get("/examples")
@@ -360,6 +408,10 @@ def conflict(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"error": str(error)}, status_code=409)
 
 
+def unavailable(request: Request, error: Exception) -> JSONResponse:
+    return JSONResponse({"error": str(error)}, status_code=503)
+
+
 def static_directory() -> Path:
     return Path(str(files("boardgames.web") / "static"))
 
@@ -384,13 +436,19 @@ async def revalidate_assets(
     return response
 
 
-def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
-    """The viewer application over `store`; `launcher` starts matches from it."""
+def create_app(
+    store: MatchStore, launcher: MatchLauncher, catalog: ModelCatalog | None = None
+) -> FastAPI:
+    """The viewer application over `store`; `launcher` starts matches from it.
+
+    `catalog` tells the new-match form what each model accepts; None shows them all.
+    """
     app = FastAPI(
         title="Boardgames", docs_url="/api/docs", openapi_url="/api/openapi.json"
     )
     app.state.store = store
     app.state.launcher = launcher
+    app.state.catalog = catalog
     app.state.timelines = TimelineCache()
     app.include_router(api)
     app.add_exception_handler(UnknownMatchError, not_found)
@@ -398,7 +456,9 @@ def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
     app.add_exception_handler(UnknownAgentError, not_found)
     app.add_exception_handler(UnknownLaunchError, not_found)
     app.add_exception_handler(UnknownGameError, not_found)
+    app.add_exception_handler(UnknownModelError, not_found)
     app.add_exception_handler(MatchStillPlayingError, conflict)
+    app.add_exception_handler(CatalogUnavailableError, unavailable)
     app.add_exception_handler(ArenaError, unprocessable)
     app.middleware("http")(revalidate_assets)
     app.mount("/static", StaticFiles(directory=static_directory()), name="static")

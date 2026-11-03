@@ -29,6 +29,7 @@ from boardgames.arena.lineup import (
 from boardgames.arena.match_config import load_match_config
 from boardgames.core import ArenaError
 from boardgames.games import game_ids
+from boardgames.llm.catalog import OpenRouterCatalog
 from boardgames.llm.model import ChatModel
 from boardgames.logs.replay import read_log, replay_match
 from boardgames.web.app import create_app
@@ -164,9 +165,8 @@ def serve(args: argparse.Namespace) -> None:
     game_ids()
     launcher = MatchLauncher(args.runs, chat_model_from_environment(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
-    uvicorn.run(
-        create_app(MatchStore(args.runs), launcher), host=args.host, port=args.port
-    )
+    app = create_app(MatchStore(args.runs), launcher, OpenRouterCatalog())
+    uvicorn.run(app, host=args.host, port=args.port)
     return
 
 
