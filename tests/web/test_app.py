@@ -26,6 +26,10 @@ def test_games_matches_and_frames(client: TestClient) -> None:
     assert outline["frame_count"] == len(outline["moves"]) + 1
     frame = client.get("/api/matches/ttt/frames/1").json()
     assert frame["decision"]["trace"]["reasoning"].startswith("I pick")
+    board = client.get("/api/leaderboard", params={"game": "k_in_a_row"}).json()
+    assert [row["agent"] for row in board["rows"]][:1] in (["model-0"], ["model-1"])
+    assert client.get("/api/agents/model-0").json()["games"][0]["matches"] == 1
+    assert client.get("/api/agents/nobody").status_code == 404
     assert client.get("/api/matches/nope").status_code == 404
     assert client.get("/api/matches/ttt/frames/99").status_code == 404
     assert "<title>Boardgames</title>" in client.get("/").text

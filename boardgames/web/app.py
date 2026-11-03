@@ -23,6 +23,7 @@ from boardgames.core import (
 )
 from boardgames.logs.schema import plain_object
 from boardgames.web.layouts import game_layout
+from boardgames.web.stats import AgentDetail, Leaderboard, agent_detail, leaderboard
 from boardgames.web.store import Catalog, MatchStore, MatchSummary, UnknownMatchError
 from boardgames.web.timeline import Frame, Outline, Timeline, build_timeline, outline
 
@@ -31,6 +32,10 @@ TIMELINE_CACHE_SIZE = 16
 
 class UnknownFrameError(ArenaError):
     """A step outside the match's timeline."""
+
+
+class UnknownAgentError(ArenaError):
+    """No finished match has a seat with this agent name."""
 
 
 class GameInfo(BaseModel):
@@ -141,6 +146,22 @@ def match_frame(request: Request, match_id: str, step: int) -> Frame:
     return frames[step]
 
 
+@api.get("/leaderboard")
+def leaderboard_route(request: Request, game: str | None = None) -> Leaderboard:
+    """Agents ranked by Elo at one game, or by win rate across all games."""
+    if game is not None:
+        create_game(game)
+    return leaderboard(store_of(request).catalog().matches, game)
+
+
+@api.get("/agents/{agent}")
+def agent_route(request: Request, agent: str) -> AgentDetail:
+    detail = agent_detail(store_of(request).catalog().matches, agent)
+    if not detail.games:
+        raise UnknownAgentError(f"no finished match of agent {agent!r}")
+    return detail
+
+
 @api.get("/games/{game_id}/layout")
 def game_layout_route(request: Request, game_id: str) -> dict[str, PlainJson]:
     create_game(game_id)
@@ -176,6 +197,7 @@ def create_app(store: MatchStore) -> FastAPI:
     app.include_router(api)
     app.add_exception_handler(UnknownMatchError, not_found)
     app.add_exception_handler(UnknownFrameError, not_found)
+    app.add_exception_handler(UnknownAgentError, not_found)
     app.add_exception_handler(UnknownGameError, not_found)
     app.add_exception_handler(ArenaError, unprocessable)
     app.mount("/static", StaticFiles(directory=static_directory()), name="static")
