@@ -41,11 +41,15 @@ class QueuedChatModel:
 
 
 def reply(
-    text: str = "", tool_arguments: str | None = None, cost: float | None = 0.001
+    text: str = "",
+    tool_arguments: str | None = None,
+    cost: float | None = 0.001,
+    reasoning: str | None = None,
 ) -> Completion:
     return Completion(
         text=text,
         tool_arguments=tool_arguments,
         usage=Usage(prompt_tokens=100, completion_tokens=20),
         cost_usd=cost,
+        reasoning=reasoning,
     )

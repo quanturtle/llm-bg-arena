@@ -49,12 +49,26 @@ def test_llm_spec_builds_an_llm_agent_with_command_line_settings() -> None:
     )
     options = cli.llm_options(args)
     agent = cli.build_agent(
-        "llm:anthropic/claude-haiku-5-5", 7, 1, options, cli.chat_model(options)
+        "llm:anthropic/claude-haiku-5-5", 7, 1, options, cli.chat_model(options, "k")
     )
     settings = agent.settings()
     assert agent.name == "anthropic/claude-haiku-5-5"
     assert settings["kind"] == "llm"
     assert (settings["max_illegal_retries"], settings["fallback"]) == (1, "forfeit")
+    return
+
+
+def test_llm_seat_without_a_key_exits_with_status_1(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.delenv(cli.API_KEY_VARIABLE, raising=False)
+    args = cli.parse_arguments(
+        ["play", "k_in_a_row", "--agent", "llm:openai/gpt-x", "--agent", "random"]
+    )
+    with pytest.raises(SystemExit) as exit_info:
+        cli.run_command(args)
+    assert exit_info.value.code == 1
+    assert "set OPENROUTER_API_KEY" in capsys.readouterr().err
     return
 
 

@@ -105,6 +105,7 @@ def completion_json(completion: Completion) -> dict[str, JsonValue]:
         "prompt_tokens": completion.usage.prompt_tokens,
         "completion_tokens": completion.usage.completion_tokens,
         "cost_usd": completion.cost_usd,
+        "reasoning": completion.reasoning,
     }
 
 
@@ -114,11 +115,13 @@ def completion_from_json(stored: JsonObject) -> Completion:
     tool_arguments = stored["tool_arguments"]
     prompt_tokens = stored["prompt_tokens"]
     completion_tokens = stored["completion_tokens"]
+    reasoning = stored.get("reasoning")
     if not (
         isinstance(text, str)
         and (tool_arguments is None or isinstance(tool_arguments, str))
         and isinstance(prompt_tokens, int)
         and isinstance(completion_tokens, int)
+        and (reasoning is None or isinstance(reasoning, str))
     ):
         raise TypeError(f"malformed cached completion: {stored!r}")
     return Completion(
@@ -126,4 +129,5 @@ def completion_from_json(stored: JsonObject) -> Completion:
         tool_arguments=tool_arguments,
         usage=Usage(prompt_tokens, completion_tokens),
         cost_usd=None,
+        reasoning=reasoning,
     )

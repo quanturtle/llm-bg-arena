@@ -6,13 +6,14 @@ arena play k_in_a_row --agent llm:anthropic/claude-haiku-5-5 --agent random
 arena play sealed_auction --config '{"num_players": 4}'
 arena replay runs/<log>.jsonl
 
-Provider keys come from the environment or a local .env file.
+The OpenRouter key comes from the environment or a local .env file.
 """
 
 import argparse
 import asyncio
 import hashlib
 import json
+import os
 import sys
 import uuid
 from dataclasses import dataclass
@@ -34,8 +35,8 @@ from boardgames.core import (
     registered_game_ids,
 )
 from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
-from boardgames.llm.litellm_model import LiteLLMChatModel
 from boardgames.llm.model import ChatModel, ModelSettings, ReasoningEffort
+from boardgames.llm.openrouter_model import OpenRouterChatModel
 from boardgames.llm.parsing import ActionExtractor
 from boardgames.llm.prompting import OutputMode, PromptSettings
 from boardgames.llm.retry import RetryingChatModel
@@ -45,6 +46,7 @@ from boardgames.logs.sink import Broadcast, JsonlFile, RecordSink
 DEFAULT_LOG_DIR = Path("runs")
 DEFAULT_CACHE_DIR = Path(".arena_cache")
 ENV_FILE = Path(".env")
+API_KEY_VARIABLE = "OPENROUTER_API_KEY"
 
 type Commands = argparse._SubParsersAction[argparse.ArgumentParser]
 
@@ -66,7 +68,7 @@ class LlmOptions:
 
 
 def load_environment() -> None:
-    """Load provider keys from ./.env into the environment, if the file exists."""
+    """Load the OpenRouter key from ./.env into the environment, if the file exists."""
     load_dotenv(ENV_FILE)
     return
 
@@ -193,22 +195,33 @@ def llm_options(args: argparse.Namespace) -> LlmOptions:
     )
 
 
-def chat_model(options: LlmOptions) -> ChatModel:
-    """LiteLLM with retries on transient errors, behind the reply cache if enabled."""
-    model: ChatModel = RetryingChatModel(LiteLLMChatModel())
+def openrouter_api_key() -> str | None:
+    """The OpenRouter key from the environment, which `main` loads from .env."""
+    return os.environ.get(API_KEY_VARIABLE) or None
+
+
+def chat_model(options: LlmOptions, api_key: str) -> ChatModel:
+    """OpenRouter with retries on transient errors, behind the cache if enabled."""
+    model: ChatModel = RetryingChatModel(OpenRouterChatModel(api_key))
     if options.use_cache:
         model = CachedChatModel(model, DirectoryResponseStore(DEFAULT_CACHE_DIR))
     return model
 
 
 def build_agent(
-    spec: str, match_seed: int, seat: int, options: LlmOptions, model: ChatModel
+    spec: str,
+    match_seed: int,
+    seat: int,
+    options: LlmOptions,
+    model: ChatModel | None,
 ) -> Agent:
-    """Agent for an --agent spec: "random" or "llm:<litellm model id>"."""
+    """Agent for an --agent spec: "random" or "llm:<openrouter model id>"."""
     seed = derive_seed(match_seed, seat)
     if spec == "random":
         return RandomAgent(seed)
     if spec.startswith("llm:") and len(spec) > len("llm:"):
+        if model is None:
+            raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {spec!r}")
         return llm_agent(spec.removeprefix("llm:"), seed, options, model)
     raise ConfigError(f"unknown agent spec {spec!r}; known: random, llm:<model>")
 
@@ -242,7 +255,8 @@ def play(args: argparse.Namespace) -> None:
     game = create_game(args.game)
     config = game.parse_config(parse_config_json(args.config))
     options = llm_options(args)
-    model = chat_model(options)
+    api_key = openrouter_api_key()
+    model = chat_model(options, api_key) if api_key else None
     specs = args.agent or ["random"] * config.num_players
     agents = [
         build_agent(spec, args.seed, seat, options, model)

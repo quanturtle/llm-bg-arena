@@ -2,7 +2,7 @@
 
 Seat language models, scripted bots and humans at the same board game table, and keep a replayable record of every move.
 
-Each game's rules are written once in Python. Any kind of player can then take a seat: a random bot, or a language model from Anthropic, OpenAI, OpenRouter or any other provider LiteLLM supports. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
+Each game's rules are written once in Python. Any kind of player can then take a seat: a random bot, or any language model available through OpenRouter. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
 
 ## Status
 
@@ -32,13 +32,13 @@ Two random bots at tic-tac-toe:
 uv run arena play k_in_a_row --seed 7
 ```
 
-A language model against a random bot. First create a file named `.env` in the project folder with one line, `ANTHROPIC_API_KEY=<your-key>` (or `OPENAI_API_KEY`, `OPENROUTER_API_KEY`). Then:
+A language model against a random bot. First create a file named `.env` in the project folder with one line, `OPENROUTER_API_KEY=<your-key>`. Then:
 
 ```sh
 uv run arena play k_in_a_row --agent llm:anthropic/claude-haiku-5-5 --agent random
 ```
 
-Any LiteLLM model id works after `llm:`. Four-in-a-row, a four-player auction, and a short three-player Catan game:
+Any OpenRouter model id works after `llm:`. Four-in-a-row, a four-player auction, and a short three-player Catan game:
 
 ```sh
 uv run arena play k_in_a_row --config '{"rows": 6, "cols": 7, "k": 4, "gravity": true}'

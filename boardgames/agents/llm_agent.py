@@ -210,6 +210,7 @@ def attempt_record[A](
     return {
         "text": completion.text,
         "tool_arguments": completion.tool_arguments,
+        "model_reasoning": completion.reasoning,
         "answer": reply.answer if reply else None,
         "resolved_by": resolution.method if isinstance(resolution, Resolved) else None,
         "rejection": rejection,
