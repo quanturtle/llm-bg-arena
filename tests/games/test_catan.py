@@ -874,24 +874,32 @@ def test_same_seed_replays_to_the_same_log() -> None:
     assert report.steps > 0
 
 
-@pytest.mark.parametrize("seed", [0, 2, 3, 4, 6, 8])
-def test_random_playthrough_terminates_and_keeps_invariants(seed: int) -> None:
-    config = CatanConfig(num_players=3, victory_points=3)
+def check_playthrough_state(state: CatanState) -> None:
+    """Cards never go negative and award holders meet the minimums."""
+    assert all(hand_total(hand) >= 0 for hand in state.hands)
+    assert all(all(card >= 0 for card in hand) for hand in state.dev_hands)
+    if state.longest_road is not None:
+        assert longest_road_lengths(state)[state.longest_road] >= 5
+    if state.largest_army is not None:
+        assert state.knights_played[state.largest_army] >= 3
+    if state.phase == "discard":
+        assert any(state.discard_remaining)
+    return
 
-    def check(state: CatanState) -> None:
-        assert all(hand_total(hand) >= 0 for hand in state.hands)
-        assert all(all(card >= 0 for card in hand) for hand in state.dev_hands)
-        if state.longest_road is not None:
-            assert longest_road_lengths(state)[state.longest_road] >= 5
-        if state.largest_army is not None:
-            assert state.knights_played[state.largest_army] >= 3
-        if state.phase == "discard":
-            assert any(state.discard_remaining)
 
-    state, steps = random_playthrough(GAME, config, seed, check)
-    assert GAME.is_terminal(state)
-    assert state.winner is not None
-    assert steps <= 1_000
+def test_random_playthroughs_reach_ten_points_and_build_a_city() -> None:
+    config = CatanConfig(num_players=3)
+    cities = 0
+    for seed in (3, 4):
+        state, _ = random_playthrough(GAME, config, seed, check_playthrough_state)
+        assert state.winner is not None
+        assert GAME.scores(state).points[state.winner] >= config.victory_points == 10
+        cities += sum(
+            1
+            for building in state.buildings
+            if building is not None and building.kind == "city"
+        )
+    assert cities >= 1
 
 
 def number_values(data: JsonObject, key: str) -> list[float]:

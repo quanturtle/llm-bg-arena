@@ -4,6 +4,20 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from boardgames.core import PlayerId, seats
+from boardgames.games.catan import Catan, CatanConfig, CatanState
+from boardgames.games.catan.geometry import VERTEX_NEIGHBORS
+from boardgames.games.catan.model import (
+    DEV_DECK_COUNTS,
+    LARGEST_ARMY_MINIMUM,
+    LONGEST_ROAD_MINIMUM,
+    MAX_CITIES,
+    MAX_ROADS,
+    MAX_SETTLEMENTS,
+    building_counts,
+    hand_total,
+    road_count,
+)
+from boardgames.games.catan.rules import longest_road_lengths
 from boardgames.games.k_in_a_row import (
     FOUR_IN_A_ROW,
     TIC_TAC_TOE,
@@ -21,6 +35,7 @@ from tests.invariants.playthrough import random_playthrough
 SEEDS = st.integers(min_value=0, max_value=2**32 - 1)
 K_IN_A_ROW = KInARow()
 AUCTION = SealedAuction()
+CATAN = Catan()
 DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
 
 
@@ -77,6 +92,33 @@ def check_auction(state: SealedAuctionState) -> None:
     return
 
 
+def check_catan(state: CatanState) -> None:
+    """Pieces respect limits and spacing, cards never go negative, awards qualify."""
+    for vertex, building in enumerate(state.buildings):
+        if building is not None:
+            assert all(
+                state.buildings[other] is None for other in VERTEX_NEIGHBORS[vertex]
+            )
+    for player in seats(state.config.num_players):
+        settlements, cities = building_counts(state, player)
+        assert settlements <= MAX_SETTLEMENTS and cities <= MAX_CITIES
+        assert road_count(state, player) <= MAX_ROADS
+        assert all(count >= 0 for count in state.hands[player])
+        assert all(count >= 0 for count in state.dev_hands[player])
+    dev_cards = sum(hand_total(hand) for hand in state.dev_hands)
+    assert dev_cards + len(state.dev_deck) + sum(state.knights_played) <= len(
+        DEV_DECK_COUNTS
+    )
+    lengths = longest_road_lengths(state)
+    if state.longest_road is not None:
+        assert lengths[state.longest_road] == max(lengths) >= LONGEST_ROAD_MINIMUM
+    knights = state.knights_played
+    if state.largest_army is not None:
+        assert knights[state.largest_army] == max(knights) >= LARGEST_ARMY_MINIMUM
+    assert (state.phase == "discard") == any(state.discard_remaining)
+    return
+
+
 @settings(max_examples=2000, deadline=None)
 @given(seed=SEEDS)
 def test_tic_tac_toe_random_play_keeps_invariants(seed: int) -> None:
@@ -117,4 +159,14 @@ def test_auction_random_play_keeps_invariants(
     config = SealedAuctionConfig(num_players=players, lots=lots, starting_coins=8)
     _, steps = random_playthrough(AUCTION, config, seed, check_auction)
     assert steps == players * lots
+    return
+
+
+@settings(max_examples=10, deadline=None)
+@given(seed=SEEDS, players=st.integers(3, 4))
+def test_catan_random_play_keeps_invariants(seed: int, players: int) -> None:
+    config = CatanConfig(num_players=players, victory_points=3)
+    state, _ = random_playthrough(CATAN, config, seed, check_catan)
+    assert state.winner is not None
+    assert CATAN.scores(state).points[state.winner] >= config.victory_points
     return
