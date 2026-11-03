@@ -64,7 +64,8 @@ function SeatClocks({ match, clocks, scores }: { match: MatchSummary; clocks: Cl
           <span key={seat.player} className="flex min-w-0 items-center gap-2" title={`Time ${seatName(seat)} has spent on its moves`}>
             <SeatChip seat={seat} className="max-w-64" />
             {finished && seat.rank === 1 ? <WinnerBadge /> : seat.forfeited ? <ForfeitBadge /> : null}
-            <span className="w-[6ch] text-right tabular-nums" title="Points others can see at this step">
+            {/* wide enough for two-digit points, since a flex item never shrinks below its content */}
+            <span className="w-[8ch] shrink-0 text-right whitespace-nowrap tabular-nums" title="Points others can see at this step">
               <strong>{points ?? ""}</strong> <span className="text-xs text-muted-foreground">pts</span>
             </span>
             <span className={cn("w-[7ch] font-mono tabular-nums", clock.thinking ? "font-semibold text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
