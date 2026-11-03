@@ -5,10 +5,11 @@ over a temporary directory with `create_app`.
 """
 
 from collections import OrderedDict
+from collections.abc import Awaitable, Callable
 from importlib.resources import files
 from pathlib import Path
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
@@ -263,6 +264,17 @@ def index(request: Request) -> FileResponse:
     return FileResponse(static_directory() / "index.html")
 
 
+async def revalidate_assets(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    """Pages and static files carry no-cache, so the browser checks each load and a
+    new version shows without a hard reload; unchanged files still answer 304."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
     """The viewer application over `store`; `launcher` starts matches from it."""
     app = FastAPI(
@@ -278,6 +290,7 @@ def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
     app.add_exception_handler(UnknownLaunchError, not_found)
     app.add_exception_handler(UnknownGameError, not_found)
     app.add_exception_handler(ArenaError, unprocessable)
+    app.middleware("http")(revalidate_assets)
     app.mount("/static", StaticFiles(directory=static_directory()), name="static")
     app.add_api_route("/", index, include_in_schema=False)
     return app
