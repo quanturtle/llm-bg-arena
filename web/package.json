@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:api": "openapi-typescript ${ARENA_ORIGIN:-http://127.0.0.1:8000}/api/openapi.json -o src/lib/api-types.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.105.2",
