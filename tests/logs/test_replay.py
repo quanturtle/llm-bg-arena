@@ -144,7 +144,9 @@ def test_cli_replay_reports_a_match(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     log = tmp_path / "match.jsonl"
-    cli.run_command(cli.parse_arguments(["play", "sealed_auction", "--log", str(log)]))
+    config = tmp_path / "match.yaml"
+    config.write_text("game: sealed_auction\n", encoding="utf-8")
+    cli.run_command(cli.parse_arguments(["play", str(config), "--log", str(log)]))
     cli.run_command(cli.parse_arguments(["replay", str(log)]))
     assert "Replay matches the log: sealed_auction, 18 steps" in capsys.readouterr().out
     return

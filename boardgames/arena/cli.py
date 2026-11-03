@@ -1,44 +1,50 @@
 """Command line for listing games, playing matches and replaying logs.
 
 arena games
-arena play k_in_a_row --agent random --agent random --seed 7
-arena play k_in_a_row --agent llm:anthropic/claude-haiku-5-5 --agent random
-arena play sealed_auction --config '{"num_players": 4}'
+arena play examples/tic_tac_toe.yaml
+arena play examples/auction_llms.yaml --seed 3 --log runs/auction.jsonl
 arena replay runs/<log>.jsonl
 
-The OpenRouter key comes from the environment or a local .env file.
+A match config file names the game, its config and the seats; see
+docs/ARCHITECTURE.md. The OpenRouter key comes from the environment or a
+local .env file.
 """
 
 import argparse
 import asyncio
 import hashlib
-import json
 import os
 import sys
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 import boardgames.games  # noqa: F401  (importing registers every game)
-from boardgames.agents import Agent, FallbackPolicy, RandomAgent
-from boardgames.agents.llm_agent import LlmAgent, LlmAgentSettings
+from boardgames.agents import Agent, RandomAgent
+from boardgames.agents.llm_agent import LlmAgent
 from boardgames.arena.clock import SystemClock
 from boardgames.arena.console import ConsoleLog
+from boardgames.arena.match_config import (
+    LlmDefaults,
+    LlmSeat,
+    RandomSeat,
+    llm_agent_settings,
+    load_match_config,
+    merged_options,
+    seats_for,
+)
 from boardgames.arena.runner import play_match
 from boardgames.core import (
     ArenaError,
     ConfigError,
-    JsonObject,
     create_game,
     registered_game_ids,
 )
 from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
-from boardgames.llm.model import ChatModel, ModelSettings, ReasoningEffort
+from boardgames.llm.model import ChatModel, ModelSettings
 from boardgames.llm.openrouter_model import OpenRouterChatModel
 from boardgames.llm.parsing import ActionExtractor
-from boardgames.llm.prompting import OutputMode, PromptSettings
 from boardgames.llm.retry import RetryingChatModel
 from boardgames.logs.replay import read_log, replay_match
 from boardgames.logs.sink import Broadcast, JsonlFile, RecordSink
@@ -49,22 +55,6 @@ ENV_FILE = Path(".env")
 API_KEY_VARIABLE = "OPENROUTER_API_KEY"
 
 type Commands = argparse._SubParsersAction[argparse.ArgumentParser]
-
-
-@dataclass(frozen=True)
-class LlmOptions:
-    """Settings shared by every LLM seat of a match, read once from the command line."""
-
-    temperature: float | None
-    max_tokens: int
-    reasoning_effort: ReasoningEffort | None
-    timeout_seconds: float
-    max_illegal_retries: int
-    fallback: FallbackPolicy
-    output_mode: OutputMode
-    use_cache: bool
-    extractor_model: str | None
-    persona: str | None
 
 
 def load_environment() -> None:
@@ -80,57 +70,22 @@ def add_games_command(commands: Commands) -> None:
     return
 
 
-def add_llm_options(parser: argparse.ArgumentParser) -> None:
-    """Options for every llm:<model> seat of the match."""
-    group = parser.add_argument_group("LLM players")
-    group.add_argument("--temperature", type=float, help="sampling temperature")
-    group.add_argument("--max-tokens", type=int, default=1024, help="reply token cap")
-    group.add_argument("--reasoning-effort", choices=["low", "medium", "high"])
-    group.add_argument("--timeout", type=float, default=120.0, help="seconds per call")
-    group.add_argument(
-        "--max-retries",
-        type=int,
-        default=3,
-        help="re-prompts after a rejected answer (default 3)",
-    )
-    group.add_argument(
-        "--fallback",
-        choices=["forfeit", "random", "default"],
-        default="random",
-        help="action after the last rejected answer (default random)",
-    )
-    group.add_argument(
-        "--output-mode",
-        choices=["tool", "text"],
-        default="tool",
-        help="answer by forced tool call or by a 'Final Answer:' line",
-    )
-    group.add_argument("--cache", action="store_true", help="cache model replies")
-    group.add_argument(
-        "--extractor", metavar="MODEL", help="model that rescues replies"
-    )
-    group.add_argument("--persona", help="extra instructions for every LLM player")
-    return
-
-
 def add_play_command(commands: Commands) -> None:
-    """`arena play GAME`: play one match and write its log."""
-    parser = commands.add_parser("play", help="play one match")
-    parser.add_argument("game", choices=registered_game_ids())
+    """`arena play CONFIG`: play the match a YAML file describes and write its log."""
+    parser = commands.add_parser("play", help="play one match from a config file")
     parser.add_argument(
-        "--config", default="{}", help="game config as JSON (default: game defaults)"
+        "match",
+        type=Path,
+        metavar="CONFIG",
+        help="YAML match config: the game, its config and the seats",
     )
-    parser.add_argument("--seed", type=int, default=0, help="match seed (default 0)")
     parser.add_argument(
-        "--agent",
-        action="append",
-        default=[],
-        metavar="SPEC",
-        help="agent for the next seat; repeat once per seat (default: random)",
+        "--seed", type=int, help="match seed (default: the file's seed, else 0)"
     )
-    parser.add_argument("--log", type=Path, help="log path (default: runs/...)")
+    parser.add_argument(
+        "--log", type=Path, help="log path (default: the file's log, else runs/...)"
+    )
     parser.add_argument("--quiet", action="store_true", help="print only the result")
-    add_llm_options(parser)
     parser.set_defaults(handler=play)
     return
 
@@ -162,15 +117,17 @@ def list_games(args: argparse.Namespace) -> None:
     return
 
 
-def parse_config_json(text: str) -> JsonObject:
-    """The --config value as a JSON object."""
-    try:
-        raw = json.loads(text)
-    except json.JSONDecodeError as error:
-        raise ConfigError(f"--config is not valid JSON: {error}") from error
-    if not isinstance(raw, dict):
-        raise ConfigError("--config must be a JSON object")
-    return raw
+def openrouter_api_key() -> str | None:
+    """The OpenRouter key from the environment, which `main` loads from .env."""
+    return os.environ.get(API_KEY_VARIABLE) or None
+
+
+def chat_model(use_cache: bool, api_key: str) -> ChatModel:
+    """OpenRouter with retries on transient errors, behind the cache if enabled."""
+    model: ChatModel = RetryingChatModel(OpenRouterChatModel(api_key))
+    if use_cache:
+        model = CachedChatModel(model, DirectoryResponseStore(DEFAULT_CACHE_DIR))
+    return model
 
 
 def derive_seed(match_seed: int, seat: int) -> int:
@@ -179,91 +136,47 @@ def derive_seed(match_seed: int, seat: int) -> int:
     return int.from_bytes(digest[:8], "big")
 
 
-def llm_options(args: argparse.Namespace) -> LlmOptions:
-    """LLM settings from the command line, shared by every LLM seat."""
-    return LlmOptions(
-        temperature=args.temperature,
-        max_tokens=args.max_tokens,
-        reasoning_effort=args.reasoning_effort,
-        timeout_seconds=args.timeout,
-        max_illegal_retries=args.max_retries,
-        fallback=args.fallback,
-        output_mode=args.output_mode,
-        use_cache=args.cache,
-        extractor_model=args.extractor,
-        persona=args.persona,
-    )
-
-
-def openrouter_api_key() -> str | None:
-    """The OpenRouter key from the environment, which `main` loads from .env."""
-    return os.environ.get(API_KEY_VARIABLE) or None
-
-
-def chat_model(options: LlmOptions, api_key: str) -> ChatModel:
-    """OpenRouter with retries on transient errors, behind the cache if enabled."""
-    model: ChatModel = RetryingChatModel(OpenRouterChatModel(api_key))
-    if options.use_cache:
-        model = CachedChatModel(model, DirectoryResponseStore(DEFAULT_CACHE_DIR))
-    return model
-
-
-def build_agent(
-    spec: str,
+def agent_for_seat(
+    seat: LlmSeat | RandomSeat,
+    defaults: LlmDefaults,
     match_seed: int,
-    seat: int,
-    options: LlmOptions,
+    index: int,
     model: ChatModel | None,
 ) -> Agent:
-    """Agent for an --agent spec: "random" or "llm:<openrouter model id>"."""
-    seed = derive_seed(match_seed, seat)
-    if spec == "random":
+    """The agent for one seat; an LLM seat needs the chat model, so a key."""
+    seed = derive_seed(match_seed, index)
+    if isinstance(seat, RandomSeat):
         return RandomAgent(seed)
-    if spec.startswith("llm:") and len(spec) > len("llm:"):
-        if model is None:
-            raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {spec!r}")
-        return llm_agent(spec.removeprefix("llm:"), seed, options, model)
-    raise ConfigError(f"unknown agent spec {spec!r}; known: random, llm:<model>")
-
-
-def llm_agent(model_id: str, seed: int, options: LlmOptions, model: ChatModel) -> Agent:
-    """An LLM agent for one seat."""
-    settings = LlmAgentSettings(
-        model=ModelSettings(
-            model=model_id,
-            temperature=options.temperature,
-            max_tokens=options.max_tokens,
-            timeout_seconds=options.timeout_seconds,
-            reasoning_effort=options.reasoning_effort,
-            seed=seed % 2**31,
-        ),
-        prompt=PromptSettings(output_mode=options.output_mode, persona=options.persona),
-        max_illegal_retries=options.max_illegal_retries,
-        fallback=options.fallback,
-    )
+    if model is None:
+        raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {seat.model!r}")
+    options = merged_options(seat, defaults)
+    model_seed = seed % 2**31 if seat.seed is None else seat.seed
+    settings = llm_agent_settings(seat, options, model_seed)
     extractor = None
-    if options.extractor_model is not None:
+    if options.extractor is not None:
         extractor_settings = ModelSettings(
-            model=options.extractor_model, temperature=0.0, max_tokens=64
+            model=options.extractor, temperature=0.0, max_tokens=64
         )
         extractor = ActionExtractor(model, extractor_settings)
     return LlmAgent(model, settings, seed, extractor)
 
 
 def play(args: argparse.Namespace) -> None:
-    """Play one match, printing it unless --quiet, and write the JSONL log."""
-    game = create_game(args.game)
-    config = game.parse_config(parse_config_json(args.config))
-    options = llm_options(args)
+    """Play the match a config file describes, print it unless --quiet, log it."""
+    config = load_match_config(args.match)
+    game = create_game(config.game)
+    game_config = game.parse_config(config.config)
+    seed = config.seed if args.seed is None else args.seed
+    seats = seats_for(config, game_config.num_players)
     api_key = openrouter_api_key()
-    model = chat_model(options, api_key) if api_key else None
-    specs = args.agent or ["random"] * config.num_players
+    model = chat_model(config.llm.cache, api_key) if api_key else None
     agents = [
-        build_agent(spec, args.seed, seat, options, model)
-        for seat, spec in enumerate(specs)
+        agent_for_seat(seat, config.llm, seed, index, model)
+        for index, seat in enumerate(seats)
     ]
     match_id = uuid.uuid4().hex[:12]
-    log_path = args.log or DEFAULT_LOG_DIR / f"{game.id}-{args.seed}-{match_id}.jsonl"
+    default_log = DEFAULT_LOG_DIR / f"{game.id}-{seed}-{match_id}.jsonl"
+    log_path = args.log or config.log or default_log
     with JsonlFile(log_path) as log_file:
         sink: RecordSink = log_file
         if not args.quiet:
@@ -271,8 +184,8 @@ def play(args: argparse.Namespace) -> None:
         result = asyncio.run(
             play_match(
                 game,
-                config,
-                args.seed,
+                game_config,
+                seed,
                 agents,
                 match_id=match_id,
                 sink=sink,

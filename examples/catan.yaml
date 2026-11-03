@@ -1,0 +1,4 @@
+# A short three-player Catan game between random bots: first to 6 victory points.
+game: catan
+config: {num_players: 3, victory_points: 6}
+seed: 1
