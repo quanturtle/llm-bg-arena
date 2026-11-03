@@ -383,7 +383,8 @@ def leaderboard_route(
     return leaderboard(store_of(request).catalog().matches, game, prompt)
 
 
-@api.get("/agents/{agent}")
+# `:path` lets an agent name that is a model id ("openai/gpt-5-nano") keep its slash
+@api.get("/agents/{agent:path}")
 def agent_route(request: Request, agent: str) -> AgentDetail:
     detail = agent_detail(store_of(request).catalog().matches, agent)
     if not detail.games:

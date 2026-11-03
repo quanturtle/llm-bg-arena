@@ -8,7 +8,8 @@ from boardgames.games.puerto_rico import PuertoRico, PuertoRicoConfig
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
-from tests.web.support import costly_agents, write_match
+from tests.arena.support import random_agents
+from tests.web.support import CostlyAgent, costly_agents, write_match
 
 
 @pytest.fixture
@@ -16,6 +17,18 @@ def client(tmp_path: Path) -> TestClient:
     write_match(tmp_path, "ttt", seed=1, agents=costly_agents(2))
     launcher = MatchLauncher(tmp_path, None, None)
     return TestClient(create_app(MatchStore(tmp_path), launcher))
+
+
+def test_agent_pages_open_for_model_ids_with_a_slash(tmp_path: Path) -> None:
+    agents = [
+        CostlyAgent(agent, f"org/model-{seat}", 0.0)
+        for seat, agent in enumerate(random_agents(2))
+    ]
+    write_match(tmp_path, "slash", agents=agents)
+    launcher = MatchLauncher(tmp_path, None, None)
+    client = TestClient(create_app(MatchStore(tmp_path), launcher))
+    assert client.get("/api/agents/org%2Fmodel-0").json()["agent"] == "org/model-0"
+    return
 
 
 def test_games_matches_and_frames(client: TestClient) -> None:
