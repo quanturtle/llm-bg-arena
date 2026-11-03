@@ -1,22 +1,48 @@
-// New match page: pick a game, its settings and one model per seat, then start the match.
+// New match page: choose a game, its options and a model per player, then start the match.
 (function () {
   const { h, api, send, setActiveNav, routes, app } = window.viewer;
 
-  // Optional settings per seat; an empty field keeps the server's default.
+  // How each game option reads in the form; unknown options get a label from their key.
+  const GAME_OPTIONS = {
+    "catan.victory_points": { label: "Points to win", hint: "10 is the standard game; 5 or 6 makes a shorter one.", min: 3, max: 20 },
+    "catan.max_offers_per_turn": { label: "Trade offers per turn", hint: "0 means no limit.", min: 0, max: 20 },
+    "puerto_rico.victory_point_supply": { label: "Victory point chips", hint: "0 uses the standard supply; fewer chips end the game sooner.", min: 0 },
+    "puerto_rico.max_rounds": { label: "Round limit", hint: "0 plays to the normal end of the game.", min: 0 },
+  };
+
+  const PROVIDERS = { anthropic: "Anthropic", deepseek: "DeepSeek", google: "Google", mistralai: "Mistral", openai: "OpenAI", qwen: "Qwen", "z-ai": "Z.ai" };
+
+  // Per-player settings, in plain words; an empty field keeps the default shown in it.
   const SEAT_FIELDS = [
-    { key: "label", label: "Label", kind: "text", hint: "shown next to the model id" },
-    { key: "temperature", label: "Temperature", kind: "number", step: "0.1", min: "0", max: "2" },
-    { key: "top_p", label: "Top p", kind: "number", step: "0.05", min: "0", max: "1" },
-    { key: "max_tokens", label: "Max tokens", kind: "number", step: "1", min: "1" },
-    { key: "reasoning_effort", label: "Reasoning effort", kind: "select", options: ["low", "medium", "high"] },
-    { key: "thinking_budget_tokens", label: "Thinking budget (tokens)", kind: "number", step: "1", min: "1" },
-    { key: "output_mode", label: "Answer mode", kind: "select", options: ["tool", "text", "tools"] },
-    { key: "max_tool_calls", label: "Max tool calls (tools mode)", kind: "number", step: "1", min: "1" },
-    { key: "max_illegal_retries", label: "Retries after an illegal move", kind: "number", step: "1", min: "0" },
-    { key: "fallback", label: "When retries run out", kind: "select", options: ["random", "default", "forfeit"] },
-    { key: "timeout_seconds", label: "Timeout per call (s)", kind: "number", step: "1", min: "1" },
-    { key: "persona", label: "Persona", kind: "textarea", hint: "extra instructions for this player" },
+    { key: "label", label: "Display name", kind: "text", hint: "Shown next to the model, for example \"aggressive trader\"." },
+    { key: "output_mode", label: "How it answers", kind: "select", options: [["tool", "Picks a move from the list"], ["text", "Explains, then gives a final answer"], ["tools", "Looks around with game tools, then moves"]] },
+    { key: "temperature", label: "Randomness (temperature)", kind: "number", step: "0.1", min: "0", max: "2", hint: "0 is steady and predictable, 1 or more is varied." },
+    { key: "reasoning_effort", label: "Thinking effort", kind: "select", options: [["low", "Low"], ["medium", "Medium"], ["high", "High"]], hint: "For models that can think before answering." },
+    { key: "thinking_budget_tokens", label: "Thinking budget (tokens)", kind: "number", step: "1", min: "1", hint: "Instead of thinking effort, not with it." },
+    { key: "max_tokens", label: "Longest reply (tokens)", kind: "number", step: "1", min: "1" },
+    { key: "max_tool_calls", label: "Tool calls per move", kind: "number", step: "1", min: "1", hint: "Only when it looks around with game tools." },
+    { key: "max_illegal_retries", label: "Second chances after an illegal move", kind: "number", step: "1", min: "0" },
+    { key: "fallback", label: "If it still can't move", kind: "select", options: [["random", "Play a random legal move"], ["default", "Play the game's default move"], ["forfeit", "Forfeit the match"]] },
+    { key: "timeout_seconds", label: "Time limit per reply (seconds)", kind: "number", step: "1", min: "1" },
+    { key: "top_p", label: "Top p", kind: "number", step: "0.05", min: "0", max: "1", hint: "Usually left alone." },
+    { key: "persona", label: "Personality and extra instructions", kind: "textarea", hint: "For example: play cautiously and trade often." },
   ];
+
+  function humanize(key) {
+    const words = key.replace(/_/g, " ");
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
+  function modelName(id) {
+    const [provider, name] = id.includes("/") ? id.split("/", 2) : ["", id];
+    return provider ? `${name} (${PROVIDERS[provider] || provider})` : id;
+  }
+
+  function playerRange(counts) {
+    const low = counts[0];
+    const high = counts[counts.length - 1];
+    return low === high ? `${low} players` : `${low} to ${high} players`;
+  }
 
   function launchRow(launch) {
     const link = h("a", { href: `#/match/${launch.match_id}` }, launch.match_id);
@@ -24,44 +50,53 @@
     return h("li", {}, link, " ", badge, launch.error ? h("span", { class: "error" }, ` ${launch.error}`) : null);
   }
 
-  function newSeat(model) {
-    return { model, settings: {} };
+  function newSeat(state) {
+    return { model: state.options.default_model, custom: false, settings: {} };
   }
 
-  function randomSeed() {
-    return Math.floor(Math.random() * 1000000);
+  function currentGame(state) {
+    return state.options.games.find((game) => game.id === state.game);
   }
 
-  // A number field's value, or undefined when empty, so the default applies.
-  function fieldValue(field, raw) {
-    if (raw === "" || raw === undefined || raw === null) return undefined;
-    return field.kind === "number" ? Number(raw) : raw;
+  // Keep the players already set up, within the counts the game allows.
+  function fitSeats(state) {
+    const counts = currentGame(state).player_counts;
+    const target = Math.min(Math.max(state.seats.length, counts[0]), counts[counts.length - 1]);
+    state.seats = state.seats.slice(0, target);
+    while (state.seats.length < counts[0]) state.seats.push(newSeat(state));
   }
 
-  // The match config the server receives: only settings the user filled in.
-  function matchConfig(state) {
+  // The match config sent to the server: only what the user filled in.
+  function matchConfig(state, seed) {
     const config = { num_players: state.seats.length };
     for (const [key, value] of Object.entries(state.settings)) {
       if (value !== undefined) config[key] = value;
     }
     const seats = state.seats.map((seat) => {
-      const entry = { agent: "llm", model: seat.model.trim() || state.options.default_model };
+      const entry = { model: seat.model.trim() || state.options.default_model };
       for (const [key, value] of Object.entries(seat.settings)) {
         if (value !== undefined) entry[key] = value;
       }
       return entry;
     });
-    return { game: state.game, config, seed: state.seed, seats };
+    return { game: state.game, config, seed, seats };
   }
 
-  function seatInput(field, seat, onChange) {
+  function defaultText(state, key, field) {
+    const value = state.options.seat_defaults[key];
+    if (value === null || value === undefined) return "model's default";
+    const option = field.options && field.options.find(([code]) => code === value);
+    return option ? option[1] : String(value);
+  }
+
+  function seatInput(state, field, seat, changed) {
     const current = seat.settings[field.key];
     const update = (raw) => {
-      seat.settings[field.key] = fieldValue(field, raw);
-      onChange();
+      seat.settings[field.key] = raw === "" ? undefined : field.kind === "number" ? Number(raw) : raw;
+      changed();
     };
     if (field.kind === "select") {
-      const select = h("select", { onchange: (event) => update(event.target.value) }, h("option", { value: "" }, "default"), field.options.map((option) => h("option", { value: option }, option)));
+      const select = h("select", { onchange: (event) => update(event.target.value) }, h("option", { value: "" }, `${defaultText(state, field.key, field)} (default)`), field.options.filter(([code]) => code !== state.options.seat_defaults[field.key]).map(([code, text]) => h("option", { value: code }, text)));
       select.value = current === undefined ? "" : String(current);
       return select;
     }
@@ -70,104 +105,155 @@
       area.value = current === undefined ? "" : current;
       return area;
     }
-    const input = h("input", { type: field.kind, step: field.step, min: field.min, max: field.max, placeholder: field.hint || "default", oninput: (event) => update(event.target.value) });
+    const fallback = defaultText(state, field.key, field);
+    const placeholder = field.key === "label" ? "none" : fallback.startsWith("model") ? fallback : `default: ${fallback}`;
+    const input = h("input", { type: field.kind, step: field.step, min: field.min, max: field.max, placeholder, oninput: (event) => update(event.target.value) });
     input.value = current === undefined ? "" : String(current);
     return input;
   }
 
-  function seatCard(state, seat, index, rerender, refreshPreview) {
-    const counts = state.game ? currentGame(state).player_counts : [];
-    const removable = state.seats.length > counts[0];
-    const model = h("input", { type: "text", list: "model-list", value: seat.model, placeholder: state.options.default_model, oninput: (event) => { seat.model = event.target.value; refreshPreview(); } });
-    const advanced = h(
+  function modelPicker(state, seat, changed, rerender) {
+    const known = state.options.models;
+    const select = h("select", {
+      onchange: (event) => {
+        if (event.target.value === "__other") {
+          seat.custom = true;
+          seat.model = "";
+        } else {
+          seat.custom = false;
+          seat.model = event.target.value;
+        }
+        rerender();
+      },
+    },
+    known.map((id) => h("option", { value: id }, `${modelName(id)}${id === state.options.default_model ? " · default" : ""}`)),
+    h("option", { value: "__other" }, "Another OpenRouter model…"));
+    select.value = seat.custom || !known.includes(seat.model) ? "__other" : seat.model;
+    const other = seat.custom || !known.includes(seat.model)
+      ? h("input", { type: "text", value: seat.model, placeholder: "provider/model, for example meta-llama/llama-4-scout", oninput: (event) => { seat.model = event.target.value; changed(); } })
+      : null;
+    return h("div", { class: "model-picker" }, select, other);
+  }
+
+  function seatCard(state, seat, index, changed, rerender) {
+    const removable = state.seats.length > currentGame(state).player_counts[0];
+    const remove = removable ? h("button", { class: "small", title: "Remove this player", onclick: () => { state.seats.splice(index, 1); rerender(); } }, "Remove") : null;
+    const settings = h(
       "details",
-      { class: "seat-advanced" },
-      h("summary", { class: "muted small" }, "Model settings"),
-      h("div", { class: "fields" }, SEAT_FIELDS.map((field) => h("label", {}, h("span", {}, field.label), seatInput(field, seat, refreshPreview)))),
+      { class: "seat-advanced", open: seat.open ? "" : null, ontoggle: (event) => { seat.open = event.target.open; } },
+      h("summary", { class: "small" }, "Model settings"),
+      h("div", { class: "fields" }, SEAT_FIELDS.map((field) => h("label", { title: field.hint || "" }, h("span", {}, field.label), seatInput(state, field, seat, changed), field.hint && field.kind !== "textarea" ? h("small", { class: "muted" }, field.hint) : null))),
     );
     return h(
       "div",
       { class: "panel seat-card" },
-      h("div", { class: "seat-head" }, h("span", { class: "seat" }, h("span", { class: `dot p${index}` }), h("strong", {}, `P${index + 1}`)), removable ? h("button", { class: "small", onclick: () => { state.seats.splice(index, 1); rerender(); } }, "Remove") : null),
-      h("label", { class: "model-field" }, h("span", {}, "Model"), model),
-      advanced,
+      h("div", { class: "seat-head" }, h("span", { class: "seat" }, h("span", { class: `dot p${index}` }), h("strong", {}, `Player ${index + 1}`)), remove),
+      h("label", { class: "model-field" }, h("span", {}, "Model"), modelPicker(state, seat, changed, rerender)),
+      settings,
     );
   }
 
-  function settingInput(state, key, defaultValue, refreshPreview) {
+  function gameCard(state, game, rerender) {
+    const chosen = game.id === state.game;
+    return h(
+      "button",
+      { class: `game-card${chosen ? " chosen" : ""}`, type: "button", onclick: () => { state.game = game.id; state.settings = {}; fitSeats(state); rerender(); } },
+      h("strong", {}, game.name),
+      h("span", { class: "muted small" }, game.summary),
+      h("span", { class: "small" }, playerRange(game.player_counts)),
+    );
+  }
+
+  function optionInput(state, game, key, defaultValue, changed) {
+    const meta = GAME_OPTIONS[`${game.id}.${key}`] || { label: humanize(key) };
+    let input;
     if (typeof defaultValue === "boolean") {
-      const box = h("input", { type: "checkbox", onchange: (event) => { state.settings[key] = event.target.checked; refreshPreview(); } });
-      box.checked = state.settings[key] === undefined ? defaultValue : state.settings[key];
-      return box;
+      input = h("input", { type: "checkbox", onchange: (event) => { state.settings[key] = event.target.checked; changed(); } });
+      input.checked = state.settings[key] === undefined ? defaultValue : state.settings[key];
+    } else {
+      const numeric = typeof defaultValue === "number" || defaultValue === null;
+      input = h("input", {
+        type: numeric ? "number" : "text",
+        min: meta.min,
+        max: meta.max,
+        placeholder: defaultValue === null ? "none" : `default: ${defaultValue}`,
+        oninput: (event) => {
+          const raw = event.target.value;
+          state.settings[key] = raw === "" ? undefined : numeric ? Number(raw) : raw;
+          changed();
+        },
+      });
+      input.value = state.settings[key] === undefined ? "" : String(state.settings[key]);
     }
-    const numeric = typeof defaultValue === "number" || defaultValue === null;
-    const input = h("input", {
-      type: numeric ? "number" : "text",
-      placeholder: defaultValue === null ? "none" : String(defaultValue),
-      oninput: (event) => {
-        const raw = event.target.value;
-        state.settings[key] = raw === "" ? undefined : numeric ? Number(raw) : raw;
-        refreshPreview();
-      },
-    });
-    input.value = state.settings[key] === undefined ? "" : String(state.settings[key]);
-    return input;
+    return h("label", {}, h("span", {}, meta.label), input, meta.hint ? h("small", { class: "muted" }, meta.hint) : null);
   }
 
-  function currentGame(state) {
-    return state.options.games.find((game) => game.id === state.game);
+  function sameModelControl(state, rerender) {
+    const select = h("select", { onchange: (event) => {
+      if (!event.target.value) return;
+      for (const seat of state.seats) {
+        seat.model = event.target.value;
+        seat.custom = false;
+      }
+      rerender();
+    } }, h("option", { value: "" }, "Give everyone the same model…"), state.options.models.map((id) => h("option", { value: id }, modelName(id))));
+    return select;
   }
 
-  // Keep the seats already set up, then trim or pad to the game's smallest valid count.
-  function fitSeats(state) {
-    const counts = currentGame(state).player_counts;
-    const target = Math.min(Math.max(state.seats.length, counts[0]), counts[counts.length - 1]);
-    state.seats = state.seats.slice(0, target);
-    while (state.seats.length < counts[0]) state.seats.push(newSeat(state.options.default_model));
+  function summaryText(state) {
+    const models = [...new Set(state.seats.map((seat) => seat.model.trim() || state.options.default_model))];
+    const who = models.length === 1 ? `all playing ${modelName(models[0])}` : `${models.length} different models`;
+    return `${currentGame(state).name} with ${state.seats.length} players, ${who}.`;
   }
 
   function renderForm(state, launches) {
     const rerender = () => renderForm(state, launches);
-    const preview = h("pre", { class: "config-preview" });
-    const refreshPreview = () => { preview.textContent = JSON.stringify(matchConfig(state), null, 2); };
     const game = currentGame(state);
     const counts = game.player_counts;
-    const gameSelect = h("select", { onchange: (event) => { state.game = event.target.value; state.settings = {}; fitSeats(state); rerender(); } }, state.options.games.map((g) => h("option", { value: g.id }, g.id)));
-    gameSelect.value = state.game;
-    const seed = h("input", { type: "number", value: state.seed, oninput: (event) => { state.seed = Number(event.target.value) || 0; refreshPreview(); } });
-    const settings = Object.entries(game.settings).map(([key, value]) => h("label", {}, h("span", {}, key), settingInput(state, key, value, refreshPreview)));
-    const canAdd = state.seats.length < counts[counts.length - 1];
-    const add = h("button", { onclick: () => { state.seats.push(newSeat(state.options.default_model)); rerender(); }, disabled: canAdd ? null : "" }, "Add player");
+    const summary = h("p", { class: "start-summary" });
+    const preview = h("pre", { class: "config-preview" });
+    const changed = () => {
+      summary.textContent = summaryText(state);
+      preview.textContent = JSON.stringify(matchConfig(state, state.seed === "" ? "(random)" : Number(state.seed)), null, 2);
+    };
+    const options = Object.entries(game.settings).map(([key, value]) => optionInput(state, game, key, value, changed));
+    const full = state.seats.length >= counts[counts.length - 1];
+    const add = h("button", { type: "button", disabled: full ? "" : null, title: full ? `${game.name} seats at most ${counts[counts.length - 1]} players` : "", onclick: () => { state.seats.push(newSeat(state)); rerender(); } }, "+ Add player");
+    const seed = h("input", { type: "number", value: state.seed, placeholder: "random each time", oninput: (event) => { state.seed = event.target.value; changed(); } });
     const message = h("p", { class: "error" });
-    const start = h("button", { class: "primary", onclick: async () => {
+    const start = h("button", { class: "primary big", type: "button", onclick: async () => {
       message.textContent = "";
       start.disabled = true;
+      const seedValue = state.seed === "" ? Math.floor(Math.random() * 1000000) : Number(state.seed);
       try {
-        const launch = await send("/api/matches", { yaml: JSON.stringify(matchConfig(state), null, 2) });
+        const launch = await send("/api/matches", { yaml: JSON.stringify(matchConfig(state, seedValue), null, 2) });
         location.hash = `#/match/${launch.match_id}`;
       } catch (error) {
         message.textContent = error.message;
         start.disabled = false;
       }
     } }, "Start match");
-    refreshPreview();
+    changed();
     app.replaceChildren(h(
       "section",
       { class: "new-match" },
       h("h1", {}, "New match"),
-      h("datalist", { id: "model-list" }, state.options.models.map((model) => h("option", { value: model }))),
-      h("div", { class: "panel stack" },
-        h("div", { class: "fields" },
-          h("label", {}, h("span", {}, "Game"), gameSelect),
-          h("label", {}, h("span", {}, "Seed"), seed),
-          settings),
-      ),
-      h("div", { class: "seats-head" }, h("h2", {}, `Players (${state.seats.length}; ${counts[0] === counts[counts.length - 1] ? counts[0] : `${counts[0]} to ${counts[counts.length - 1]}`} allowed)`), add),
-      h("div", { class: "seat-grid" }, state.seats.map((seat, index) => seatCard(state, seat, index, rerender, refreshPreview))),
-      h("p", { class: "muted small" }, `Every seat is a language model through OpenRouter; an empty model field uses ${state.options.default_model}, and empty settings keep the defaults.`),
-      h("div", { class: "toolbar" }, start),
-      message,
-      h("details", {}, h("summary", { class: "muted small" }, "Config sent to the server"), preview),
+      h("p", { class: "muted" }, "Choose a game, then who plays it. Every player is a language model through OpenRouter."),
+      h("h2", {}, "1. Game"),
+      h("div", { class: "game-picker" }, state.options.games.map((g) => gameCard(state, g, rerender))),
+      options.length ? h("div", { class: "panel fields game-options" }, options) : null,
+      h("div", { class: "seats-head" }, h("h2", {}, `2. Players `, h("span", { class: "muted small" }, `${state.seats.length} (${playerRange(counts).replace(" players", "")} allowed)`)), add, sameModelControl(state, rerender)),
+      h("div", { class: "seat-grid" }, state.seats.map((seat, index) => seatCard(state, seat, index, changed, rerender))),
+      h("h2", {}, "3. Start"),
+      h("div", { class: "panel start-panel" },
+        summary,
+        start,
+        message,
+        h("details", { class: "more-options" },
+          h("summary", { class: "small" }, "More options"),
+          h("div", { class: "fields" }, h("label", {}, h("span", {}, "Seed"), seed, h("small", { class: "muted" }, "The same seed deals the same board; leave empty for a new one."))),
+          h("p", { class: "muted small" }, "Config sent to the server:"),
+          preview)),
       launches.length ? h("div", {}, h("h2", {}, "Started from here"), h("ul", {}, launches.map(launchRow))) : null,
     ));
   }
@@ -175,7 +261,7 @@
   async function renderNew() {
     setActiveNav("new");
     const [options, launches] = await Promise.all([api("/api/match-options"), api("/api/launches")]);
-    const state = { options, game: options.games[0].id, settings: {}, seed: randomSeed(), seats: [] };
+    const state = { options, game: options.games[0].id, settings: {}, seed: "", seats: [] };
     fitSeats(state);
     renderForm(state, launches);
   }

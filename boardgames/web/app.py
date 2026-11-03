@@ -15,7 +15,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from pydantic import JsonValue as PlainJson
 
-from boardgames.arena.match_config import DEFAULT_MODEL, SUGGESTED_MODELS
+from boardgames.arena.match_config import (
+    DEFAULT_MODEL,
+    SUGGESTED_MODELS,
+    builtin_seat_defaults,
+)
 from boardgames.core import ArenaError, ConfigError, UnknownGameError, create_game
 from boardgames.games import game_ids
 from boardgames.logs.replay import ReplayMismatchError
@@ -67,22 +71,26 @@ class GameDetail(GameInfo):
 
 
 class GameOption(BaseModel):
-    """What the new-match form needs per game: seat counts and default settings."""
+    """What the new-match form needs per game: its name and goal from the rules,
+    seat counts and default settings."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
+    name: str
+    summary: str
     player_counts: list[int]
     settings: dict[str, PlainJson]
 
 
 class MatchOptions(BaseModel):
-    """Choices the new-match form offers."""
+    """Choices the new-match form offers, and what an untouched seat plays with."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     default_model: str
     models: list[str]
+    seat_defaults: dict[str, PlainJson]
     games: list[GameOption]
 
 
@@ -137,11 +145,34 @@ def game_option(game_id: str) -> GameOption:
     game = create_game(game_id)
     settings = plain_object(game.config_json(game.parse_config({})))
     settings.pop("num_players", None)
+    rules = game.rules_text()
     return GameOption(
         id=game_id,
+        name=rules_title(rules) or game_id,
+        summary=rules_summary(rules),
         player_counts=[n for n in PROBED_PLAYER_COUNTS if accepts_players(game_id, n)],
         settings=settings,
     )
+
+
+def rules_title(rules: str) -> str:
+    """The text of the rules' first heading, or empty."""
+    heading = next((line for line in rules.splitlines() if line.startswith("# ")), "")
+    return heading.removeprefix("# ").strip()
+
+
+def rules_summary(rules: str) -> str:
+    """The first sentence of the rules' first paragraph, which states the goal."""
+    paragraph = next(
+        (
+            line.strip()
+            for line in rules.splitlines()
+            if line.strip() and not line.startswith("#")
+        ),
+        "",
+    )
+    end = paragraph.find(". ")
+    return paragraph if end < 0 else paragraph[: end + 1]
 
 
 def accepts_players(game_id: str, count: int) -> bool:
@@ -177,6 +208,7 @@ def match_options() -> MatchOptions:
     return MatchOptions(
         default_model=DEFAULT_MODEL,
         models=list(SUGGESTED_MODELS),
+        seat_defaults=builtin_seat_defaults(),
         games=[game_option(game_id) for game_id in game_ids()],
     )
 

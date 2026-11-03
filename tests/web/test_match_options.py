@@ -16,7 +16,12 @@ def test_match_options_list_seat_counts_settings_and_models(tmp_path: Path) -> N
     body = options.json()
     games = {game["id"]: game for game in body["games"]}
     assert games["catan"]["player_counts"] == [3, 4]
+    assert (games["catan"]["name"], games["catan"]["summary"][:8]) == (
+        "Catan",
+        "Be first",
+    )
     assert "num_players" not in games["catan"]["settings"]
     assert body["default_model"] == DEFAULT_MODEL
     assert DEFAULT_MODEL in body["models"]
+    assert body["seat_defaults"]["max_illegal_retries"] == 3
     return

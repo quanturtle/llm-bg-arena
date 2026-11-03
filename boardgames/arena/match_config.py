@@ -217,3 +217,13 @@ def llm_agent_settings(
         LlmAgentSettings(model=model, prompt=prompt, label=seat.label),
         **options.model_dump(include=set(AGENT_FIELDS), exclude_none=True),
     )
+
+
+def builtin_seat_defaults() -> dict[str, PlainJson]:
+    """What a seat that sets nothing plays with, per option, from the settings code."""
+    settings = llm_agent_settings(LlmSeat(), LlmOptions(model=DEFAULT_MODEL), seed=0)
+    values: dict[str, PlainJson] = {"model": DEFAULT_MODEL}
+    values |= {key: getattr(settings.model, key) for key in MODEL_FIELDS - {"extra"}}
+    values |= {key: getattr(settings.prompt, key) for key in PROMPT_FIELDS}
+    values |= {key: getattr(settings, key) for key in AGENT_FIELDS}
+    return values
