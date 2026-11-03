@@ -385,10 +385,7 @@ def owns_active(player: PlayerState, name: str) -> bool:
 
 def city_spaces_used(player: PlayerState) -> int:
     """City board spaces filled; large violet buildings take two."""
-    return sum(
-        2 if BUILDINGS[building.name].victory_points == 4 else 1
-        for building in player.buildings
-    )
+    return sum(BUILDINGS[building.name].city_spaces for building in player.buildings)
 
 
 def island_spaces_used(player: PlayerState) -> int:
@@ -567,7 +564,7 @@ def available_to_build(state: PuertoRicoState, player: PlayerId) -> tuple[str, .
             continue
         seen.add(name)
         spec = BUILDINGS[name]
-        if free_city < (2 if spec.victory_points == 4 else 1):
+        if free_city < spec.city_spaces:
             continue
         if owner.doubloons < build_cost(state, player, name):
             continue

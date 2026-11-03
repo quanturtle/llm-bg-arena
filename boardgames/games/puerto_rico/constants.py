@@ -108,6 +108,11 @@ class BuildingSpec:
     def is_violet(self) -> bool:
         return self.kind == BuildingKind.VIOLET
 
+    @property
+    def city_spaces(self) -> int:
+        """City spaces the building fills; the large violet (4 VP) ones take two."""
+        return 2 if self.victory_points == 4 else 1
+
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"BuildingSpec({self.name!r}, cost={self.cost})"
 
