@@ -7,9 +7,11 @@ import pytest
 
 from boardgames.llm.model import (
     Completion,
+    ForcedTool,
     Message,
     ModelRequestError,
     ModelSettings,
+    ToolCall,
     ToolSpec,
     TransientModelError,
 )
@@ -51,11 +53,13 @@ def model_with(handler: Handler) -> OpenRouterChatModel:
 
 
 def complete(model: OpenRouterChatModel) -> Completion:
-    return asyncio.run(model.complete(MESSAGES, SETTINGS, TOOL))
+    return asyncio.run(
+        model.complete(MESSAGES, SETTINGS, (TOOL,), ForcedTool("submit_action"))
+    )
 
 
 def test_request_body_forces_the_tool_and_skips_unset_options() -> None:
-    body = request_body(MESSAGES, SETTINGS, TOOL)
+    body = request_body(MESSAGES, SETTINGS, (TOOL,), ForcedTool("submit_action"))
     assert body["model"] == "anthropic/claude-haiku-5-5"
     assert body["tool_choice"] == {
         "type": "function",
@@ -75,10 +79,32 @@ def test_request_body_passes_set_options() -> None:
     settings = ModelSettings(
         model="openai/gpt-x", temperature=0.2, reasoning_effort="low", seed=4
     )
-    body = request_body(MESSAGES, settings, None)
+    body = request_body(MESSAGES, settings, (), "auto")
     assert (body["temperature"], body["seed"]) == (0.2, 4)
     assert body["reasoning"] == {"effort": "low"}
     assert "tools" not in body
+    assert "tool_choice" not in body
+    return
+
+
+def test_request_body_sends_auto_and_required_choices_as_strings() -> None:
+    assert request_body(MESSAGES, SETTINGS, (TOOL,), "auto")["tool_choice"] == "auto"
+    required = request_body(MESSAGES, SETTINGS, (TOOL,), "required")
+    assert required["tool_choice"] == "required"
+    return
+
+
+def test_completion_from_reads_every_tool_call() -> None:
+    payload = reply_payload(content=None)
+    payload["choices"][0]["message"]["tool_calls"] = [  # type: ignore[index]
+        {"id": "c1", "function": {"name": "get_state", "arguments": "{}"}},
+        {"id": "c2", "function": {"name": "check_action", "arguments": '{"a": 1}'}},
+    ]
+    completion = completion_from(ResponsePayload.model_validate(payload), "m")
+    assert completion.tool_calls == (
+        ToolCall("c1", "get_state", "{}"),
+        ToolCall("c2", "check_action", '{"a": 1}'),
+    )
     return
 
 

@@ -54,7 +54,7 @@ def test_legal_answer_is_chosen_with_its_trace() -> None:
     assert (trace.prompt_tokens, trace.completion_tokens) == (100, 20)
     assert trace.cost_usd == pytest.approx(0.001)
     assert trace.attempts[0]["resolved_by"] == "strict"
-    assert model.calls[0].tool is not None
+    assert model.calls[0].tools[0].name == "submit_action"
     return
 
 
@@ -149,15 +149,13 @@ def test_text_mode_reads_the_final_answer_line() -> None:
     assert isinstance(choice, Chosen)
     assert choice.action == Mark(0, 0)
     assert (choice.trace.reasoning, llm.memory) == ("Corners are strong.", "corners")
-    assert model.calls[0].tool is None
+    assert model.calls[0].tools == ()
     return
 
 
 def test_unknown_price_makes_the_decision_cost_unknown() -> None:
     priced = answer("z9")
-    unpriced = Completion(
-        answer("a1").text, answer("a1").tool_arguments, Usage(1, 1), None
-    )
+    unpriced = Completion(answer("a1").text, answer("a1").tool_calls, Usage(1, 1), None)
     llm, _ = agent([priced, unpriced])
     choice = decide(llm, tic_tac_toe_request([]))
     assert choice.trace.cost_usd is None

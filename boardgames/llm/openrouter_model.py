@@ -11,16 +11,20 @@ from typing import Literal
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from boardgames.core import JsonObject, JsonValue
+from boardgames.core import JsonValue
 from boardgames.llm.model import (
     Completion,
     Message,
     ModelRequestError,
     ModelSettings,
+    ToolCall,
+    ToolChoice,
     ToolSpec,
     TransientModelError,
     Usage,
     messages_json,
+    tool_choice_json,
+    tools_json,
 )
 
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
@@ -90,9 +94,10 @@ class OpenRouterChatModel:
         self,
         messages: Sequence[Message],
         settings: ModelSettings,
-        tool: ToolSpec | None,
+        tools: Sequence[ToolSpec],
+        tool_choice: ToolChoice,
     ) -> Completion:
-        body = request_body(messages, settings, tool)
+        body = request_body(messages, settings, tools, tool_choice)
         try:
             async with httpx.AsyncClient(
                 base_url=self._base_url,
@@ -118,9 +123,12 @@ class OpenRouterChatModel:
 
 
 def request_body(
-    messages: Sequence[Message], settings: ModelSettings, tool: ToolSpec | None
+    messages: Sequence[Message],
+    settings: ModelSettings,
+    tools: Sequence[ToolSpec],
+    tool_choice: ToolChoice,
 ) -> dict[str, JsonValue]:
-    """The chat completion request; unset options are left out."""
+    """The chat completion request; unset options and empty tool lists are left out."""
     body: dict[str, JsonValue] = {
         "model": settings.model,
         "messages": messages_json(messages),
@@ -133,22 +141,10 @@ def request_body(
         body["seed"] = settings.seed
     if settings.reasoning_effort is not None:
         body["reasoning"] = {"effort": settings.reasoning_effort}
-    if tool is not None:
-        body["tools"] = [tool_json(tool)]
-        body["tool_choice"] = {"type": "function", "function": {"name": tool.name}}
+    if tools:
+        body["tools"] = tools_json(tools)
+        body["tool_choice"] = tool_choice_json(tool_choice)
     return body
-
-
-def tool_json(tool: ToolSpec) -> JsonObject:
-    """A tool in the request's function-tool shape."""
-    return {
-        "type": "function",
-        "function": {
-            "name": tool.name,
-            "description": tool.description,
-            "parameters": tool.parameters,
-        },
-    }
 
 
 def parse_payload(response: httpx.Response) -> ResponsePayload:
@@ -178,10 +174,12 @@ def completion_from(payload: ResponsePayload, model: str) -> Completion:
         raise ModelRequestError(f"{model}: the reply has no choices")
     message = payload.choices[0].message
     usage = payload.usage or UsagePayload()
-    calls = message.tool_calls or []
     return Completion(
         text=message.content or "",
-        tool_arguments=calls[0].function.arguments if calls else None,
+        tool_calls=tuple(
+            ToolCall(call.id, call.function.name, call.function.arguments)
+            for call in message.tool_calls or ()
+        ),
         usage=Usage(usage.prompt_tokens, usage.completion_tokens),
         cost_usd=usage.cost,
         reasoning=message.reasoning,

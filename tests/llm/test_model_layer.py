@@ -3,23 +3,27 @@ from pathlib import Path
 
 import pytest
 
-from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
+from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore, cache_key
 from boardgames.llm.model import (
     ChatModel,
     Completion,
+    ForcedTool,
     Message,
     ModelRequestError,
     ModelSettings,
     ModelUnavailableError,
+    ToolCall,
     ToolSpec,
     TransientModelError,
+    messages_json,
 )
 from boardgames.llm.retry import RetryingChatModel
-from tests.llm.fakes import QueuedChatModel, reply
+from tests.llm.fakes import QueuedChatModel, reply, tool_calls_reply
 
 SETTINGS = ModelSettings(model="anthropic/claude-haiku-5-5")
 MESSAGES = (Message("system", "rules"), Message("user", "your move"))
 TOOL = ToolSpec("submit_action", "Submit your action.", {"type": "object"})
+LOOKUP = ToolSpec("get_state", "Read the state.", {"type": "object"})
 
 
 class RecordedSleep:
@@ -35,7 +39,36 @@ class RecordedSleep:
 
 
 def complete(model: ChatModel, settings: ModelSettings = SETTINGS) -> Completion:
-    return asyncio.run(model.complete(MESSAGES, settings, TOOL))
+    return asyncio.run(
+        model.complete(MESSAGES, settings, (TOOL,), ForcedTool(TOOL.name))
+    )
+
+
+def test_messages_json_carries_tool_fields_only_when_set() -> None:
+    call = ToolCall("call_1", "get_state", "{}")
+    messages = (
+        Message("assistant", "", tool_calls=(call,)),
+        Message("tool", "board", tool_call_id="call_1"),
+    )
+    assert messages_json(MESSAGES) == [
+        {"role": "system", "content": "rules"},
+        {"role": "user", "content": "your move"},
+    ]
+    assert messages_json(messages) == [
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {"name": "get_state", "arguments": "{}"},
+                }
+            ],
+        },
+        {"role": "tool", "content": "board", "tool_call_id": "call_1"},
+    ]
+    return
 
 
 def test_retry_counts_transient_failures_and_backs_off() -> None:
@@ -84,4 +117,23 @@ def test_cache_misses_when_the_seed_changes(tmp_path: Path) -> None:
     model = CachedChatModel(inner, DirectoryResponseStore(tmp_path))
     complete(model, ModelSettings(model="m", seed=1))
     assert complete(model, ModelSettings(model="m", seed=2)).text == "b"
+    return
+
+
+def test_cache_key_changes_with_the_tools_and_the_choice() -> None:
+    forced = cache_key(MESSAGES, SETTINGS, (TOOL,), ForcedTool(TOOL.name))
+    assert cache_key(MESSAGES, SETTINGS, (TOOL, LOOKUP), "auto") != forced
+    assert cache_key(MESSAGES, SETTINGS, (TOOL,), "auto") != forced
+    assert cache_key(MESSAGES, SETTINGS, (), "auto") == cache_key(
+        MESSAGES, SETTINGS, (), "required"
+    )
+    return
+
+
+def test_cache_round_trips_several_tool_calls(tmp_path: Path) -> None:
+    calls = (ToolCall("c1", "get_state", "{}"), ToolCall("c2", "check_action", "{}"))
+    inner = QueuedChatModel([tool_calls_reply(calls)])
+    model = CachedChatModel(inner, DirectoryResponseStore(tmp_path))
+    complete(model)
+    assert complete(model).tool_calls == calls
     return

@@ -232,7 +232,7 @@ class ActionExtractor:
             f"Legal actions: {', '.join(notations)}\n\nReply:\n{reply}"
         )
         completion = await self._model.complete(
-            [Message("user", prompt)], self._settings, None
+            [Message("user", prompt)], self._settings, (), "auto"
         )
         answer = clean_answer(completion.text)
         if answer in notations:

@@ -22,8 +22,11 @@ from boardgames.core import JsonObject, JsonValue, Rng
 from boardgames.llm.model import (
     ChatModel,
     Completion,
+    ForcedTool,
     Message,
     ModelSettings,
+    ToolChoice,
+    ToolSpec,
     messages_json,
 )
 from boardgames.llm.parsing import (
@@ -111,15 +114,17 @@ class LlmAgent:
     async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
         prompt_settings = self._settings.prompt
         prompt = build_prompt(request, self._memory, prompt_settings)
-        tool = None
+        tools: tuple[ToolSpec, ...] = ()
+        tool_choice: ToolChoice = "auto"
         if prompt_settings.output_mode == "tool":
-            tool = submit_tool(prompt_settings.memory_limit)
+            tools = (submit_tool(prompt_settings.memory_limit),)
+            tool_choice = ForcedTool(tools[0].name)
         messages: tuple[Message, ...] = prompt.messages
         logged = 0
         attempts: list[Attempt[A]] = []
         for _ in range(self._settings.max_illegal_retries + 1):
             completion = await self._model.complete(
-                messages, self._settings.model, tool
+                messages, self._settings.model, tools, tool_choice
             )
             attempt = await self._interpret(
                 completion, request, prompt.numbered, messages[logged:]
