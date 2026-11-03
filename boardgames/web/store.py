@@ -4,6 +4,7 @@ The store is the viewer's repository. It rereads a log only when its size or
 modification time changed, so a running match shows up as it is written.
 """
 
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -252,6 +253,13 @@ class MatchStore:
     def records(self, match_id: str) -> list[LogRecord]:
         """Every record of one match's log."""
         return read_log(self._path_of(match_id))
+
+    def updated_at(self, match_id: str) -> str:
+        """When the match's log was last written, UTC ISO 8601.
+
+        While a match runs, its current decision began at about this time."""
+        modified = self._path_of(match_id).stat().st_mtime
+        return datetime.fromtimestamp(modified, UTC).isoformat(timespec="milliseconds")
 
     def delete(self, match_id: str) -> None:
         """Remove a match's log and thoughts file; unknown ids raise UnknownMatchError.

@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -49,6 +50,8 @@ def test_games_matches_and_frames(client: TestClient) -> None:
     assert [m["match_id"] for m in matches["matches"]] == ["ttt"]
     outline = client.get("/api/matches/ttt/timeline").json()
     assert outline["frame_count"] == len(outline["moves"]) + 1
+    assert outline["moves"][0]["latency_seconds"] >= 0
+    assert datetime.fromisoformat(outline["log_updated_at"]).tzinfo is not None
     frame = client.get("/api/matches/ttt/frames/1").json()
     assert frame["decision"]["trace"]["reasoning"].startswith("I pick")
     board = client.get("/api/leaderboard", params={"game": "tic_tac_toe"}).json()

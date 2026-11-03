@@ -360,7 +360,8 @@ def timeline_of(request: Request, match_id: str) -> Timeline:
 @api.get("/matches/{match_id}/timeline")
 def match_outline(request: Request, match_id: str) -> Outline:
     """Every move, event and score of the match; boards come one frame at a time."""
-    return outline(timeline_of(request, match_id))
+    timeline = timeline_of(request, match_id)
+    return outline(timeline, store_of(request).updated_at(match_id))
 
 
 @api.get("/matches/{match_id}/frames/{step}")

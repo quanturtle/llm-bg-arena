@@ -102,6 +102,7 @@ class MoveView(View):
     description: str
     illegal_attempts: int
     fallback: str | None
+    latency_seconds: float
 
 
 class Outline(View):
@@ -114,6 +115,8 @@ class Outline(View):
     forfeits: list[ForfeitView]
     scores: list[list[ScoreView]]
     replay_error: str | None
+    # when the log was last written; a running match's current decision began then
+    log_updated_at: str | None
 
 
 def board_views(game: AnyGame, state: Any, num_players: int) -> list[BoardView]:
@@ -287,12 +290,14 @@ def move_view(decision: DecisionView, step: int) -> MoveView:
         description=decision.description,
         illegal_attempts=decision.trace.illegal_attempts,
         fallback=decision.trace.fallback,
+        latency_seconds=decision.latency_seconds,
     )
 
 
-def outline(timeline: Timeline) -> Outline:
+def outline(timeline: Timeline, log_updated_at: str | None = None) -> Outline:
     """The timeline without boards and traces, small enough to send whole."""
     return Outline(
+        log_updated_at=log_updated_at,
         match=timeline.match,
         frame_count=len(timeline.frames),
         moves=[move_view(f.decision, f.step) for f in timeline.frames if f.decision],
