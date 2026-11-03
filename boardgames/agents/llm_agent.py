@@ -40,6 +40,7 @@ from boardgames.llm.parsing import (
     resolve_answer,
 )
 from boardgames.llm.prompting import (
+    TOOL_NAME,
     PromptSettings,
     build_prompt,
     retry_messages,
@@ -212,7 +213,8 @@ class LlmAgent:
         new_messages: Sequence[Message],
     ) -> Attempt[A]:
         """Parse and resolve one reply, asking the extractor when matching fails."""
-        reply = parse_reply(completion)
+        tool_name = TOOL_NAME if self._settings.prompt.output_mode == "tool" else None
+        reply = parse_reply(completion, tool_name)
         parsed: ParsedReply | None = None
         resolution: Resolved[A] | Rejected
         if isinstance(reply, Rejected):

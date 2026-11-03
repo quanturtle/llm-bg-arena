@@ -53,11 +53,21 @@ class Rejected:
     feedback: str
 
 
-def parse_reply(completion: Completion) -> ParsedReply | Rejected:
-    """Answer, reasoning and notes from a tool call, else from the reply text."""
+def parse_reply(
+    completion: Completion, tool_name: str | None = None
+) -> ParsedReply | Rejected:
+    """Answer, reasoning and notes from a tool call, else from the reply text.
+
+    With `tool_name`, a reply without an answer is told to call that tool.
+    """
     if completion.tool_arguments is not None:
         return parse_tool_arguments(completion.tool_arguments)
-    return parse_text(completion.text)
+    parsed = parse_text(completion.text)
+    if isinstance(parsed, Rejected) and tool_name is not None:
+        return Rejected(
+            "format", f'Call the {tool_name} tool, with one legal action as "action".'
+        )
+    return parsed
 
 
 def parse_tool_arguments(arguments: str) -> ParsedReply | Rejected:

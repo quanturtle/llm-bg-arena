@@ -84,6 +84,17 @@ def test_bad_tool_arguments_are_retried() -> None:
     return
 
 
+def test_a_reply_without_the_tool_call_is_asked_for_the_call() -> None:
+    text = "I think the center matters.\nSo maybe b2."
+    llm, model = agent([reply(text=text), answer("b2")])
+    choice = decide(llm, tic_tac_toe_request([]))
+    assert isinstance(choice, Chosen)
+    retry = model.calls[1].messages[-1].content
+    assert 'Call the submit_action tool, with one legal action as "action".' in retry
+    assert "Final Answer" not in retry
+    return
+
+
 def test_forfeit_after_the_last_retry() -> None:
     llm, model = agent([answer("z9")] * 3, max_illegal_retries=2, fallback="forfeit")
     choice = decide(llm, tic_tac_toe_request([]))
