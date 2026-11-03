@@ -17,7 +17,7 @@
     { key: "label", label: "Display name", kind: "text", hint: "Shown next to the model, for example \"aggressive trader\"." },
     { key: "output_mode", label: "How it answers", kind: "select", options: [["tool", "Picks a move from the list"], ["text", "Explains, then gives a final answer"], ["tools", "Looks around with game tools, then moves"]] },
     { key: "temperature", label: "Randomness (temperature)", kind: "number", step: "0.1", min: "0", max: "2", hint: "0 is steady and predictable, 1 or more is varied." },
-    { key: "reasoning_effort", label: "Thinking effort", kind: "select", options: [["low", "Low"], ["medium", "Medium"], ["high", "High"]], hint: "For models that can think before answering." },
+    { key: "reasoning_effort", label: "Thinking effort", kind: "select", options: [["none", "Off"], ["low", "Low"], ["medium", "Medium"], ["high", "High"]], hint: "For models that think before answering. Off is fastest, but some models (like gpt-5-nano) must think and reject it." },
     { key: "thinking_budget_tokens", label: "Thinking budget (tokens)", kind: "number", step: "1", min: "1", hint: "Instead of thinking effort, not with it." },
     { key: "max_tokens", label: "Longest reply (tokens)", kind: "number", step: "1", min: "1" },
     { key: "max_tool_calls", label: "Tool calls per move", kind: "number", step: "1", min: "1", hint: "Only when it looks around with game tools." },

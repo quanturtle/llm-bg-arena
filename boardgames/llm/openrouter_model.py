@@ -142,7 +142,9 @@ def request_body(
         body["top_p"] = settings.top_p
     if settings.seed is not None:
         body["seed"] = settings.seed
-    if settings.reasoning_effort is not None:
+    if settings.reasoning_effort == "none":
+        body["reasoning"] = {"enabled": False}
+    elif settings.reasoning_effort is not None:
         body["reasoning"] = {"effort": settings.reasoning_effort}
     if settings.thinking_budget_tokens is not None:
         body["reasoning"] = {"max_tokens": settings.thinking_budget_tokens}

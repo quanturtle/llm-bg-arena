@@ -7,7 +7,7 @@ from typing import Literal, Protocol
 from boardgames.core import ArenaError, ConfigError, JsonObject, JsonValue
 
 type Role = Literal["system", "user", "assistant", "tool"]
-type ReasoningEffort = Literal["low", "medium", "high"]
+type ReasoningEffort = Literal["none", "low", "medium", "high"]
 
 
 class TransientModelError(ArenaError):
@@ -66,12 +66,13 @@ class ModelSettings:
 
     Reasoning is asked for by effort or by a token budget, not both. `extra` is
     merged into the request body as is, for provider routing and other options.
+    `max_tokens` also covers a thinking model's reasoning, so it leaves room for it.
     """
 
     model: str
     temperature: float | None = None
     top_p: float | None = None
-    max_tokens: int = 1024
+    max_tokens: int = 4096
     timeout_seconds: float = 120.0
     reasoning_effort: ReasoningEffort | None = None
     thinking_budget_tokens: int | None = None

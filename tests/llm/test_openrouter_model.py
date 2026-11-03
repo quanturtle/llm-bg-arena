@@ -96,6 +96,14 @@ def test_request_body_passes_top_p_and_a_thinking_budget() -> None:
     return
 
 
+def test_reasoning_effort_none_turns_thinking_off() -> None:
+    settings = ModelSettings(model="m", reasoning_effort="none")
+    assert request_body(MESSAGES, settings, (), "auto")["reasoning"] == {
+        "enabled": False
+    }
+    return
+
+
 def test_request_body_merges_extra_last_so_it_overrides_built_in_fields() -> None:
     extra: dict[str, JsonValue] = {"provider": {"order": ["openai"]}, "max_tokens": 5}
     body = request_body(MESSAGES, ModelSettings(model="m", extra=extra), (), "auto")
