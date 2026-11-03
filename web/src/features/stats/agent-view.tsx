@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { ErrorAlert, LoadingRows, PageTitle } from "@/components/page";
+import { ProviderLogo } from "@/components/provider-logo";
 import { agentHref } from "@/components/seat";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,9 +60,12 @@ function OpponentsTable({ opponents }: { opponents: HeadToHead[] }) {
         {opponents.map((row) => (
           <TableRow key={row.opponent}>
             <TableCell>
-              <Link href={agentHref(row.opponent)} className="hover:underline">
-                {row.opponent}
-              </Link>
+              <span className="inline-flex items-center gap-2">
+                <ProviderLogo model={row.opponent} />
+                <Link href={agentHref(row.opponent)} className="hover:underline">
+                  {row.opponent}
+                </Link>
+              </span>
             </TableCell>
             <TableCell className="text-right tabular-nums">{row.matches}</TableCell>
             <TableCell className="text-right tabular-nums">{row.ahead}</TableCell>
@@ -94,7 +98,16 @@ export function AgentView() {
   if (!name) return <ErrorAlert error="No agent named in the address." />;
   return (
     <>
-      <PageTitle title={name}>{detail.data ? <Badge variant="secondary">{detail.data.kind}</Badge> : null}</PageTitle>
+      <PageTitle
+        title={
+          <span className="inline-flex items-center gap-3">
+            <ProviderLogo model={detail.data?.overall?.models[0] ?? name} className="size-6" />
+            {name}
+          </span>
+        }
+      >
+        {detail.data ? <Badge variant="secondary">{detail.data.kind}</Badge> : null}
+      </PageTitle>
       {detail.error ? <ErrorAlert error={detail.error} /> : null}
       {detail.isPending ? <LoadingRows /> : null}
       {detail.data ? (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { ErrorAlert, LoadingRows, PageTitle } from "@/components/page";
+import { ProviderLogo } from "@/components/provider-logo";
 import { agentHref } from "@/components/seat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,10 +38,13 @@ function Standings({ board }: { board: Leaderboard }) {
         {board.rows.map((row, index) => (
           <TableRow key={row.agent}>
             <TableCell className="text-muted-foreground tabular-nums">{index + 1}</TableCell>
-            <TableCell className="max-w-56 truncate">
-              <Link href={agentHref(row.agent)} className="hover:underline">
-                {row.agent}
-              </Link>
+            <TableCell className="max-w-56">
+              <span className="flex min-w-0 items-center gap-2">
+                <ProviderLogo model={row.models[0] ?? row.agent} />
+                <Link href={agentHref(row.agent)} className="truncate hover:underline">
+                  {row.agent}
+                </Link>
+              </span>
             </TableCell>
             <TableCell className="text-right font-semibold tabular-nums">{row.elo === null ? "" : Math.round(row.elo)}</TableCell>
             <TableCell className="text-right tabular-nums">{row.matches}</TableCell>

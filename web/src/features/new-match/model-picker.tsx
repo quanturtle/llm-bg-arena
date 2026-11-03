@@ -3,6 +3,7 @@
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 
+import { ProviderLogo } from "@/components/provider-logo";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,10 @@ export function ModelPicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal">
-            <span className="truncate">{typed ? "Another OpenRouter model…" : modelName(model)}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <ProviderLogo model={model} />
+              <span className="truncate">{typed ? "Another OpenRouter model…" : modelName(model)}</span>
+            </span>
             <ChevronsUpDown className="opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -54,6 +58,7 @@ export function ModelPicker({
                 {models.map((id) => (
                   <CommandItem key={id} value={id} onSelect={() => choose(id)}>
                     <Check className={cn(!typed && id === model ? "opacity-100" : "opacity-0")} />
+                    <ProviderLogo model={id} />
                     <span className="truncate">{modelName(id)}</span>
                     {id === defaultModel ? <span className="ml-auto text-xs text-muted-foreground">default</span> : null}
                   </CommandItem>

@@ -1,6 +1,7 @@
 // Seats: a colour per player, a chip with the player's name, and text with seat mentions coloured.
 import Link from "next/link";
 
+import { ProviderLogo } from "@/components/provider-logo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { SeatSummary } from "@/lib/api";
 import { seatName, splitSeatMentions } from "@/lib/format";
@@ -36,7 +37,7 @@ export function SeatDot({ player, className }: { player: number; className?: str
   );
 }
 
-/** "● P1 name": the name truncates to its box and the full name shows on hover. */
+/** "● P1 [logo] name": the name truncates to its box and the full name shows on hover. */
 export function SeatChip({
   seat,
   link = true,
@@ -60,6 +61,7 @@ export function SeatChip({
     <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
       <SeatDot player={seat.player} />
       <span className="shrink-0 font-medium tabular-nums">{seatLabel(seat.player)}</span>
+      <ProviderLogo model={seat.model ?? seat.agent} />
       <Tooltip>
         <TooltipTrigger asChild>{label}</TooltipTrigger>
         <TooltipContent>{name}</TooltipContent>

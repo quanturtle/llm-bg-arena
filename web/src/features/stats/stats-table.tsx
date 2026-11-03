@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ProviderLogo } from "@/components/provider-logo";
 import { agentHref } from "@/components/seat";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -58,10 +59,13 @@ export function StatsTable({
           <TableRow key={`${row.agent}|${row.game_id}|${row.prompt_version}`}>
             <TableCell className="text-muted-foreground tabular-nums">{index + 1}</TableCell>
             <TableCell>
-              <Link href={agentHref(row.agent)} className="font-medium hover:underline">
-                {row.agent}
-              </Link>{" "}
-              <Badge variant="secondary">{row.kind}</Badge>
+              <span className="inline-flex items-center gap-2">
+                <ProviderLogo model={row.models[0] ?? row.agent} />
+                <Link href={agentHref(row.agent)} className="font-medium hover:underline">
+                  {row.agent}
+                </Link>
+                <Badge variant="secondary">{row.kind}</Badge>
+              </span>
               <ModelNote row={row} />
             </TableCell>
             {withGame ? (

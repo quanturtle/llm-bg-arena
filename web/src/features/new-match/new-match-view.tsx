@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useReducer } from "react";
 
 import { ErrorAlert, LoadingRows, PageTitle } from "@/components/page";
+import { ProviderLogo } from "@/components/provider-logo";
 import { StatusBadge } from "@/components/status";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -126,6 +127,7 @@ function SameModel({ state, dispatch }: { state: FormState; dispatch: React.Disp
       <SelectContent>
         {state.options.models.map((id) => (
           <SelectItem key={id} value={id}>
+            <ProviderLogo model={id} />
             {modelName(id)}
           </SelectItem>
         ))}

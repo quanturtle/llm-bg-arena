@@ -1,6 +1,7 @@
 // The new-match form as a pure reducer: game, game options, one seat per player, seed.
 // The view dispatches actions; `matchConfig` turns the state into the config the server takes.
 import type { GameOption, MatchOptions, ModelCapabilities, ReasoningEffort } from "@/lib/api";
+import { PROVIDER_NAMES } from "@/lib/providers";
 
 /** How each game option reads in the form; unknown options get a label from their key. */
 export const GAME_OPTIONS: Record<string, { label: string; hint?: string; min?: number; max?: number }> = {
@@ -8,21 +9,6 @@ export const GAME_OPTIONS: Record<string, { label: string; hint?: string; min?: 
   "catan.max_offers_per_turn": { label: "Trade offers per turn", hint: "0 means no limit.", min: 0, max: 20 },
   "puerto_rico.victory_point_supply": { label: "Victory point chips", hint: "0 uses the standard supply; fewer chips end the game sooner.", min: 0 },
   "puerto_rico.max_rounds": { label: "Round limit", hint: "0 plays to the normal end of the game.", min: 0 },
-};
-
-const PROVIDERS: Record<string, string> = {
-  anthropic: "Anthropic",
-  deepseek: "DeepSeek",
-  google: "Google",
-  "meta-llama": "Meta",
-  minimax: "MiniMax",
-  mistralai: "Mistral",
-  moonshotai: "Moonshot AI",
-  nvidia: "NVIDIA",
-  openai: "OpenAI",
-  qwen: "Qwen",
-  xiaomi: "Xiaomi",
-  "z-ai": "Z.ai",
 };
 
 export const EFFORT_LABELS: Record<ReasoningEffort, string> = {
@@ -164,7 +150,7 @@ export function modelName(id: string): string {
   const slash = id.indexOf("/");
   if (slash < 0) return id;
   const provider = id.slice(0, slash);
-  return `${id.slice(slash + 1)} (${PROVIDERS[provider] ?? provider})`;
+  return `${id.slice(slash + 1)} (${PROVIDER_NAMES[provider] ?? provider})`;
 }
 
 export function playerRange(counts: number[]): string {

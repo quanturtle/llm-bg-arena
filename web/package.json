@@ -9,6 +9,7 @@
     "gen:api": "openapi-typescript ${ARENA_ORIGIN:-http://127.0.0.1:8765}/api/openapi.json -o src/lib/api-types.ts"
   },
   "dependencies": {
+    "@lobehub/icons-static-svg": "1.102.0",
     "@tanstack/react-query": "^5.105.2",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
