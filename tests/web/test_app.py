@@ -62,6 +62,8 @@ def test_games_matches_and_frames(client: TestClient) -> None:
     assert client.get("/api/matches/ttt/frames/99").status_code == 404
     assert "<title>Boardgames</title>" in client.get("/").text
     assert client.get("/static/app.js").headers["cache-control"] == "no-cache"
+    image = client.get("/static/puerto_rico/boards/city.png")
+    assert image.headers["cache-control"].startswith("max-age=")
     assert "cache-control" not in client.get("/api/games").headers
     assert client.get("/api/matches/ttt").json()["seats"][0]["model"] == "model-0"
     return

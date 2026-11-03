@@ -50,6 +50,7 @@ from boardgames.web.timeline import (
 
 TIMELINE_CACHE_SIZE = 16
 PROBED_PLAYER_COUNTS = range(1, 9)
+IMAGE_MAX_AGE_SECONDS = 86400
 
 
 class UnknownFrameError(ArenaError):
@@ -434,10 +435,13 @@ def health() -> dict[str, str]:
 async def revalidate_assets(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
-    """Pages and static files carry no-cache, so the browser checks each load and a
-    new version shows without a hard reload; unchanged files still answer 304."""
+    """Pages, scripts and styles carry no-cache, so an edit shows without a hard reload.
+    Images stay cached for IMAGE_MAX_AGE_SECONDS; a new image needs a hard reload."""
     response = await call_next(request)
-    if not request.url.path.startswith("/api/"):
+    path = request.url.path
+    if path.endswith(".png"):
+        response.headers["Cache-Control"] = f"max-age={IMAGE_MAX_AGE_SECONDS}"
+    elif not path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
 
