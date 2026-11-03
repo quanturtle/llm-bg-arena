@@ -1,0 +1,4 @@
+# A short three-player Puerto Rico game between random bots, capped at five rounds.
+game: puerto_rico
+config: {num_players: 3, max_rounds: 5}
+seed: 1

@@ -58,6 +58,8 @@ The example file is this config plus a fixed seed, `output_mode: tools`, seat la
 
 Any OpenRouter model id works. Under `llm` or per seat you can set `temperature`, `top_p`, `max_tokens`, `reasoning_effort` or `thinking_budget_tokens`, `timeout_seconds`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. Leave `seats` out to seat random bots everywhere. `--seed` and `--log` override the file. The files in `examples/` cover four-in-a-row, the auction and a short three-player Catan game.
 
+Puerto Rico follows the role-selection cycle: the governor chooses first, every role's action phase runs immediately, and unchosen roles gain a doubloon at round end. `victory_point_supply` can lower the standard 75/100/122 chip supply for short games, and `max_rounds` adds a round limit. The full notation, buildings and scoring are in `boardgames/games/puerto_rico/rules.md`.
+
 Catan uses the standard board and costs. Player-to-player trades are one card for one card, development cards are played after the roll, and offers are capped per turn to keep games moving; the full notation and rules are in the game's `rules.md`.
 
 ## Check a match

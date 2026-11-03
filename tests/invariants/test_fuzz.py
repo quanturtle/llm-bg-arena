@@ -25,6 +25,13 @@ from boardgames.games.k_in_a_row import (
     KInARowConfig,
     KInARowState,
 )
+from boardgames.games.puerto_rico import (
+    PuertoRico,
+    PuertoRicoConfig,
+    PuertoRicoState,
+)
+from boardgames.games.puerto_rico.constants import COLONIST_SUPPLY, GOOD_SUPPLY
+from boardgames.games.puerto_rico.model import goods_total
 from boardgames.games.sealed_auction import (
     SealedAuction,
     SealedAuctionConfig,
@@ -59,6 +66,9 @@ def has_line(state: KInARowState) -> bool:
         if len(owners) == 1 and None not in owners:
             return True
     return False
+
+
+PUERTO_RICO = PuertoRico()
 
 
 def check_k_in_a_row(state: KInARowState) -> None:
@@ -119,6 +129,39 @@ def check_catan(state: CatanState) -> None:
     return
 
 
+def check_puerto_rico(state: PuertoRicoState) -> None:
+    """Goods and colonists are conserved; nothing count-like goes negative."""
+    assert all(count >= 0 for count in state.goods_supply)
+    for player in state.players:
+        assert all(count >= 0 for count in player.goods)
+        assert player.doubloons >= 0
+        assert player.vp_chips >= 0
+        assert player.occupied_quarries <= player.quarries
+    goods = (
+        sum(state.goods_supply)
+        + sum(goods_total(player.goods) for player in state.players)
+        + sum(ship.filled for ship in state.cargo_ships)
+        + len(state.trading_house)
+    )
+    assert goods == sum(GOOD_SUPPLY)
+    colonists = (
+        state.colonist_supply
+        + state.colonist_ship
+        + sum(
+            player.colonists_unplaced
+            + sum(1 for plantation in player.plantations if plantation.colonized)
+            + player.occupied_quarries
+            + sum(building.colonists for building in player.buildings)
+            for player in state.players
+        )
+    )
+    expected_colonists = (
+        COLONIST_SUPPLY[state.config.num_players] + state.config.num_players
+    )
+    assert colonists == expected_colonists
+    return
+
+
 @settings(max_examples=2000, deadline=None)
 @given(seed=SEEDS)
 def test_tic_tac_toe_random_play_keeps_invariants(seed: int) -> None:
@@ -169,4 +212,18 @@ def test_catan_random_play_keeps_invariants(seed: int, players: int) -> None:
     state, _ = random_playthrough(CATAN, config, seed, check_catan)
     assert state.winner is not None
     assert CATAN.scores(state).points[state.winner] >= config.victory_points
+    return
+
+
+@settings(max_examples=20, deadline=None)
+@given(
+    seed=SEEDS,
+    players=st.integers(3, 5),
+    rounds=st.integers(1, 2),
+)
+def test_puerto_rico_random_play_keeps_invariants(
+    seed: int, players: int, rounds: int
+) -> None:
+    config = PuertoRicoConfig(num_players=players, max_rounds=rounds)
+    random_playthrough(PUERTO_RICO, config, seed, check_puerto_rico)
     return

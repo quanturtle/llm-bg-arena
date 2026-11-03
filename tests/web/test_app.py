@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from boardgames.arena import cli
+from boardgames.games.puerto_rico import PuertoRico, PuertoRicoConfig
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
@@ -22,6 +23,15 @@ def test_games_matches_and_frames(client: TestClient) -> None:
     assert games["k_in_a_row"]["matches"] == 1
     assert client.get("/api/games/catan").json()["rules"].startswith("#")
     assert len(client.get("/api/games/catan/layout").json()["hexes"]) == 19
+    puerto_rico = client.get("/api/games/puerto_rico/layout").json()
+    buildings = {building["name"]: building for building in puerto_rico["buildings"]}
+    assert len(buildings) == 23
+    assert buildings["small_indigo_plant"]["cost"] == 1
+    assert buildings["small_indigo_plant"]["production"] == "indigo"
+    assert buildings["city_hall"]["victory_points"] == 4
+    assert len(puerto_rico["goods"]) == 5
+    assert "window.boards.puerto_rico" in client.get("/static/puerto_rico.js").text
+    assert ".puerto-rico" in client.get("/static/puerto_rico.css").text
     matches = client.get("/api/matches", params={"agent": "model-1"}).json()
     assert [m["match_id"] for m in matches["matches"]] == ["ttt"]
     outline = client.get("/api/matches/ttt/timeline").json()
@@ -41,4 +51,28 @@ def test_games_matches_and_frames(client: TestClient) -> None:
 def test_serve_command_parses_its_options() -> None:
     args = cli.parse_arguments(["serve", "--runs", "logs", "--port", "9000"])
     assert (args.runs, args.port, args.handler) == (Path("logs"), 9000, cli.serve)
+    return
+
+
+def test_puerto_rico_frames_expose_the_board_data(tmp_path: Path) -> None:
+    write_match(
+        tmp_path,
+        "pr",
+        seed=2,
+        game=PuertoRico(),
+        config=PuertoRicoConfig(num_players=3, max_rounds=2),
+    )
+    launcher = MatchLauncher(tmp_path, None, None)
+    client = TestClient(create_app(MatchStore(tmp_path), launcher))
+    timeline = client.get("/api/matches/pr/timeline").json()
+    assert timeline["frame_count"] > 2
+    frame = client.get("/api/matches/pr/frames/2").json()
+    board = next(board for board in frame["boards"] if board["viewer"] is None)
+    observation = board["observation"]
+    assert observation["roles"]
+    assert observation["players"]
+    assert observation["public_points"]
+    assert observation["cargo_ships"]
+    assert observation["face_up"] is not None
+    assert "phase" in observation
     return
