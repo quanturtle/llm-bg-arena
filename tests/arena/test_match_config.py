@@ -84,6 +84,48 @@ def test_seat_values_override_file_defaults() -> None:
     return
 
 
+def test_seat_null_takes_the_built_in_default_over_the_file_default() -> None:
+    raw = {
+        "game": "k_in_a_row",
+        "llm": {"max_tokens": 512, "reasoning_effort": "high"},
+        "seats": [
+            {
+                "agent": "llm",
+                "model": "m",
+                "max_tokens": None,
+                "reasoning_effort": None,
+                "thinking_budget_tokens": 2048,
+            }
+        ],
+    }
+    config = parse_match_config(raw, "test")
+    seat = llm_seat(config, 0)
+    model = llm_agent_settings(seat, merged_options(seat, config.llm), seed=3).model
+    assert model.max_tokens == 1024
+    assert (model.reasoning_effort, model.thinking_budget_tokens) == (None, 2048)
+    return
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("temperature", -0.1),
+        ("temperature", 2.5),
+        ("top_p", 1.5),
+        ("max_tokens", 0),
+        ("timeout_seconds", 0),
+        ("max_tool_calls", 0),
+        ("max_illegal_retries", -1),
+        ("thinking_budget_tokens", 0),
+    ],
+)
+def test_out_of_range_setting_is_a_config_error(key: str, value: float) -> None:
+    raw = {"game": "x", "llm": {key: value}}
+    with pytest.raises(ConfigError, match=rf"llm\.{key}: Input should be"):
+        parse_match_config(raw, "test")
+    return
+
+
 def test_unknown_key_is_a_config_error() -> None:
     raw = {"game": "x", "seats": [{"agent": "llm", "model": "m", "temprature": 1}]}
     with pytest.raises(ConfigError, match=r"seats\.0\.llm\.temprature"):

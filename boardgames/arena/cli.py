@@ -143,14 +143,17 @@ def agent_for_seat(
     index: int,
     model: ChatModel | None,
 ) -> Agent:
-    """The agent for one seat; an LLM seat needs the chat model, so a key."""
+    """The agent for one seat; an LLM seat needs the chat model, so a key.
+
+    A seat's `seed` replaces the derived seed for the model only, reduced below 2**31.
+    """
     seed = derive_seed(match_seed, index)
     if isinstance(seat, RandomSeat):
         return RandomAgent(seed)
     if model is None:
         raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {seat.model!r}")
     options = merged_options(seat, defaults)
-    model_seed = seed % 2**31 if seat.seed is None else seat.seed
+    model_seed = (seed if seat.seed is None else seat.seed) % 2**31
     settings = llm_agent_settings(seat, options, model_seed)
     extractor = None
     if options.extractor is not None:
