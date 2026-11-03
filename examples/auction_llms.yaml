@@ -3,7 +3,6 @@
 game: sealed_auction
 config: {num_players: 3}
 seed: 7
-log: runs/auction.jsonl
 
 # defaults for every llm seat; a seat's own values override them
 llm:
