@@ -42,6 +42,7 @@ def puerto_rico_layout() -> dict[str, PlainJson]:
                 "kind": spec.kind,
                 "size": spec.size,
                 "copies": spec.copies,
+                "city_spaces": spec.city_spaces,
             }
             for spec in BUILDINGS.values()
         ],

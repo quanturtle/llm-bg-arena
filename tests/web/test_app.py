@@ -43,6 +43,7 @@ def test_games_matches_and_frames(client: TestClient) -> None:
     assert buildings["small_indigo_plant"]["cost"] == 1
     assert buildings["small_indigo_plant"]["production"] == "indigo"
     assert buildings["city_hall"]["victory_points"] == 4
+    assert buildings["city_hall"]["city_spaces"] == 2
     assert len(puerto_rico["goods"]) == 5
     assert "window.boards.puerto_rico" in client.get("/static/puerto_rico.js").text
     assert ".puerto-rico" in client.get("/static/puerto_rico.css").text
