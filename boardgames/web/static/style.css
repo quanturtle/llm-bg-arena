@@ -91,6 +91,8 @@ button { cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: default; }
+button.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
+.live-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
 textarea.config { width: 100%; box-sizing: border-box; font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; }
 .new-match .toolbar { display: flex; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
 
@@ -110,6 +112,8 @@ tr.link:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent)
   color: var(--muted);
 }
 .badge.running { color: var(--warn); border-color: var(--warn); }
+.badge.paused { color: var(--accent); border-color: var(--accent); }
+.badge.stopped, .badge.failed { color: var(--bad); border-color: var(--bad); }
 .badge.winner { color: var(--win); border-color: var(--win); }
 .badge.forfeit { color: var(--bad); border-color: var(--bad); }
 

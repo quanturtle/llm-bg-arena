@@ -2,7 +2,8 @@
 
 Each round it asks every open decision's agent at once, from the same state,
 then applies the answers in seat order. Agents see only their own observation
-and the events visible to them since their last decision.
+and the events visible to them since their last decision. Before each round it
+waits while the match is paused; a cancelled match ends with match_stopped.
 """
 
 import asyncio
@@ -17,6 +18,7 @@ from boardgames.agents import (
     Forfeited,
 )
 from boardgames.arena.clock import Clock
+from boardgames.arena.control import AlwaysRunning, MatchControl
 from boardgames.core import (
     ArenaError,
     ConfigError,
@@ -32,6 +34,7 @@ from boardgames.logs.schema import (
     ForfeitRecord,
     MatchFinished,
     MatchStarted,
+    MatchStopped,
     ScoreRecord,
     SeatRecord,
     event_record,
@@ -59,6 +62,7 @@ class MatchLimits:
 
 
 DEFAULT_LIMITS = MatchLimits()
+ALWAYS_RUNNING = AlwaysRunning()
 
 
 @dataclass(frozen=True)
@@ -116,15 +120,17 @@ async def play_match[S, A, C: GameConfig](
     sink: RecordSink,
     clock: Clock,
     limits: MatchLimits = DEFAULT_LIMITS,
+    control: MatchControl = ALWAYS_RUNNING,
 ) -> MatchResult:
-    """Play one match to the end or to the first forfeit, writing the log to `sink`."""
+    """Play one match to the end or to the first forfeit, writing the log to `sink`.
+
+    Cancelling the call writes match_stopped and lets the cancellation through.
+    """
     check_seats(config, agents)
     context = MatchContext(game, tuple(agents), sink, clock, game.rules_text(), limits)
     sink.write(start_record(context, config, seed, match_id))
     progress = set_up(context, config, seed)
-    forfeited: tuple[PlayerId, ...] = ()
-    while not game.is_terminal(progress.state) and not forfeited:
-        progress, forfeited = await play_round(context, progress)
+    progress, forfeited = await play_rounds(context, progress, control)
     result = match_result(game, progress, forfeited, match_id)
     sink.write(finish_record(result, clock))
     return result
@@ -173,6 +179,26 @@ def set_up[S, A, C: GameConfig](
         history=transition.events,
         seen=(0,) * len(context.agents),
     )
+
+
+async def play_rounds[S, A, C: GameConfig](
+    context: MatchContext[S, A, C], progress: Progress[S], control: MatchControl
+) -> tuple[Progress[S], tuple[PlayerId, ...]]:
+    """Rounds until the end or a forfeit, waiting while paused.
+
+    A cancellation logs match_stopped at the last complete step; a round cut
+    short leaves no record, since its answers are applied only once all are in.
+    """
+    forfeited: tuple[PlayerId, ...] = ()
+    try:
+        while not context.game.is_terminal(progress.state) and not forfeited:
+            await control.wait_until_resumed()
+            progress, forfeited = await play_round(context, progress)
+    except asyncio.CancelledError:
+        stopped = MatchStopped(steps=progress.step, stopped_at=context.clock.now_iso())
+        context.sink.write(stopped)
+        raise
+    return progress, forfeited
 
 
 async def play_round[S, A, C: GameConfig](

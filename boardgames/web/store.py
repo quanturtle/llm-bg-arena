@@ -18,7 +18,10 @@ from boardgames.logs.schema import (
     LogRecord,
     MatchFinished,
     MatchStarted,
+    MatchStopped,
 )
+
+type MatchStatus = Literal["finished", "running", "stopped"]
 
 
 class UnknownMatchError(ArenaError):
@@ -57,7 +60,7 @@ class MatchSummary(Summary):
     started_at: str
     finished_at: str | None
     steps: int
-    status: Literal["finished", "running"]
+    status: MatchStatus
     seats: list[SeatSummary]
 
     @property
@@ -132,9 +135,13 @@ def seat_summary(
 
 
 def summarize(records: list[LogRecord]) -> MatchSummary:
-    """Summary of one log; a log without match_finished is a running match."""
+    """Summary of one log; a log with neither match_finished nor match_stopped runs.
+
+    A stopped match has no points or ranks and `finished_at` is when it stopped.
+    """
     start = first_record(records, MatchStarted)
     finish = next((r for r in records if isinstance(r, MatchFinished)), None)
+    stop = next((r for r in records if isinstance(r, MatchStopped)), None)
     answers: dict[int, list[Answer]] = {s.player: [] for s in start.seats}
     steps = 0
     for record in records:
@@ -151,11 +158,27 @@ def summarize(records: list[LogRecord]) -> MatchSummary:
         config=start.config,
         seed=start.seed,
         started_at=start.started_at,
-        finished_at=None if finish is None else finish.finished_at,
+        finished_at=ended_at(finish, stop),
         steps=finish.steps if finish is not None else steps,
-        status="finished" if finish is not None else "running",
+        status=match_status(finish, stop),
         seats=seats,
     )
+
+
+def ended_at(finish: MatchFinished | None, stop: MatchStopped | None) -> str | None:
+    """When the match finished or was stopped; None while it runs."""
+    if finish is not None:
+        return finish.finished_at
+    return None if stop is None else stop.stopped_at
+
+
+def match_status(
+    finish: MatchFinished | None, stop: MatchStopped | None
+) -> MatchStatus:
+    """Finished, stopped, or still running."""
+    if finish is not None:
+        return "finished"
+    return "running" if stop is None else "stopped"
 
 
 type FileStamp = tuple[int, int]

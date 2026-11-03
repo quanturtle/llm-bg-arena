@@ -17,6 +17,7 @@ from boardgames.logs.schema import (
     LogRecord,
     MatchFinished,
     MatchStarted,
+    MatchStopped,
     TraceRecord,
 )
 from boardgames.logs.sink import LogFileError
@@ -43,6 +44,8 @@ class ThoughtsLog:
                 self._write(forfeit_text(record, self._seat(record.player)))
             case MatchFinished():
                 self._write(finish_text(record, self._agents))
+            case MatchStopped():
+                self._write(f"## Stopped after {record.steps} steps\n")
         return
 
     def _seat(self, player: int) -> str:

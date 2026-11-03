@@ -138,9 +138,12 @@ def play(args: argparse.Namespace) -> None:
 def check_replay(args: argparse.Namespace) -> None:
     """Replay a log and report whether it matches."""
     report = replay_match(read_log(args.log))
+    stopped = (
+        " The match was stopped before the end." if report.ending == "stopped" else ""
+    )
     print(
         f"Replay matches the log: {report.game_id}, {report.steps} steps, "
-        f"{report.events} events."
+        f"{report.events} events.{stopped}"
     )
     return
 

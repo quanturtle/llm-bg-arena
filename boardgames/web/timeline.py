@@ -24,6 +24,7 @@ from boardgames.logs.schema import (
     ForfeitRecord,
     LogRecord,
     MatchFinished,
+    MatchStopped,
     TraceRecord,
     plain_object,
 )
@@ -204,16 +205,17 @@ def replay_complete_steps(
 ) -> tuple[Replayed, list[LogRecord]]:
     """Replay a log; a running match's last steps, still being written, are dropped.
 
-    A finished log, or one whose cut-off is not at the end, raises ReplayMismatchError.
+    A finished or stopped log, or one whose cut-off is not at the end, raises
+    ReplayMismatchError.
     """
     remaining = list(records)
-    is_finished = any(isinstance(r, MatchFinished) for r in records)
+    is_ended = any(isinstance(r, MatchFinished | MatchStopped) for r in records)
     while True:
         try:
             return replay_states(remaining), remaining
         except ReplayMismatchError:
             trimmed = without_last_decision(remaining)
-            if is_finished or not trimmed:
+            if is_ended or not trimmed:
                 raise
             remaining = trimmed
 

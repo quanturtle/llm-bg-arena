@@ -11,6 +11,7 @@ from boardgames.logs.schema import (
     LogRecord,
     MatchFinished,
     MatchStarted,
+    MatchStopped,
     TraceRecord,
 )
 
@@ -47,6 +48,8 @@ class ConsoleLog:
                 self._print_trace(record.player, record.trace)
             case MatchFinished():
                 self._print_scores(record)
+            case MatchStopped():
+                self._print(f"Stopped after {record.steps} steps, before the end.")
         return
 
     def _seat(self, player: int) -> str:

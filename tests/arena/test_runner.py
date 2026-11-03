@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from boardgames.agents import Agent
+from boardgames.arena.control import PauseGate
 from boardgames.arena.runner import (
     DEFAULT_LIMITS,
     AgentContractError,
@@ -17,12 +18,14 @@ from boardgames.arena.runner import (
 from boardgames.core import AnyGame, ConfigError, GameConfig, PlayerId
 from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
 from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import (
     DecisionRecord,
     EventRecord,
     ForfeitRecord,
     MatchFinished,
     MatchStarted,
+    MatchStopped,
 )
 from boardgames.logs.sink import JsonlFile, LogFileError, RecordSink
 from tests.arena.support import (
@@ -156,4 +159,34 @@ def test_jsonl_file_writes_one_json_object_per_line(tmp_path: Path) -> None:
     assert json.loads(lines[-1])["type"] == "match_finished"
     with pytest.raises(LogFileError, match="already exists"):
         JsonlFile(path)
+    return
+
+
+def test_a_paused_match_waits_and_a_cancelled_one_logs_its_stop() -> None:
+    sink = MemorySink()
+    gate = PauseGate()
+    gate.pause()
+
+    async def pause_then_cancel() -> None:
+        match = play_match(
+            KInARow(),
+            TIC_TAC_TOE,
+            7,
+            random_agents(2),
+            match_id="test",
+            sink=sink,
+            clock=FakeClock(),
+            control=gate,
+        )
+        task = asyncio.ensure_future(match)
+        await asyncio.sleep(0.01)
+        assert not any(isinstance(r, DecisionRecord) for r in sink.records)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        return
+
+    asyncio.run(pause_then_cancel())
+    assert sink.records[-1] == MatchStopped(steps=0, stopped_at=FakeClock().now_iso())
+    assert replay_match(sink.records).ending == "stopped"
     return

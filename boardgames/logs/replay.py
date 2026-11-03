@@ -8,7 +8,7 @@ Games must be registered (import `boardgames.games`) before replaying.
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import ValidationError
 
@@ -29,10 +29,13 @@ from boardgames.logs.schema import (
     LogRecord,
     MatchFinished,
     MatchStarted,
+    MatchStopped,
     event_json,
     plain_object,
 )
 from boardgames.logs.sink import LogFileError
+
+type Ending = Literal["finished", "stopped"]
 
 
 class LogFormatError(ArenaError):
@@ -49,6 +52,7 @@ class ReplayReport:
     game_id: str
     steps: int
     events: int
+    ending: Ending
 
 
 def read_log(path: Path) -> list[LogRecord]:
@@ -109,17 +113,30 @@ def replay_states(records: Sequence[LogRecord]) -> Replayed:
 
 
 def replay_match(records: Sequence[LogRecord]) -> ReplayReport:
-    """Replay a logged match; any difference raises ReplayMismatchError."""
-    finish = first_record(records, MatchFinished)
+    """Replay a finished or stopped match; any difference raises ReplayMismatchError."""
+    end = match_end(records)
     replayed = replay_states(records)
     step = replayed.last_step
-    check_finish(replayed.game, replayed.states[step], step, replayed.forfeited, finish)
+    state = replayed.states[step]
+    if isinstance(end, MatchFinished):
+        check_finish(replayed.game, state, step, replayed.forfeited, end)
+    else:
+        check_stop(replayed.game, state, step, end)
     return ReplayReport(
         match_id=replayed.start.match_id,
         game_id=replayed.start.game_id,
         steps=step,
         events=sum(1 for record in records if isinstance(record, EventRecord)),
+        ending="finished" if isinstance(end, MatchFinished) else "stopped",
     )
+
+
+def match_end(records: Sequence[LogRecord]) -> MatchFinished | MatchStopped:
+    """The record that ends the log: match_finished or match_stopped."""
+    for record in records:
+        if isinstance(record, MatchFinished | MatchStopped):
+            return record
+    raise LogFormatError("log has no MatchFinished or MatchStopped record")
 
 
 def first_record[R: LogRecord](records: Sequence[LogRecord], kind: type[R]) -> R:
@@ -282,4 +299,13 @@ def check_finish(
     logged = {PlayerId(s.player): (s.points, s.rank) for s in finish.scores}
     if replayed != logged:
         raise ReplayMismatchError(f"final scores: log has {logged}, replay {replayed}")
+    return
+
+
+def check_stop(game: AnyGame, state: Any, step: int, stop: MatchStopped) -> None:
+    """A stopped match ends at the last replayed step, before the game is over."""
+    if stop.steps != step:
+        raise ReplayMismatchError(f"log stops at step {stop.steps}, replay at {step}")
+    if game.is_terminal(state):
+        raise ReplayMismatchError("the log says stopped but the game is over")
     return

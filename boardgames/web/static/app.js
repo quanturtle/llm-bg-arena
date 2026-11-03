@@ -286,12 +286,14 @@
     return h("div", { class: "panel board stack" }, content, text, scoreRow(match, frame));
   }
 
-  function matchHeader(match) {
+  // `launch` (or null) carries the live status, such as paused, of a match this server started.
+  function matchHeader(match, launch) {
     const config = Object.entries(match.config).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(" ");
+    const live = launch && match.status === "running" ? { status: launch.status } : match;
     return h(
       "div",
       { class: "match-head" },
-      h("div", {}, h("h1", {}, h("a", { href: `#/games/${match.game_id}` }, match.game_id), " ", h("span", { class: "muted mono small" }, match.match_id), " ", statusBadge(match)), h("div", { class: "muted small mono" }, `seed ${match.seed} · ${config}`)),
+      h("div", {}, h("h1", {}, h("a", { href: `#/games/${match.game_id}` }, match.game_id), " ", h("span", { class: "muted mono small" }, match.match_id), " ", statusBadge(live)), h("div", { class: "muted small mono" }, `seed ${match.seed} · ${config}`)),
       h("div", { class: "seat-list" }, match.seats.map((seat) => seatChip(match, seat.player, seat.rank === 1 && match.status === "finished" ? [" ", h("span", { class: "badge winner" }, "winner")] : seat.forfeited ? [" ", h("span", { class: "badge forfeit" }, "forfeit")] : null))),
     );
   }
@@ -308,6 +310,9 @@
     let timer = null;
     let poll = null;
     let disposed = false;
+    // `launch` is set only for matches this server started, which it can pause and stop.
+    let launch = null;
+    let confirmingStop = false;
 
     const frameOf = async (n) => {
       if (!frames.has(n)) frames.set(n, api(`/api/matches/${matchId}/frames/${n}`));
@@ -318,7 +323,7 @@
 
     const seek = (n) => {
       step = Math.min(last(), Math.max(0, n));
-      if (step === last() && outline.match.status === "finished") stop();
+      if (step === last() && outline.match.status !== "running") stop();
       render();
     };
 
@@ -333,7 +338,7 @@
       playing = true;
       timer = setInterval(() => {
         if (step >= last()) {
-          if (outline.match.status === "finished") stop();
+          if (outline.match.status !== "running") stop();
           return;
         }
         seek(step + 1);
@@ -360,15 +365,53 @@
         if (outline) return;
         throw error;
       }
-      const grew = outline && fresh.frame_count > outline.frame_count;
-      const wasAtEnd = outline && step === last();
+      const shown = outline !== null;
+      const grew = shown && fresh.frame_count > outline.frame_count;
+      const wasAtEnd = shown && step === last();
+      const ended = shown && outline.match.status !== fresh.match.status;
       outline = fresh;
       if (grew && wasAtEnd) step = last();
-      if (fresh.match.status === "finished" && poll) {
+      if (fresh.match.status !== "running" && poll) {
         clearInterval(poll);
         poll = null;
       }
-      if (grew) render();
+      const launchChanged = await loadLaunch();
+      if (shown && (grew || ended || launchChanged)) render();
+    };
+
+    // Returns whether the launch status changed; a 404 means another process runs it.
+    const loadLaunch = async () => {
+      const before = launch && launch.status;
+      try {
+        launch = await api(`/api/launches/${matchId}`);
+      } catch (error) {
+        launch = null;
+      }
+      return before !== (launch && launch.status);
+    };
+
+    const act = async (action) => {
+      confirmingStop = false;
+      try {
+        launch = await send(`/api/launches/${matchId}/${action}`);
+        await refreshOutline();
+      } catch (error) {
+        return showError(error);
+      }
+      render();
+    };
+
+    const liveControls = () => {
+      if (!launch || !["running", "paused"].includes(launch.status)) return null;
+      const paused = launch.status === "paused";
+      const toggle = paused
+        ? h("button", { class: "primary", onclick: () => act("resume") }, "Resume match")
+        : h("button", { onclick: () => act("pause"), title: "Holds the match before its next round; a model call in progress finishes first." }, "Pause match");
+      const stopping = confirmingStop
+        ? [h("button", { class: "danger", onclick: () => act("stop") }, "Confirm stop"), h("button", { onclick: () => { confirmingStop = false; render(); } }, "Keep playing")]
+        : [h("button", { onclick: () => { confirmingStop = true; render(); }, title: "Ends the match now; it cannot be resumed." }, "Stop match")];
+      const note = confirmingStop ? "Stopping ends the match for good. Its log is kept." : paused ? "Paused." : "Live.";
+      return h("div", { class: "live-controls" }, toggle, ...stopping, h("span", { class: "muted small" }, note));
     };
 
     const controls = () => {
@@ -417,7 +460,8 @@
       if (current < last()) frameOf(current + 1);
       const match = outline.match;
       app.replaceChildren(
-        matchHeader(match),
+        matchHeader(match, launch),
+        liveControls() || "",
         controls(),
         h(
           "div",

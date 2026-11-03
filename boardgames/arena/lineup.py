@@ -14,6 +14,7 @@ from boardgames.agents import Agent, RandomAgent
 from boardgames.agents.llm_agent import LlmAgent
 from boardgames.arena.clock import SystemClock
 from boardgames.arena.console import ConsoleLog
+from boardgames.arena.control import MatchControl
 from boardgames.arena.match_config import (
     LlmDefaults,
     LlmSeat,
@@ -23,7 +24,7 @@ from boardgames.arena.match_config import (
     merged_options,
     seats_for,
 )
-from boardgames.arena.runner import MatchResult, play_match
+from boardgames.arena.runner import ALWAYS_RUNNING, MatchResult, play_match
 from boardgames.core import AnyGame, ConfigError, GameConfig, create_game
 from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
 from boardgames.llm.model import ChatModel, ModelSettings
@@ -124,7 +125,11 @@ def prepare_match(
     )
 
 
-async def run_prepared(prepared: PreparedMatch, console: TextIO | None) -> MatchResult:
+async def run_prepared(
+    prepared: PreparedMatch,
+    console: TextIO | None,
+    control: MatchControl = ALWAYS_RUNNING,
+) -> MatchResult:
     """Play a prepared match into its log and thoughts files, and `console` if given."""
     with (
         JsonlFile(prepared.log_path) as log_file,
@@ -141,4 +146,5 @@ async def run_prepared(prepared: PreparedMatch, console: TextIO | None) -> Match
             match_id=prepared.match_id,
             sink=Broadcast(sinks),
             clock=SystemClock(),
+            control=control,
         )

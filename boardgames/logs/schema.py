@@ -1,8 +1,9 @@
 """Match log records: one JSON object per line, discriminated by "type".
 
 A log is: match_started, the setup events (step 0), then per applied decision a
-decision record and its events, and finally match_finished. A forfeit record
-replaces the decision record of a player who gave up.
+decision record and its events, and finally match_finished, or match_stopped
+for a match stopped before the end. A forfeit record replaces the decision
+record of a player who gave up.
 """
 
 import json
@@ -108,8 +109,21 @@ class MatchFinished(Record):
     finished_at: str
 
 
+class MatchStopped(Record):
+    """The last record of a match stopped before the end; it has no scores."""
+
+    type: Literal["match_stopped"] = "match_stopped"
+    steps: int
+    stopped_at: str
+
+
 type LogRecord = Annotated[
-    MatchStarted | EventRecord | DecisionRecord | ForfeitRecord | MatchFinished,
+    MatchStarted
+    | EventRecord
+    | DecisionRecord
+    | ForfeitRecord
+    | MatchFinished
+    | MatchStopped,
     Field(discriminator="type"),
 ]
 

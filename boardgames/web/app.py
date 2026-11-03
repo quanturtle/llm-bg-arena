@@ -17,7 +17,12 @@ from pydantic import JsonValue as PlainJson
 from boardgames.core import ArenaError, UnknownGameError, create_game
 from boardgames.games import game_ids
 from boardgames.logs.schema import plain_object
-from boardgames.web.launcher import Example, Launch, MatchLauncher
+from boardgames.web.launcher import (
+    Example,
+    Launch,
+    MatchLauncher,
+    UnknownLaunchError,
+)
 from boardgames.web.layouts import game_layout
 from boardgames.web.stats import AgentDetail, Leaderboard, agent_detail, leaderboard
 from boardgames.web.store import Catalog, MatchStore, MatchSummary, UnknownMatchError
@@ -128,6 +133,30 @@ def list_launches(request: Request) -> list[Launch]:
     return launcher_of(request).launches()
 
 
+@api.get("/launches/{match_id}")
+def launch_status(request: Request, match_id: str) -> Launch:
+    """One started match's status; 404 for matches not started from this server."""
+    return launcher_of(request).launch(match_id)
+
+
+@api.post("/launches/{match_id}/pause")
+def pause_match(request: Request, match_id: str) -> Launch:
+    """Hold the match before its next round."""
+    return launcher_of(request).pause(match_id)
+
+
+@api.post("/launches/{match_id}/resume")
+def resume_match(request: Request, match_id: str) -> Launch:
+    """Let a paused match play on."""
+    return launcher_of(request).resume(match_id)
+
+
+@api.post("/launches/{match_id}/stop")
+async def stop_match(request: Request, match_id: str) -> Launch:
+    """End the match now; its log closes with match_stopped."""
+    return await launcher_of(request).stop(match_id)
+
+
 @api.get("/games/{game_id}")
 def game_detail(request: Request, game_id: str) -> GameDetail:
     info = game_info(game_id, store_of(request).catalog())
@@ -226,6 +255,7 @@ def create_app(store: MatchStore, launcher: MatchLauncher) -> FastAPI:
     app.add_exception_handler(UnknownMatchError, not_found)
     app.add_exception_handler(UnknownFrameError, not_found)
     app.add_exception_handler(UnknownAgentError, not_found)
+    app.add_exception_handler(UnknownLaunchError, not_found)
     app.add_exception_handler(UnknownGameError, not_found)
     app.add_exception_handler(ArenaError, unprocessable)
     app.mount("/static", StaticFiles(directory=static_directory()), name="static")
