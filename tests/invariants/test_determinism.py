@@ -2,11 +2,11 @@ import asyncio
 
 import pytest
 
-from tabletop_arena.arena.runner import play_match
-from tabletop_arena.core import AnyGame, GameConfig
-from tabletop_arena.games.k_in_a_row import FOUR_IN_A_ROW, KInARow
-from tabletop_arena.games.sealed_auction import SealedAuction, SealedAuctionConfig
-from tabletop_arena.logs.schema import LogRecord
+from boardgames.arena.runner import play_match
+from boardgames.core import AnyGame, GameConfig
+from boardgames.games.k_in_a_row import FOUR_IN_A_ROW, KInARow
+from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.logs.schema import LogRecord
 from tests.arena.support import FakeClock, MemorySink, random_agents
 
 CASES: list[tuple[AnyGame, GameConfig]] = [

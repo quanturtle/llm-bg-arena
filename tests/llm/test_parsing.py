@@ -2,10 +2,10 @@ import asyncio
 
 import pytest
 
-from tabletop_arena.games.k_in_a_row import Mark
-from tabletop_arena.games.sealed_auction import Bid
-from tabletop_arena.llm.model import ModelSettings
-from tabletop_arena.llm.parsing import (
+from boardgames.games.k_in_a_row import Mark
+from boardgames.games.sealed_auction import Bid
+from boardgames.llm.model import ModelSettings
+from boardgames.llm.parsing import (
     ActionExtractor,
     ParsedReply,
     Rejected,

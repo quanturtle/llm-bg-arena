@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from tabletop_arena.core import AnyGame, GameConfig, Rng
+from boardgames.core import AnyGame, GameConfig, Rng
 
 MAX_STEPS = 1_000
 

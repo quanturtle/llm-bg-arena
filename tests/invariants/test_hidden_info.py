@@ -10,15 +10,15 @@ from dataclasses import replace
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from tabletop_arena.arena.runner import play_match
-from tabletop_arena.core import PlayerId, Rng, seats
-from tabletop_arena.games.sealed_auction import (
+from boardgames.arena.runner import play_match
+from boardgames.core import PlayerId, Rng, seats
+from boardgames.games.sealed_auction import (
     Bid,
     SealedAuction,
     SealedAuctionConfig,
     SealedAuctionState,
 )
-from tabletop_arena.games.sealed_auction.game import COLORS
+from boardgames.games.sealed_auction.game import COLORS
 from tests.arena.support import FakeClock, MemorySink, RecordingAgent
 
 GAME = SealedAuction()

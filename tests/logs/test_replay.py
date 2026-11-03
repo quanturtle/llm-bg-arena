@@ -4,26 +4,26 @@ from pathlib import Path
 
 import pytest
 
-from tabletop_arena.agents import Agent
-from tabletop_arena.arena import cli
-from tabletop_arena.arena.runner import play_match
-from tabletop_arena.core import AnyGame, GameConfig
-from tabletop_arena.games.k_in_a_row import TIC_TAC_TOE, KInARow
-from tabletop_arena.games.sealed_auction import SealedAuction, SealedAuctionConfig
-from tabletop_arena.logs.replay import (
+from boardgames.agents import Agent
+from boardgames.arena import cli
+from boardgames.arena.runner import play_match
+from boardgames.core import AnyGame, GameConfig
+from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
+from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.logs.replay import (
     LogFormatError,
     ReplayMismatchError,
     read_log,
     replay_match,
 )
-from tabletop_arena.logs.schema import (
+from boardgames.logs.schema import (
     DecisionRecord,
     EventRecord,
     LogRecord,
     MatchFinished,
     MatchStarted,
 )
-from tabletop_arena.logs.sink import JsonlFile
+from boardgames.logs.sink import JsonlFile
 from tests.arena.support import (
     FakeClock,
     ForfeitingAgent,

@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from tabletop_arena.agents import (
+from boardgames.agents import (
     Agent,
     AgentChoice,
     Chosen,
@@ -11,8 +11,8 @@ from tabletop_arena.agents import (
     Forfeited,
     RandomAgent,
 )
-from tabletop_arena.core import JsonValue
-from tabletop_arena.logs.schema import LogRecord
+from boardgames.core import JsonValue
+from boardgames.logs.schema import LogRecord
 
 
 class MemorySink:

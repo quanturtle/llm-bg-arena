@@ -3,8 +3,8 @@ from typing import Literal
 
 import pytest
 
-from tabletop_arena.core import ConfigError, canonical_json, json_digest
-from tabletop_arena.core.records import (
+from boardgames.core import ConfigError, canonical_json, json_digest
+from boardgames.core.records import (
     dataclass_from_json,
     tagged_json_object,
     to_json_object,

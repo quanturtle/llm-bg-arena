@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from tabletop_arena.core import ActionSpace, FlatActionSpace, NotationError, Tokens
+from boardgames.core import ActionSpace, FlatActionSpace, NotationError, Tokens
 
 
 @dataclass(frozen=True)

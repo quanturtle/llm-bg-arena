@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from tabletop_arena.llm.model import (
+from boardgames.llm.model import (
     Completion,
     Message,
     ModelSettings,

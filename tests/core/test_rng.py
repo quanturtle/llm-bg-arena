@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from tabletop_arena.core.rng import Rng
+from boardgames.core.rng import Rng
 
 
 def test_matches_reference_splitmix64_output() -> None:

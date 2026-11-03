@@ -1,6 +1,6 @@
 import pytest
 
-from tabletop_arena.core import UnknownGameError, create_game
+from boardgames.core import UnknownGameError, create_game
 
 
 def test_unknown_game_id_raises() -> None:

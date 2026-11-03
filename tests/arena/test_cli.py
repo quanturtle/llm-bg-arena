@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from tabletop_arena.arena import cli
+from boardgames.arena import cli
 
 
 def test_play_prints_the_match_and_writes_a_log(
@@ -60,5 +60,9 @@ def test_llm_spec_builds_an_llm_agent_with_command_line_settings() -> None:
 
 def test_games_lists_registered_ids(capsys: pytest.CaptureFixture[str]) -> None:
     cli.run_command(cli.parse_arguments(["games"]))
-    assert capsys.readouterr().out.split() == ["k_in_a_row", "sealed_auction"]
+    assert capsys.readouterr().out.split() == [
+        "catan",
+        "k_in_a_row",
+        "sealed_auction",
+    ]
     return

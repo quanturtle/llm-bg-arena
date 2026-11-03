@@ -4,22 +4,22 @@ from typing import Any
 
 import pytest
 
-from tabletop_arena.agents import AgentChoice, Chosen, DecisionRequest, Forfeited
-from tabletop_arena.agents.llm_agent import LlmAgent, LlmAgentSettings
-from tabletop_arena.arena.runner import play_match
-from tabletop_arena.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
-from tabletop_arena.games.sealed_auction import Bid
-from tabletop_arena.llm.model import (
+from boardgames.agents import AgentChoice, Chosen, DecisionRequest, Forfeited
+from boardgames.agents.llm_agent import LlmAgent, LlmAgentSettings
+from boardgames.arena.runner import play_match
+from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
+from boardgames.games.sealed_auction import Bid
+from boardgames.llm.model import (
     Completion,
     ModelSettings,
     TransientModelError,
     Usage,
 )
-from tabletop_arena.llm.parsing import ActionExtractor
-from tabletop_arena.llm.prompting import PromptSettings
-from tabletop_arena.llm.retry import RetryingChatModel
-from tabletop_arena.logs.replay import replay_match
-from tabletop_arena.logs.schema import DecisionRecord
+from boardgames.llm.parsing import ActionExtractor
+from boardgames.llm.prompting import PromptSettings
+from boardgames.llm.retry import RetryingChatModel
+from boardgames.logs.replay import replay_match
+from boardgames.logs.schema import DecisionRecord
 from tests.arena.support import FakeClock, MemorySink, ScriptedAgent
 from tests.llm.fakes import QueuedChatModel, reply
 from tests.llm.requests import auction_request, tic_tac_toe_request

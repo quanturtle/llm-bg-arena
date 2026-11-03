@@ -1,8 +1,8 @@
 from dataclasses import replace
 
-from tabletop_arena.core import Event
-from tabletop_arena.llm.model import Message
-from tabletop_arena.llm.prompting import (
+from boardgames.core import Event
+from boardgames.llm.model import Message
+from boardgames.llm.prompting import (
     PromptSettings,
     action_templates,
     build_prompt,

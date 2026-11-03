@@ -2,10 +2,10 @@
 
 from typing import Any
 
-from tabletop_arena.agents import DecisionRequest
-from tabletop_arena.core import AnyGame, Event, GameConfig
-from tabletop_arena.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
-from tabletop_arena.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
+from boardgames.agents import DecisionRequest
+from boardgames.core import AnyGame, Event, GameConfig
+from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
+from boardgames.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
 
 
 def request_at(

@@ -2,7 +2,7 @@ from dataclasses import replace
 
 import pytest
 
-from tabletop_arena.core import (
+from boardgames.core import (
     ConfigError,
     IllegalActionError,
     NotationError,
@@ -10,7 +10,7 @@ from tabletop_arena.core import (
     create_game,
     seats,
 )
-from tabletop_arena.games.sealed_auction import (
+from boardgames.games.sealed_auction import (
     Bid,
     Lot,
     SealedAuction,

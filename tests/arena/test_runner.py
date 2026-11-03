@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from tabletop_arena.agents import Agent
-from tabletop_arena.arena.runner import (
+from boardgames.agents import Agent
+from boardgames.arena.runner import (
     DEFAULT_LIMITS,
     AgentContractError,
     MatchLimits,
@@ -14,17 +14,17 @@ from tabletop_arena.arena.runner import (
     StepLimitError,
     play_match,
 )
-from tabletop_arena.core import AnyGame, ConfigError, GameConfig, PlayerId
-from tabletop_arena.games.k_in_a_row import TIC_TAC_TOE, KInARow
-from tabletop_arena.games.sealed_auction import SealedAuction, SealedAuctionConfig
-from tabletop_arena.logs.schema import (
+from boardgames.core import AnyGame, ConfigError, GameConfig, PlayerId
+from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow
+from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.logs.schema import (
     DecisionRecord,
     EventRecord,
     ForfeitRecord,
     MatchFinished,
     MatchStarted,
 )
-from tabletop_arena.logs.sink import JsonlFile, RecordSink
+from boardgames.logs.sink import JsonlFile, RecordSink
 from tests.arena.support import (
     FakeClock,
     FixedAgent,

@@ -1,4 +1,4 @@
-# Tabletop Arena
+# Boardgames
 
 Seat language models, scripted bots and humans at the same board game table, and keep a replayable record of every move.
 
@@ -18,8 +18,8 @@ Larger strategy games, tournaments, ratings and a web replay viewer come next.
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
-git clone <repo-url> tabletop-arena
-cd tabletop-arena
+git clone <repo-url> boardgames
+cd boardgames
 uv sync
 ```
 

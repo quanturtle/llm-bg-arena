@@ -1,4 +1,4 @@
-from tabletop_arena.core import Event, PlayerId
+from boardgames.core import Event, PlayerId
 
 ALICE = PlayerId(0)
 BOB = PlayerId(1)

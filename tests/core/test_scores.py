@@ -1,4 +1,4 @@
-from tabletop_arena.core import PlayerId, Scores
+from boardgames.core import PlayerId, Scores
 
 
 def test_tied_players_share_the_better_rank() -> None:

@@ -1,15 +1,15 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from tabletop_arena.core import PlayerId, seats
-from tabletop_arena.games.k_in_a_row import (
+from boardgames.core import PlayerId, seats
+from boardgames.games.k_in_a_row import (
     FOUR_IN_A_ROW,
     TIC_TAC_TOE,
     KInARow,
     KInARowConfig,
     KInARowState,
 )
-from tabletop_arena.games.sealed_auction import (
+from boardgames.games.sealed_auction import (
     SealedAuction,
     SealedAuctionConfig,
     SealedAuctionState,

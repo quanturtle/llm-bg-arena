@@ -1,15 +1,15 @@
 import asyncio
 
-from tabletop_arena.agents import Agent, Chosen, DecisionRequest, RandomAgent
-from tabletop_arena.core import (
+from boardgames.agents import Agent, Chosen, DecisionRequest, RandomAgent
+from boardgames.core import (
     ActionSpace,
     Decision,
     NotationError,
     Observation,
     PlayerId,
 )
-from tabletop_arena.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
-from tabletop_arena.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
+from boardgames.games.k_in_a_row import TIC_TAC_TOE, KInARow, Mark
+from boardgames.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
 from tests.core.test_actions import Move, Pass, Step, StepSpace, step_notation
 
 TIC_TAC_TOE_GAME = KInARow()

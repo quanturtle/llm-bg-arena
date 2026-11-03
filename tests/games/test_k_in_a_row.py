@@ -1,6 +1,6 @@
 import pytest
 
-from tabletop_arena.core import (
+from boardgames.core import (
     ConfigError,
     DuplicateGameError,
     IllegalActionError,
@@ -9,7 +9,7 @@ from tabletop_arena.core import (
     create_game,
     register_game,
 )
-from tabletop_arena.games.k_in_a_row import (
+from boardgames.games.k_in_a_row import (
     FOUR_IN_A_ROW,
     TIC_TAC_TOE,
     KInARow,

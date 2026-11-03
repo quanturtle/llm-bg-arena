@@ -4,13 +4,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from tabletop_arena.llm.cache import CachedChatModel, DirectoryResponseStore
-from tabletop_arena.llm.litellm_model import (
+from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
+from boardgames.llm.litellm_model import (
     completion_from,
     request_arguments,
     table_prices,
 )
-from tabletop_arena.llm.model import (
+from boardgames.llm.model import (
     ChatModel,
     Completion,
     Message,
@@ -23,7 +23,7 @@ from tabletop_arena.llm.model import (
     Usage,
     cost_usd,
 )
-from tabletop_arena.llm.retry import RetryingChatModel
+from boardgames.llm.retry import RetryingChatModel
 from tests.llm.fakes import QueuedChatModel, reply
 
 SETTINGS = ModelSettings(model="anthropic/claude-haiku-5-5")
