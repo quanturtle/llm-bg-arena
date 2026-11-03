@@ -8,17 +8,20 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GAMES } from "@/games/registry";
 import type { Frame, JsonObject, MatchSummary } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const TEXT_TAB = "text";
 
 function ScoreRow({ match, frame, isFinal }: { match: MatchSummary; frame: Frame; isFinal: boolean }) {
   return (
-    <div aria-label="Scores" className="flex flex-wrap gap-x-6 gap-y-1 border-t px-4 pt-3 text-sm">
+    // columns of fixed width, so a score reaching two digits never rewraps the row
+    <div aria-label="Scores" className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-x-6 gap-y-1 border-t px-4 pt-3 text-sm">
       {frame.scores.map((score) => (
         <span key={score.player} className="flex min-w-0 items-center gap-1.5">
-          <SeatChip seat={match.seats[score.player]} className="max-w-64" />
+          <SeatChip seat={match.seats[score.player]} className="min-w-0" />
           <strong className="tabular-nums">{score.points}</strong>
-          {isFinal ? <span className="text-muted-foreground tabular-nums">#{score.rank}</span> : null}
+          {/* the rank's slot is kept during play, so the row does not rewrap at the end */}
+          <span className={cn("text-muted-foreground tabular-nums", !isFinal && "invisible")}>#{score.rank}</span>
         </span>
       ))}
     </div>

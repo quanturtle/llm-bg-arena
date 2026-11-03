@@ -62,7 +62,10 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
       </div>
       {frame.error ? <ErrorAlert error={frame.error} /> : null}
       {frame.data ? (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_26rem] 2xl:grid-cols-[minmax(0,1fr)_30rem]" style={{ "--side-top": `${sideTop}px` } as React.CSSProperties}>
+        <div
+          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_26rem] 2xl:grid-cols-[minmax(0,1fr)_30rem]"
+          style={{ "--side-top": `${sideTop}px` } as React.CSSProperties}
+        >
           <div className="flex min-w-0 flex-col gap-4">
             <BoardPanel
               match={match}
@@ -75,7 +78,7 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
             />
             <PointsChart outline={outline} step={state.step} onSeek={(step) => dispatch({ type: "seek", step })} />
           </div>
-          <div ref={sideRef} className="flex flex-col gap-4 xl:sticky xl:top-(--side-top) xl:self-start">
+          <div ref={sideRef} className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-(--side-top) xl:self-start">
             <DecisionCard match={match} frame={frame.data} tab={decisionTab} onTab={setDecisionTab} className="h-88 shrink-0" />
             <EventLog
               outline={outline}

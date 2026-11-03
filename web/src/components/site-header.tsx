@@ -23,18 +23,18 @@ export function SiteHeader() {
   const section = sectionOf(usePathname());
   return (
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-[1840px] items-center gap-6 px-4 sm:px-6">
-        <Link href="/matches" className="flex items-center gap-2 font-semibold">
+      <div className="mx-auto flex h-14 w-full max-w-[1840px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
+        <Link href="/matches" className="flex items-center gap-2 font-semibold" aria-label="Boardgames">
           <Dices className="size-5" />
-          Boardgames
+          <span className="hidden sm:inline">Boardgames</span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex items-center gap-0.5 text-sm sm:gap-1">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:text-foreground",
+                "rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:text-foreground sm:px-2.5",
                 item.sections.includes(section) && "bg-muted text-foreground",
               )}
             >
@@ -44,8 +44,9 @@ export function SiteHeader() {
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <Button asChild size="sm">
-            <Link href="/new">
-              <Plus /> New match
+            <Link href="/new" aria-label="New match">
+              <Plus />
+              <span className="hidden sm:inline">New match</span>
             </Link>
           </Button>
           <ThemeToggle />

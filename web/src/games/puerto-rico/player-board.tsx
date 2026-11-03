@@ -116,24 +116,27 @@ function PlayerBoard({
         {isActive ? <BorderPill tone="active">to act</BorderPill> : null}
         {isWinner ? <BorderPill tone="win">winner</BorderPill> : null}
       </BorderPills>
-      <header className="flex h-7 items-center gap-4 text-sm">
-        <SeatChip seat={match.seats[seat]} className="min-w-0 flex-1" />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="flex items-center gap-1.5 font-medium tabular-nums">
-              <Coin value={player.doubloons} />
-              {player.doubloons}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Doubloons</TooltipContent>
-        </Tooltip>
-        <Stat icon={Users} label="Colonists waiting to be placed" value={player.colonists_unplaced} />
-        <Stat icon={Sprout} label="Island spaces used" value={`${player.island_spaces_used}/${ISLAND_SPACES}`} />
-        <Stat icon={Building} label="City spaces used" value={`${player.city_spaces_used}/${CITY_SPACES}`} />
-        <span className="w-16 text-right text-xl leading-none font-semibold tabular-nums" title={final ? "Final points" : "Points others can see"}>
-          {final ? final.points : player.public_points}
-          <span className="ml-1 text-xs font-normal text-muted-foreground">VP</span>
-        </span>
+      {/* narrow boards put the stats on a second line; each value has a fixed width either way */}
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        <SeatChip seat={match.seats[seat]} className="h-7 min-w-0 flex-1 basis-48" />
+        <div className="flex h-7 items-center gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex w-[4ch] items-center gap-1.5 font-medium tabular-nums">
+                <Coin value={player.doubloons} />
+                {player.doubloons}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Doubloons</TooltipContent>
+          </Tooltip>
+          <Stat icon={Users} label="Colonists waiting to be placed" value={player.colonists_unplaced} className="w-[4ch]" />
+          <Stat icon={Sprout} label="Island spaces used" value={`${player.island_spaces_used}/${ISLAND_SPACES}`} className="w-[7ch]" />
+          <Stat icon={Building} label="City spaces used" value={`${player.city_spaces_used}/${CITY_SPACES}`} className="w-[7ch]" />
+          <span className="w-16 text-right text-xl leading-none font-semibold tabular-nums" title={final ? "Final points" : "Points others can see"}>
+            {final ? final.points : player.public_points}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">VP</span>
+          </span>
+        </div>
       </header>
       <div className="mt-3 grid gap-4 @2xl:grid-cols-[auto_minmax(0,1fr)] @4xl:grid-cols-[11rem_auto_minmax(0,1fr)]">
         <div className="@2xl:col-span-2 @4xl:col-span-1">
