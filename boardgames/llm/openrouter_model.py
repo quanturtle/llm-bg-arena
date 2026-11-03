@@ -142,17 +142,26 @@ def request_body(
         body["top_p"] = settings.top_p
     if settings.seed is not None:
         body["seed"] = settings.seed
-    if settings.reasoning_effort == "none":
-        body["reasoning"] = {"enabled": False}
-    elif settings.reasoning_effort is not None:
-        body["reasoning"] = {"effort": settings.reasoning_effort}
-    if settings.thinking_budget_tokens is not None:
-        body["reasoning"] = {"max_tokens": settings.thinking_budget_tokens}
+    reasoning = reasoning_json(settings)
+    if reasoning:
+        body["reasoning"] = reasoning
     if tools:
         body["tools"] = tools_json(tools)
         body["tool_choice"] = tool_choice_json(tool_choice)
     body.update(settings.extra)
     return body
+
+
+def reasoning_json(settings: ModelSettings) -> dict[str, JsonValue]:
+    """OpenRouter's reasoning object: `enabled`, `effort` and `max_tokens` when set."""
+    reasoning: dict[str, JsonValue] = {}
+    if settings.reasoning is not None:
+        reasoning["enabled"] = settings.reasoning
+    if settings.reasoning_effort is not None:
+        reasoning["effort"] = settings.reasoning_effort
+    if settings.thinking_budget_tokens is not None:
+        reasoning["max_tokens"] = settings.thinking_budget_tokens
+    return reasoning
 
 
 def parse_payload(response: httpx.Response) -> ResponsePayload:

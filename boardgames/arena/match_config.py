@@ -17,7 +17,7 @@ from pydantic_core import ErrorDetails
 from boardgames.agents import FallbackPolicy
 from boardgames.agents.llm_agent import LlmAgentSettings
 from boardgames.core import ConfigError
-from boardgames.llm.model import ModelSettings, ReasoningEffort
+from boardgames.llm.model import ModelSettings, ReasoningEffort, reasoning_conflict
 from boardgames.llm.prompting import OutputMode, PromptSettings
 
 MODEL_FIELDS = frozenset(
@@ -26,6 +26,7 @@ MODEL_FIELDS = frozenset(
         "top_p",
         "max_tokens",
         "timeout_seconds",
+        "reasoning",
         "reasoning_effort",
         "thinking_budget_tokens",
         "extra",
@@ -58,6 +59,7 @@ class LlmOptions(ConfigModel):
     top_p: float | None = Field(default=None, ge=0, le=1)
     max_tokens: int | None = Field(default=None, ge=1)
     timeout_seconds: float | None = Field(default=None, gt=0)
+    reasoning: bool | None = None
     reasoning_effort: ReasoningEffort | None = None
     thinking_budget_tokens: int | None = Field(default=None, ge=1)
     extra: dict[str, PlainJson] | None = None
@@ -123,16 +125,13 @@ def problem_text(problem: ErrorDetails) -> str:
 
 
 def check_reasoning(config: MatchConfig, source: str) -> None:
-    """Raise ConfigError if a seat sets both kinds of reasoning."""
+    """Raise ConfigError if a seat's reasoning settings contradict each other."""
     for index, seat in enumerate(config.seats or []):
-        if (
-            seat.reasoning_effort is not None
-            and seat.thinking_budget_tokens is not None
-        ):
-            raise ConfigError(
-                f"{source}: seats.{index}: set reasoning_effort or "
-                "thinking_budget_tokens, not both"
-            )
+        problem = reasoning_conflict(
+            seat.reasoning, seat.reasoning_effort, seat.thinking_budget_tokens
+        )
+        if problem is not None:
+            raise ConfigError(f"{source}: seats.{index}: {problem}")
     return
 
 

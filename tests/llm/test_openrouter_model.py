@@ -96,10 +96,19 @@ def test_request_body_passes_top_p_and_a_thinking_budget() -> None:
     return
 
 
-def test_reasoning_effort_none_turns_thinking_off() -> None:
-    settings = ModelSettings(model="m", reasoning_effort="none")
+def test_reasoning_false_turns_thinking_off() -> None:
+    settings = ModelSettings(model="m", reasoning=False)
     assert request_body(MESSAGES, settings, (), "auto")["reasoning"] == {
         "enabled": False
+    }
+    return
+
+
+def test_reasoning_and_effort_are_sent_as_separate_fields() -> None:
+    settings = ModelSettings(model="m", reasoning=True, reasoning_effort="high")
+    assert request_body(MESSAGES, settings, (), "auto")["reasoning"] == {
+        "enabled": True,
+        "effort": "high",
     }
     return
 
@@ -115,6 +124,12 @@ def test_request_body_merges_extra_last_so_it_overrides_built_in_fields() -> Non
 def test_effort_and_budget_together_are_a_config_error() -> None:
     with pytest.raises(ConfigError, match="not both"):
         ModelSettings(model="m", reasoning_effort="low", thinking_budget_tokens=1)
+    return
+
+
+def test_effort_with_reasoning_off_is_a_config_error() -> None:
+    with pytest.raises(ConfigError, match="reasoning is false"):
+        ModelSettings(model="m", reasoning=False, reasoning_effort="low")
     return
 
 

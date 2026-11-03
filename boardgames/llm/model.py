@@ -7,7 +7,7 @@ from typing import Literal, Protocol
 from boardgames.core import ArenaError, ConfigError, JsonObject, JsonValue
 
 type Role = Literal["system", "user", "assistant", "tool"]
-type ReasoningEffort = Literal["none", "low", "medium", "high"]
+type ReasoningEffort = Literal["low", "medium", "high"]
 
 
 class TransientModelError(ArenaError):
@@ -60,13 +60,27 @@ class ForcedTool:
 type ToolChoice = Literal["auto", "required"] | ForcedTool
 
 
+def reasoning_conflict(
+    reasoning: bool | None,
+    effort: ReasoningEffort | None,
+    budget: int | None,
+) -> str | None:
+    """Why these reasoning settings cannot go together, or None when they can."""
+    if effort is not None and budget is not None:
+        return "set reasoning_effort or thinking_budget_tokens, not both"
+    if reasoning is False and (effort is not None or budget is not None):
+        return "reasoning is false, so drop reasoning_effort and thinking_budget_tokens"
+    return None
+
+
 @dataclass(frozen=True)
 class ModelSettings:
     """Per-model call settings; `model` is an OpenRouter id ("openai/gpt-5-mini").
 
-    Reasoning is asked for by effort or by a token budget, not both. `extra` is
-    merged into the request body as is, for provider routing and other options.
-    `max_tokens` also covers a thinking model's reasoning, so it leaves room for it.
+    `reasoning` turns thinking on or off (None keeps the model's default); how much
+    it thinks is an effort or a token budget, not both, and neither when it is off.
+    `extra` is merged into the request body as is, for provider routing and other
+    options. `max_tokens` also covers a thinking model's reasoning.
     """
 
     model: str
@@ -74,19 +88,18 @@ class ModelSettings:
     top_p: float | None = None
     max_tokens: int = 4096
     timeout_seconds: float = 120.0
+    reasoning: bool | None = None
     reasoning_effort: ReasoningEffort | None = None
     thinking_budget_tokens: int | None = None
     seed: int | None = None
     extra: JsonObject = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if (
-            self.reasoning_effort is not None
-            and self.thinking_budget_tokens is not None
-        ):
-            raise ConfigError(
-                f"{self.model}: reasoning_effort and thinking_budget_tokens, not both"
-            )
+        problem = reasoning_conflict(
+            self.reasoning, self.reasoning_effort, self.thinking_budget_tokens
+        )
+        if problem is not None:
+            raise ConfigError(f"{self.model}: {problem}")
         return
 
     def to_json(self) -> dict[str, JsonValue]:
@@ -97,6 +110,7 @@ class ModelSettings:
             "top_p": self.top_p,
             "max_tokens": self.max_tokens,
             "timeout_seconds": self.timeout_seconds,
+            "reasoning": self.reasoning,
             "reasoning_effort": self.reasoning_effort,
             "thinking_budget_tokens": self.thinking_budget_tokens,
             "seed": self.seed,

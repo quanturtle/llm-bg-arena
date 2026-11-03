@@ -35,7 +35,7 @@ game: tic_tac_toe
 seed: 7
 seats:
   - model: qwen/qwen3.7-flash
-    reasoning_effort: none    # thinking off: much faster, and it still plays well
+    reasoning: false          # thinking off: much faster, and it still plays well
   - model: openai/gpt-5-nano
     reasoning_effort: low     # this model must think; low keeps replies short
 ```
@@ -44,9 +44,9 @@ seats:
 uv run arena play examples/tic_tac_toe.yaml
 ```
 
-That match costs well under a cent. Any OpenRouter model id works, and a seat without a `model` plays `qwen/qwen3.7-flash`; leave `seats` out and every player does. Each seat can set `temperature`, `top_p`, `max_tokens`, `reasoning_effort` (`none`, `low`, `medium`, `high`) or `thinking_budget_tokens`, `timeout_seconds`, `label`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. A player is called by its `label`, or else by its model; players on the same model become `qwen/qwen3.7-flash #1`, `qwen/qwen3.7-flash #2`. `cache: true` at the top of the file reuses stored replies for identical requests. `--seed` and `--log` override the file. The files in `examples/` also cover short three-player Catan and Puerto Rico games between cheap models.
+That match costs well under a cent. Any OpenRouter model id works, and a seat without a `model` plays `qwen/qwen3.7-flash`; leave `seats` out and every player does. Each seat can set `temperature`, `top_p`, `max_tokens`, `reasoning` (`true` or `false`; left out, the model's default), `reasoning_effort` (`low`, `medium`, `high`) or `thinking_budget_tokens`, `timeout_seconds`, `label`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. A player is called by its `label`, or else by its model; players on the same model become `qwen/qwen3.7-flash #1`, `qwen/qwen3.7-flash #2`. `cache: true` at the top of the file reuses stored replies for identical requests. `--seed` and `--log` override the file. The files in `examples/` also cover short three-player Catan and Puerto Rico games between cheap models.
 
-Some models think before they answer, and that thinking counts toward `max_tokens` (default 4096). `qwen/qwen3.7-flash` ignores `low` and token budgets and can think for minutes on one move, so give it `reasoning_effort: none`; `openai/gpt-5-nano` must think and rejects `none`, so give it `low`.
+Some models think before they answer, and that thinking counts toward `max_tokens` (default 4096). `qwen/qwen3.7-flash` ignores `low` and token budgets and can think for minutes on one move, so give it `reasoning: false`; `openai/gpt-5-nano` must think and rejects `reasoning: false`, so give it `reasoning_effort: low`.
 
 Puerto Rico follows the role-selection cycle: the governor chooses first, every role's action phase runs immediately, and unchosen roles gain a doubloon at round end. `victory_point_supply` can lower the standard 75/100/122 chip supply for short games, and `max_rounds` adds a round limit. The full notation, buildings and scoring are in `boardgames/games/puerto_rico/rules.md`.
 

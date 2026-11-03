@@ -75,7 +75,9 @@
       for (const [key, value] of Object.entries(seat.settings)) {
         if (value !== undefined) entry[key] = value;
       }
-      if (!seat.reasoning) entry.reasoning_effort = "none";
+      // reasoning and its effort are separate settings; an effort only goes with reasoning on
+      entry.reasoning = seat.reasoning;
+      if (!seat.reasoning) delete entry.reasoning_effort;
       return entry;
     });
     return { game: state.game, config, seed, seats };
