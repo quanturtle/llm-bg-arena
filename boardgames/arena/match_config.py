@@ -40,15 +40,29 @@ MODEL_FIELDS = frozenset(
 )
 PROMPT_FIELDS = frozenset({"output_mode", "persona"})
 DEFAULT_MODEL = "qwen/qwen3.7-flash"
-# cheap OpenRouter models with tool calling, offered by the new-match form
+# cheap OpenRouter models that answer forced tool calls, offered by the new-match
+# form: the default first, then by id
 SUGGESTED_MODELS = (
     "qwen/qwen3.7-flash",
-    "z-ai/glm-5.3-flash",
-    "deepseek/deepseek-v4.1-flash",
-    "openai/gpt-5-nano",
-    "mistralai/mistral-small-3.2-24b-instruct",
-    "google/gemini-2.5-flash-lite",
     "anthropic/claude-haiku-5.5",
+    "deepseek/deepseek-v4.1-flash",
+    "google/gemini-2.5-flash-lite",
+    "google/gemini-3.1-flash-lite",
+    "google/gemma-4-26b-a4b-it",
+    "meta-llama/llama-4-maverick",
+    "minimax/minimax-m3.1-flash",
+    "mistralai/mistral-small-2603",
+    "mistralai/mistral-small-3.2-24b-instruct",
+    "moonshotai/kimi-k2.5",
+    "nvidia/nemotron-3.5-lightning",
+    "openai/gpt-4.1-nano",
+    "openai/gpt-5-nano",
+    "openai/gpt-6-luna",
+    "openai/gpt-oss-120b",
+    "qwen/qwen3.8-flash",
+    "xiaomi/mimo-v2.6-flash",
+    "z-ai/glm-4.7-flash",
+    "z-ai/glm-5.3-flash",
 )
 AGENT_FIELDS = frozenset({"max_illegal_retries", "max_tool_calls", "fallback"})
 

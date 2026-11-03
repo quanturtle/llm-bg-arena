@@ -10,7 +10,7 @@
     "puerto_rico.max_rounds": { label: "Round limit", hint: "0 plays to the normal end of the game.", min: 0 },
   };
 
-  const PROVIDERS = { anthropic: "Anthropic", deepseek: "DeepSeek", google: "Google", mistralai: "Mistral", openai: "OpenAI", qwen: "Qwen", "z-ai": "Z.ai" };
+  const PROVIDERS = { anthropic: "Anthropic", deepseek: "DeepSeek", google: "Google", "meta-llama": "Meta", minimax: "MiniMax", mistralai: "Mistral", moonshotai: "Moonshot AI", nvidia: "NVIDIA", openai: "OpenAI", qwen: "Qwen", xiaomi: "Xiaomi", "z-ai": "Z.ai" };
 
   const EFFORT_LABELS = { minimal: "Minimal", low: "Low", medium: "Medium", high: "High", xhigh: "Extra high", max: "Max" };
   // offered when OpenRouter's details for a model are missing
