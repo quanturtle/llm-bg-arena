@@ -808,6 +808,48 @@ def test_render_text_and_descriptions_name_the_board() -> None:
     assert f"e{edge}" in GAME.describe_action(observation, PlaceRoad(edge))
 
 
+def test_game_over_render_shows_final_points_and_revealed_cards() -> None:
+    config = CatanConfig(num_players=3, victory_points=3)
+    state, _ = play_setup(config)
+    funded = action_state(set_hand(state, P1, DEV_COST))
+    rigged = replace(funded, dev_deck=("victory_point",), dev_hands=state.dev_hands)
+    over = GAME.apply(rigged, P1, BuyDev()).state
+    text = GAME.render_text(GAME.observe(over, P2))
+    assert "  P1: 3 VP (settlements 2, victory cards 1);" in text
+    assert "Revealed hands:" in text
+    assert "development cards: knight 0, roadbuilding 0, yearofplenty 0, " in text
+    assert "monopoly 0, victorypoint 1." in text
+
+
+def test_render_and_rules_name_development_cards_as_notation_does() -> None:
+    state, _ = play_setup()
+    armed = action_state(
+        replace(
+            state,
+            dev_hands=(dev_hand_from(road_building=1), empty_hand(), empty_hand()),
+        )
+    )
+    observation = GAME.observe(armed, P1)
+    text = GAME.render_text(observation)
+    rules = GAME.rules_text()
+    assert "Your development cards: knight 0, roadbuilding 1, yearofplenty 0" in text
+    assert "roadbuilding" in GAME.describe_action(observation, PlayRoadBuilding())
+    for name in ("knight", "roadbuilding", "yearofplenty", "monopoly", "victorypoint"):
+        assert f"`{name}`" in rules
+    for spelling in ("road_building", "Road Building", "Year of Plenty"):
+        assert spelling not in text
+        assert spelling not in rules
+
+
+def test_observation_and_render_show_the_development_deck_size() -> None:
+    state, _ = play_setup()
+    shorter = replace(state, dev_deck=state.dev_deck[:7])
+    for viewer in (P1, None):
+        observation = GAME.observe(shorter, viewer)
+        assert observation.data["dev_deck_size"] == 7
+        assert "Development deck: 7 cards left." in GAME.render_text(observation)
+
+
 def test_config_validation_and_registry() -> None:
     assert GAME.parse_config({}) == CatanConfig()
     assert GAME.parse_config(GAME.config_json(CONFIG)) == CONFIG

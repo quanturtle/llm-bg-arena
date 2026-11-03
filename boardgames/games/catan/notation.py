@@ -10,6 +10,7 @@ from boardgames.games.catan.model import (
     BuildCity,
     BuyDev,
     DeclineOffer,
+    DevCard,
     Discard,
     EndTurn,
     MoveRobber,
@@ -42,6 +43,15 @@ KNIGHT_PATTERN = re.compile(rf"play knight h{NUMBER_TEXT}(?: {PLAYER_TEXT})?")
 YEAR_PATTERN = re.compile(rf"play yearofplenty {RESOURCE_TEXT} {RESOURCE_TEXT}")
 MONOPOLY_PATTERN = re.compile(rf"play monopoly {RESOURCE_TEXT}")
 DISCARD_PATTERN = re.compile(rf"discard {RESOURCE_TEXT}")
+
+# Development cards as notation spells them, for renders and rules text.
+DEV_CARD_NOTATION: dict[DevCard, str] = {
+    "knight": "knight",
+    "road_building": "roadbuilding",
+    "year_of_plenty": "yearofplenty",
+    "monopoly": "monopoly",
+    "victory_point": "victorypoint",
+}
 
 
 def format_action(action: Action) -> str:

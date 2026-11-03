@@ -1,7 +1,7 @@
 # Catan
 
 ## Goal
-Be first to the victory-point target (10 by default). Points come from settlements, cities, the longest road, the largest army and development cards that are worth a victory point.
+Be first to the victory-point target (10 by default). Points come from settlements, cities, the longest road, the largest army and `victorypoint` development cards.
 
 ## Board
 - 19 hexes produce five resources: forest gives wood, hills give brick, pasture gives sheep, fields give wheat, mountains give ore. The desert gives nothing.
@@ -33,25 +33,25 @@ A new road must touch one of your roads, settlements or cities. Another player's
 - **Players:** one card for one card. Offer one resource you hold to another player for one different resource. Hands are hidden, so you may ask for a card they lack; they can accept only if they hold it. That player accepts or declines, and then your turn continues. You may make at most 3 offers in a turn by default; `max_offers_per_turn` can change that limit, and 0 means unlimited. The bank and harbours never run out.
 
 ## Development cards
-There are 25 cards: 14 knights, 2 Road Building, 2 Year of Plenty, 2 Monopoly and 5 victory points.
+There are 25 cards: 14 `knight`, 2 `roadbuilding`, 2 `yearofplenty`, 2 `monopoly` and 5 `victorypoint`.
 - You may play at most one development card per turn, and only after rolling.
-- You may not play a card on the turn you bought it. Victory-point cards need no play: they count as soon as you draw them.
-- **Knight:** move the robber and steal as on a 7. Playing 3 or more knights can win the largest army.
-- **Road Building:** place two free roads, using the normal connection rules. Place them one at a time.
-- **Year of Plenty:** take any two resource cards from the bank; they may be the same resource.
-- **Monopoly:** take every card of one named resource from all other players.
-- **Victory point:** worth 1 point immediately. It stays hidden from opponents until the end.
+- You may not play a card on the turn you bought it. `victorypoint` cards need no play: they count as soon as you draw them.
+- **`knight`:** move the robber and steal as on a 7. Playing 3 or more knights can win the largest army.
+- **`roadbuilding`:** place two free roads, using the normal connection rules. Place them one at a time.
+- **`yearofplenty`:** take any two resource cards from the bank; they may be the same resource.
+- **`monopoly`:** take every card of one named resource from all other players.
+- **`victorypoint`:** worth 1 point immediately. It stays hidden from opponents until the end.
 
 ## Awards
 - **Longest road:** 2 points to the player with the longest continuous road of at least 5 paths. A road may loop and cross itself, but counts each path once. An opponent's building breaks a road. A player who ties the holder does not take the card. If the holder's road is broken, the holder keeps the card only while still strictly longest; otherwise the sole player with the strictly longest road of at least 5 takes it, and if there is none, nobody holds it until one player has.
 - **Largest army:** 2 points to the player who has played at least 3 knights and more than anyone else. Ties keep the current holder.
 
 ## End and scoring
-The game ends as soon as any player has at least the victory-point target. Score 1 per settlement, 2 per city, 1 per victory-point card, 2 for the longest road and 2 for the largest army. The highest total wins; the game ends at the target, so ties are rare.
+The game ends as soon as any player has at least the victory-point target. Score 1 per settlement, 2 per city, 1 per `victorypoint` card, 2 for the longest road and 2 for the largest army. The highest total wins; the game ends at the target, so ties are rare.
 
 ## Differences from the standard game
 - A player who reaches the target wins at once, even during another player's turn.
-- A knight, like every development card, can be played only after rolling, never before.
+- A `knight`, like every development card, can be played only after rolling, never before.
 - The bank never runs out of resource cards.
 - After a 7, players discard one card per decision, one player at a time in seat order.
 - Trades between players are always one card for one card.
@@ -71,7 +71,7 @@ Actions are written exactly as listed, with single spaces.
 - `offer wood for ore to P2` — offer one card for one card.
 - `accept` / `decline` — answer an offer.
 - `play knight h5 P2` — play a knight, move the robber and steal; omit the victim when nobody can be robbed.
-- `play roadbuilding` — play Road Building, then place free roads with `road e34`.
+- `play roadbuilding` — play roadbuilding, then place free roads with `road e34`.
 - `play yearofplenty wood ore` — take one wood and one ore.
 - `play monopoly wood` — take all wood from the other players.
 
