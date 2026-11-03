@@ -238,14 +238,14 @@ def launch_status(request: Request, match_id: str) -> Launch:
 
 
 @api.post("/launches/{match_id}/pause")
-def pause_match(request: Request, match_id: str) -> Launch:
-    """Hold the match before its next round."""
+async def pause_match(request: Request, match_id: str) -> Launch:
+    """Hold the match before its next round; runs on the loop that owns the gate."""
     return launcher_of(request).pause(match_id)
 
 
 @api.post("/launches/{match_id}/resume")
-def resume_match(request: Request, match_id: str) -> Launch:
-    """Let a paused match play on."""
+async def resume_match(request: Request, match_id: str) -> Launch:
+    """Let a paused match play on; runs on the loop that owns the gate."""
     return launcher_of(request).resume(match_id)
 
 
