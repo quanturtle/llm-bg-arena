@@ -6,6 +6,7 @@ Be first to the victory-point target (10 by default). Points come from settlemen
 ## Board
 - 19 hexes produce five resources: forest gives wood, hills give brick, pasture gives sheep, fields give wheat, mountains give ore. The desert gives nothing.
 - Each producing hex has a number token from 2 to 12. When that number is rolled, every settlement beside the hex takes 1 of its resource and every city takes 2.
+- No two neighbouring hexes both carry a 6 or an 8: the tokens are re-dealt until that holds.
 - The robber starts on the desert. It blocks production on whatever hex it occupies.
 - Nine harbours sit on coastal paths. A settlement or city on either end of a harbour gives its owner a better bank rate: 3:1 for any resource from a generic harbour, or 2:1 for the named resource.
 
@@ -42,11 +43,19 @@ There are 25 cards: 14 knights, 2 Road Building, 2 Year of Plenty, 2 Monopoly an
 - **Victory point:** worth 1 point immediately. It stays hidden from opponents until the end.
 
 ## Awards
-- **Longest road:** 2 points to the player with at least 5 continuous paths. An opponent's building breaks a road. Ties keep the current holder; if the holder falls below 5, the award passes to the longest eligible road.
+- **Longest road:** 2 points to the player with the longest continuous road of at least 5 paths. A road may loop and cross itself, but counts each path once. An opponent's building breaks a road. A player who ties the holder does not take the card. If the holder's road is broken, the holder keeps the card only while still strictly longest; otherwise the sole player with the strictly longest road of at least 5 takes it, and if there is none, nobody holds it until one player has.
 - **Largest army:** 2 points to the player who has played at least 3 knights and more than anyone else. Ties keep the current holder.
 
 ## End and scoring
 The game ends as soon as any player has at least the victory-point target. Score 1 per settlement, 2 per city, 1 per victory-point card, 2 for the longest road and 2 for the largest army. The highest total wins; the game ends at the target, so ties are rare.
+
+## Differences from the standard game
+- A player who reaches the target wins at once, even during another player's turn.
+- A knight, like every development card, can be played only after rolling, never before.
+- The bank never runs out of resource cards.
+- After a 7, players discard one card per decision, one player at a time in seat order.
+- Trades between players are always one card for one card.
+- A player may make at most `max_offers_per_turn` trade offers per turn: 3 by default, 0 for no limit.
 
 ## Notation
 Actions are written exactly as listed, with single spaces.

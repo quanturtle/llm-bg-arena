@@ -51,6 +51,7 @@ from boardgames.games.catan.geometry import (
     EDGE_HEXES,
     EDGE_VERTICES,
     HEX_EDGES,
+    HEX_NEIGHBORS,
     HEX_VERTICES,
     HEXES,
     PORT_EDGES,
@@ -198,6 +199,16 @@ def test_setup_prepares_a_seeded_board() -> None:
     assert all(hand_total(hand) == 0 for hand in state.hands)
     assert state.phase == "setup_settlement"
     assert state.turn == 1
+
+
+def test_six_and_eight_tokens_never_touch() -> None:
+    for seed in range(50):
+        hexes = start(seed=seed).hexes
+        red = [hex_id for hex_id, board in enumerate(hexes) if board.number in (6, 8)]
+        assert len(red) == 4
+        assert not any(
+            other in red for hex_id in red for other in HEX_NEIGHBORS[hex_id]
+        )
 
 
 def test_setup_is_deterministic_per_seed() -> None:
@@ -642,7 +653,7 @@ def test_longest_road_award_and_break() -> None:
         longest_road=None,
     )
     assert longest_road_length(built, P1) == 5
-    awarded, events = update_longest_road(built)
+    awarded, events = update_longest_road(state, built)
     assert awarded.longest_road == P1
     assert any(event.kind == "longest_road" for event in events)
 
@@ -650,9 +661,27 @@ def test_longest_road_award_and_break() -> None:
     internal = vertices[2]
     buildings = list(built.buildings)
     buildings[internal] = Building(P2, "settlement")
-    broken = replace(built, buildings=tuple(buildings))
+    broken = replace(awarded, buildings=tuple(buildings))
     assert longest_road_length(broken, P1) < 5
-    assert update_longest_road(broken)[0].longest_road is None
+    assert update_longest_road(awarded, broken)[0].longest_road is None
+
+
+def test_a_broken_longest_road_tied_for_first_is_set_aside() -> None:
+    ring, corners = HEX_EDGES[9], HEX_VERTICES[9]
+    spur = next(edge for edge in VERTEX_EDGES[corners[5]] if edge not in ring)
+    buildings: list[Building | None] = [None] * 54
+    buildings[corners[1]] = Building(P3, "settlement")
+    for p2_roads, holder in ((5, None), (4, P1)):
+        roads: list[PlayerId | None] = [None] * 72
+        for edge in (spur, *ring[:5]):
+            roads[edge] = P1
+        for edge in HEX_EDGES[0][:p2_roads]:
+            roads[edge] = P2
+        held = replace(start(), roads=tuple(roads), longest_road=P1)
+        broken = replace(held, buildings=tuple(buildings))
+        assert longest_road_lengths(held) == (6, p2_roads, 0)
+        assert longest_road_lengths(broken) == (5, p2_roads, 0)
+        assert update_longest_road(held, broken)[0].longest_road == holder
 
 
 def test_longest_road_is_a_trail_through_both_rings_of_a_theta() -> None:

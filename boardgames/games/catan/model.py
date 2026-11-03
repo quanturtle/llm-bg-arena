@@ -86,6 +86,8 @@ NUMBER_TOKENS: tuple[int, ...] = (
     11,
     12,
 )
+# The most frequent rolls; their tokens are printed red and never touch.
+RED_NUMBERS: tuple[int, ...] = (6, 8)
 
 ROAD_COST: Hand = (1, 1, 0, 0, 0)
 SETTLEMENT_COST: Hand = (1, 1, 1, 1, 0)

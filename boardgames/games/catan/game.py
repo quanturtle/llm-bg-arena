@@ -36,6 +36,7 @@ from boardgames.core.records import (
 )
 from boardgames.games.catan.geometry import (
     EDGE_VERTICES,
+    HEX_NEIGHBORS,
     PORT_EDGES,
     VERTEX_EDGES,
     VERTEX_HEXES,
@@ -47,6 +48,7 @@ from boardgames.games.catan.model import (
     LARGEST_ARMY_MINIMUM,
     LONGEST_ROAD_MINIMUM,
     NUMBER_TOKENS,
+    RED_NUMBERS,
     RESOURCES,
     ROAD_COST,
     SETTLEMENT_COST,
@@ -98,6 +100,7 @@ from boardgames.games.catan.rules import (
     city_legal,
     distance_rule_ok,
     legal_free_road_edges,
+    longest_road_length,
     longest_road_lengths,
     production,
     road_legal,
@@ -135,14 +138,7 @@ class Catan:
     def setup(self, config: CatanConfig, seed: int) -> Transition[CatanState]:
         rng = Rng.seeded(seed)
         terrains, rng = rng.shuffled(TERRAIN_DECK)
-        board_hexes: list[Hex] = [Hex(terrain, None) for terrain in terrains]
-        numbers, rng = rng.shuffled(NUMBER_TOKENS)
-        number_index = 0
-        for hex_id, board_hex in enumerate(board_hexes):
-            if board_hex.terrain == "desert":
-                continue
-            board_hexes[hex_id] = replace(board_hex, number=numbers[number_index])
-            number_index += 1
+        board_hexes, rng = place_number_tokens(terrains, rng)
 
         port_kinds: tuple[Resource | None, ...] = (None, None, None, None, *RESOURCES)
         shuffled_ports, rng = rng.shuffled(port_kinds)
@@ -161,7 +157,7 @@ class Catan:
         state = CatanState(
             config=config,
             rng=rng,
-            hexes=tuple(board_hexes),
+            hexes=board_hexes,
             ports=ports,
             robber=robber,
             dev_deck=dev_deck,
@@ -538,7 +534,7 @@ class Catan:
             )
         ]
         built = replace(state, roads=roads, free_roads=free_roads)
-        built, award_events = update_longest_road(built)
+        built, award_events = update_longest_road(state, built)
         events.extend(award_events)
         finished = finish_if_won(built, tuple(events))
         if finished.state.phase == "game_over":
@@ -602,7 +598,7 @@ class Catan:
                 {"player": player, "edge": edge},
             )
         ]
-        built, award_events = update_longest_road(replace(paid, roads=roads))
+        built, award_events = update_longest_road(state, replace(paid, roads=roads))
         events.extend(award_events)
         return finish_if_won(built, tuple(events))
 
@@ -618,7 +614,9 @@ class Catan:
                 {"player": player, "vertex": vertex},
             )
         ]
-        built, award_events = update_longest_road(replace(paid, buildings=buildings))
+        built, award_events = update_longest_road(
+            state, replace(paid, buildings=buildings)
+        )
         events.extend(award_events)
         return finish_if_won(built, tuple(events))
 
@@ -958,6 +956,41 @@ def check_config(config: CatanConfig) -> None:
     return
 
 
+def place_number_tokens(
+    terrains: tuple[str, ...], rng: Rng
+) -> tuple[tuple[Hex, ...], Rng]:
+    """Deal number tokens onto the producing hexes, redrawing until no 6 or 8 touch.
+
+    Each rejected layout consumes the RNG, so the board stays a function of the seed.
+    """
+    while True:
+        numbers, rng = rng.shuffled(NUMBER_TOKENS)
+        board_hexes = number_hexes(terrains, numbers)
+        if not red_numbers_touch(board_hexes):
+            return board_hexes, rng
+
+
+def number_hexes(
+    terrains: tuple[str, ...], numbers: tuple[int, ...]
+) -> tuple[Hex, ...]:
+    """Hexes with tokens dealt in hex order, skipping the desert."""
+    tokens = iter(numbers)
+    return tuple(
+        Hex(terrain, None if terrain == "desert" else next(tokens))
+        for terrain in terrains
+    )
+
+
+def red_numbers_touch(board_hexes: tuple[Hex, ...]) -> bool:
+    """Whether two neighbouring hexes both carry a 6 or an 8."""
+    red = [
+        hex_id
+        for hex_id, board_hex in enumerate(board_hexes)
+        if board_hex.number in RED_NUMBERS
+    ]
+    return any(neighbor in red for hex_id in red for neighbor in HEX_NEIGHBORS[hex_id])
+
+
 def setup_order(config: CatanConfig) -> tuple[PlayerId, ...]:
     """Settlement order: clockwise, then back counter-clockwise."""
     forward = tuple(PlayerId(index) for index in range(config.num_players))
@@ -1278,24 +1311,19 @@ def production_event(gains: tuple[Hand, ...], total: int) -> Event:
 
 
 def update_longest_road(
-    state: CatanState,
+    previous: CatanState, state: CatanState
 ) -> tuple[CatanState, list[Event]]:
-    """Recompute the longest road award after a road or building changes."""
+    """Recompute the longest road award after `previous` became `state`.
+
+    A tie keeps the holder only while the holder's own road is unbroken.
+    """
     lengths = longest_road_lengths(state)
     best = max(lengths)
     current = state.longest_road
-    if (
-        current is not None
-        and lengths[current] >= LONGEST_ROAD_MINIMUM
-        and lengths[current] == best
-    ):
-        holder = current
-    elif best >= LONGEST_ROAD_MINIMUM:
-        holder = PlayerId(
-            min(player for player, length in enumerate(lengths) if length == best)
-        )
-    else:
-        holder = None
+    is_broken = current is not None and lengths[current] < longest_road_length(
+        previous, current
+    )
+    holder = longest_road_holder(lengths, current, is_broken=is_broken)
     if holder == current:
         return state, []
     events: list[Event] = []
@@ -1316,6 +1344,24 @@ def update_longest_road(
             )
         )
     return replace(state, longest_road=holder), events
+
+
+def longest_road_holder(
+    lengths: tuple[int, ...], current: PlayerId | None, *, is_broken: bool
+) -> PlayerId | None:
+    """Who holds the award: the sole longest road of at least 5, else nobody.
+
+    An unbroken holder tied for the longest keeps the card.
+    """
+    best = max(lengths)
+    if best < LONGEST_ROAD_MINIMUM:
+        return None
+    leaders = [
+        PlayerId(player) for player, length in enumerate(lengths) if length == best
+    ]
+    if current in leaders and not is_broken:
+        return current
+    return leaders[0] if len(leaders) == 1 else None
 
 
 def update_largest_army(
