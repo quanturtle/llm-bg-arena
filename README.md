@@ -76,6 +76,16 @@ $ uv run arena replay runs/demo.jsonl
 Replay matches the log: k_in_a_row, 6 steps, 8 events.
 ```
 
+## Watch
+
+The web viewer lists every match in `runs/` and replays it move by move:
+
+```sh
+uv run arena serve
+```
+
+Open http://127.0.0.1:8000/. Each replay shows the board at every step (a drawn board for k-in-a-row, the auction and Catan, the text view otherwise), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. `--runs` points at another log directory and `--port` changes the port.
+
 ## Develop
 
 ```sh
