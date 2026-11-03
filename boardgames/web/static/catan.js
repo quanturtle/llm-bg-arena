@@ -337,6 +337,26 @@ window.boards = window.boards || {};
     return cell;
   }
 
+  const DEV_CARD_NAMES = {
+    knight: "knight",
+    road_building: "road building",
+    year_of_plenty: "year of plenty",
+    monopoly: "monopoly",
+    victory_point: "victory point",
+  };
+
+  // A player's card count, followed by the kinds once the game ends and reveals them.
+  function devCell(observation, player) {
+    const count = (observation.dev_counts || [])[player];
+    const cell = htmlElement("td", "dev-cards", count === undefined ? "" : String(count));
+    const cards = observation.revealed_dev ? observation.revealed_dev[player] : null;
+    const names = Object.entries(cards || {})
+      .filter(([, copies]) => copies > 0)
+      .map(([kind, copies]) => `${DEV_CARD_NAMES[kind] || kind}${copies > 1 ? ` ×${copies}` : ""}`);
+    if (names.length) cell.appendChild(htmlElement("span", "muted small", ` ${names.join(", ")}`));
+    return cell;
+  }
+
   // Public points during play, which leave out hidden victory-point cards; final scores once the game ends.
   function victoryPoints(observation, player) {
     if (observation.final_scores) {
@@ -354,7 +374,7 @@ window.boards = window.boards || {};
       ["Player", ""],
       ["VP", "num", "Victory points others can see; hidden victory-point cards count once the game ends."],
       ["Hand", "num"],
-      ["Dev", "num"],
+      ["Development cards", "", "Cards in hand; their kinds stay hidden until the game ends. A seat picked under View lists its own cards in the text view."],
       ["Knights", "num"],
       ["Awards", ""],
     ]) {
@@ -371,7 +391,7 @@ window.boards = window.boards || {};
       row.appendChild(seatCell(context, player));
       row.appendChild(numberCell(victoryPoints(observation, player)));
       row.appendChild(numberCell((observation.hand_sizes || [])[player]));
-      row.appendChild(numberCell((observation.dev_counts || [])[player]));
+      row.appendChild(devCell(observation, player));
       row.appendChild(numberCell((observation.knights || [])[player]));
       row.appendChild(awardCell(observation, player));
       body.appendChild(row);
