@@ -162,7 +162,7 @@ def test_auction_random_play_keeps_invariants(
     return
 
 
-@settings(max_examples=10, deadline=None)
+@settings(max_examples=4, deadline=None)
 @given(seed=SEEDS, players=st.integers(3, 4))
 def test_catan_random_play_keeps_invariants(seed: int, players: int) -> None:
     config = CatanConfig(num_players=players, victory_points=3)

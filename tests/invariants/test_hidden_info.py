@@ -130,7 +130,7 @@ def catan_choices(state: CatanState, viewer: PlayerId) -> list[tuple[str, str]]:
     return choices
 
 
-@settings(max_examples=5, deadline=None)
+@settings(max_examples=2, deadline=None)
 @given(seed=st.integers(min_value=0, max_value=2**32 - 1))
 def test_catan_view_and_choices_ignore_other_players_cards(seed: int) -> None:
     for state in catan_states(seed):

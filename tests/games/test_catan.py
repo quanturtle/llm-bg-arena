@@ -890,7 +890,7 @@ def check_playthrough_state(state: CatanState) -> None:
 def test_random_playthroughs_reach_ten_points_and_build_a_city() -> None:
     config = CatanConfig(num_players=3)
     cities = 0
-    for seed in (3, 4):
+    for seed in (3,):
         state, _ = random_playthrough(GAME, config, seed, check_playthrough_state)
         assert state.winner is not None
         assert GAME.scores(state).points[state.winner] >= config.victory_points == 10

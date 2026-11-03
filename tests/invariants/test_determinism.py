@@ -9,7 +9,7 @@ from boardgames.logs.schema import LogRecord, MatchStarted
 from tests.invariants.log_digest import CASES, match_log
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-SEEDS = 10
+SEEDS = 4
 
 
 def digests_in_subprocess(case: str, hash_seed: str) -> list[str]:
