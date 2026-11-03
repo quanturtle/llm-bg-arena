@@ -89,7 +89,7 @@
     const id = args[0];
     const [game, board, catalog] = await Promise.all([api(`/api/games/${id}`), api(`/api/leaderboard?game=${encodeURIComponent(id)}`), api(`/api/matches?game=${encodeURIComponent(id)}`)]);
     const config = h("dl", { class: "kv" }, Object.entries(game.default_config).flatMap(([key, value]) => [h("dt", {}, key), h("dd", { class: "mono" }, JSON.stringify(value))]));
-    const matches = h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"))), h("tbody", {}, catalog.matches.slice(0, 50).map(matchRow)));
+    const matches = h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Time"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"))), h("tbody", {}, catalog.matches.slice(0, 50).map(matchRow)));
     app.replaceChildren(
       h("h1", {}, id),
       h("div", { class: "match-grid" },

@@ -130,7 +130,7 @@
     setActiveNav("leaderboard");
     const name = args[0];
     const [detail, catalog] = await Promise.all([api(`/api/agents/${encodeURIComponent(name)}`), api(`/api/matches?agent=${encodeURIComponent(name)}`)]);
-    const recent = h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"))), h("tbody", {}, catalog.matches.slice(0, 50).map(matchRow)));
+    const recent = h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Time"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"))), h("tbody", {}, catalog.matches.slice(0, 50).map(matchRow)));
     app.replaceChildren(
       h("h1", {}, name, " ", h("span", { class: "badge" }, detail.kind)),
       detail.overall ? summaryCards(detail.overall) : "",

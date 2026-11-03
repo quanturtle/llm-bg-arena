@@ -133,6 +133,13 @@
 
   // --- matches page -------------------------------------------------------
 
+  // How long a match took from start to end; a running one shows its time so far.
+  function matchDuration(match) {
+    const started = Date.parse(match.started_at);
+    const ended = match.finished_at ? Date.parse(match.finished_at) : Date.now();
+    return Number.isNaN(started) || Number.isNaN(ended) ? "" : formatClock(ended - started);
+  }
+
   function matchRow(match) {
     const winners = new Set(match.winners || match.seats.filter((s) => s.rank === 1).map((s) => s.player));
     const seats = match.seats.map((seat) => {
@@ -146,6 +153,7 @@
       h("td", {}, h("a", { href: `#/games/${match.game_id}` }, match.game_id), " ", h("span", { class: "muted small mono" }, `seed ${match.seed}`)),
       h("td", {}, h("div", { class: "seat-list" }, seats)),
       h("td", { class: "num" }, match.steps),
+      h("td", { class: "num mono", title: match.finished_at ? "From start to end" : "So far" }, matchDuration(match)),
       h("td", { class: "num" }, formatCost(matchCost(match))),
       h("td", {}, statusBadge(match)),
     );
@@ -192,7 +200,7 @@
     const table = h(
       "table",
       {},
-      h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"), h("th", {}))),
+      h("thead", {}, h("tr", {}, h("th", {}, "Started"), h("th", {}, "Game"), h("th", {}, "Seats"), h("th", { class: "num" }, "Steps"), h("th", { class: "num" }, "Time"), h("th", { class: "num" }, "Cost"), h("th", {}, "Status"), h("th", {}))),
       h("tbody", {}, shown.map((match) => {
         const row = matchRow(match);
         row.append(deleteCell(match, playing.has(match.match_id), state, refresh));
