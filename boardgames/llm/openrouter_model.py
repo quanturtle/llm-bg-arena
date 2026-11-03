@@ -63,6 +63,8 @@ class UsagePayload(BaseModel):
 class ErrorPayload(BaseModel):
     code: int | None = None
     message: str | None = None
+    # `raw` here carries the provider's own reason behind "Provider returned error"
+    metadata: dict[str, object] | None = None
 
 
 class ResponsePayload(BaseModel):
@@ -188,6 +190,9 @@ def failure(status: int, payload: ResponsePayload) -> tuple[FailureKind, str] | 
     if error is not None:
         code = error.code if error.code is not None else code
         message = error.message or message
+        raw = (error.metadata or {}).get("raw")
+        if isinstance(raw, str) and raw:
+            message = f"{message}: {raw}"
     if code in TRANSIENT_STATUSES or code >= 500:
         return "transient", message
     return "rejected", message

@@ -189,6 +189,19 @@ def test_failure_classifies_statuses_and_error_bodies() -> None:
         {"error": {"code": 502, "message": "provider down"}}
     )
     assert failure(200, in_body) == ("transient", "provider down")
+    upstream = ResponsePayload.model_validate(
+        {
+            "error": {
+                "code": 429,
+                "message": "Provider returned error",
+                "metadata": {"raw": "rate-limited upstream"},
+            }
+        }
+    )
+    assert failure(429, upstream) == (
+        "transient",
+        "Provider returned error: rate-limited upstream",
+    )
     return
 
 
