@@ -428,7 +428,8 @@
   const routes = {
     matches: (_, params) => renderMatches(params),
   };
-  window.viewerRoutes = routes;
+  // Other scripts add pages to `routes` and reuse these helpers.
+  window.viewer = { h, api, loadGames, formatCost, formatSeconds, formatDate, seatChip, matchRow, setActiveNav, showError, routes, app };
 
   function parseHash() {
     const hash = location.hash.replace(/^#\/?/, "") || "matches";
@@ -459,5 +460,6 @@
   }
 
   window.addEventListener("hashchange", route);
-  route();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", route);
+  else route();
 })();
