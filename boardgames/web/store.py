@@ -66,6 +66,8 @@ class MatchSummary(Summary):
     finished_at: str | None
     steps: int
     status: MatchStatus
+    # the prompt templates its model seats used; 0 for logs from before versioning
+    prompt_version: int
     seats: list[SeatSummary]
 
     @property
@@ -174,8 +176,15 @@ def summarize(records: list[LogRecord]) -> MatchSummary:
         finished_at=ended_at(finish, stop),
         steps=finish.steps if finish is not None else steps,
         status=match_status(finish, stop),
+        prompt_version=prompt_version_of(start),
         seats=seats,
     )
+
+
+def prompt_version_of(start: MatchStarted) -> int:
+    """The prompt version the match's model seats logged; 0 if none logged one."""
+    versions = (seat.settings.get("prompt_version") for seat in start.seats)
+    return next((v for v in versions if isinstance(v, int)), 0)
 
 
 def ended_at(finish: MatchFinished | None, stop: MatchStopped | None) -> str | None:

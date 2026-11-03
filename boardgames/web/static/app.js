@@ -97,6 +97,12 @@
     return h("span", { class: `badge ${match.status}` }, match.status);
   }
 
+  // Version 0 marks logs recorded before prompts were versioned.
+  function promptLabel(version) {
+    const text = version ? `prompt v${version}` : "prompt unversioned";
+    return h("span", { title: "Which revision of the prompt templates the models saw; see docs/PROMPTS.md." }, text);
+  }
+
   function matchCost(match) {
     let total = 0;
     for (const seat of match.seats) {
@@ -377,7 +383,7 @@
     return h(
       "div",
       { class: "match-head" },
-      h("div", {}, h("h1", {}, h("a", { href: `#/games/${match.game_id}` }, match.game_id), " ", h("span", { class: "muted mono small" }, match.match_id), " ", statusBadge(current), live ? [" ", liveIndicator(live)] : null), h("div", { class: "muted small mono" }, `seed ${match.seed} · ${config}`)),
+      h("div", {}, h("h1", {}, h("a", { href: `#/games/${match.game_id}` }, match.game_id), " ", h("span", { class: "muted mono small" }, match.match_id), " ", statusBadge(current), live ? [" ", liveIndicator(live)] : null), h("div", { class: "muted small mono" }, `seed ${match.seed} · ${config} · `, promptLabel(match.prompt_version))),
       h("div", { class: "seat-list" }, match.seats.map((seat) => seatChip(match, seat.player, seat.rank === 1 && match.status === "finished" ? [" ", h("span", { class: "badge winner" }, "winner")] : seat.forfeited ? [" ", h("span", { class: "badge forfeit" }, "forfeit")] : null))),
     );
   }

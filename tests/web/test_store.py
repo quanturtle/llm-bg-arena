@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from boardgames.logs.schema import MatchFinished
+from boardgames.logs.schema import MatchFinished, MatchStarted
 from boardgames.web.store import MatchStore, UnknownMatchError, summarize
 from tests.web.support import costly_agents, without_finish, write_match
 
@@ -20,6 +20,22 @@ def test_summary_has_scores_and_usage_per_seat(tmp_path: Path) -> None:
     )
     assert first.cost_usd == pytest.approx(0.001 * first.decisions)
     assert first.illegal_attempts == first.decisions
+    return
+
+
+def test_summary_reads_the_prompt_version_and_old_logs_are_version_0(
+    tmp_path: Path,
+) -> None:
+    records = write_match(tmp_path, "m1", agents=costly_agents(2))
+    assert summarize(records).prompt_version == 0
+    start = records[0]
+    assert isinstance(start, MatchStarted)
+    seats = [
+        seat.model_copy(update={"settings": {**seat.settings, "prompt_version": 1}})
+        for seat in start.seats
+    ]
+    versioned = [start.model_copy(update={"seats": seats}), *records[1:]]
+    assert summarize(versioned).prompt_version == 1
     return
 
 
