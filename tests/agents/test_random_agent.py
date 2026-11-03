@@ -8,7 +8,6 @@ from boardgames.core import (
     Observation,
     PlayerId,
 )
-from boardgames.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
 from boardgames.games.tic_tac_toe import Mark, TicTacToe, TicTacToeConfig
 from tests.core.test_actions import Move, Pass, Step, StepSpace, step_notation
 
@@ -83,23 +82,10 @@ def test_same_seed_gives_same_choices() -> None:
     return
 
 
-def test_chooses_legal_bids() -> None:
-    game = SealedAuction()
-    state = game.setup(SealedAuctionConfig(starting_coins=4), 0).state
-    decision = game.pending_decisions(state)[0]
-    observation = game.observe(state, decision.player)
-    request = DecisionRequest(
-        game.id,
-        decision,
-        observation,
-        game.render_text(observation),
-        game.legal_actions(state, decision),
-        (),
-        game.rules_text(),
-        game,
-    )
-    bids = {choose(RandomAgent(seed=seed), request) for seed in range(40)}
-    assert bids == {Bid(coins) for coins in range(5)}
+def test_reaches_every_legal_cell() -> None:
+    request = tic_tac_toe_request()
+    cells = {choose(RandomAgent(seed=seed), request) for seed in range(40)}
+    assert cells == {Mark(row, col) for row in range(3) for col in range(3)}
     return
 
 

@@ -8,7 +8,7 @@ from boardgames.agents import Agent
 from boardgames.arena import cli
 from boardgames.arena.runner import play_match
 from boardgames.core import AnyGame, GameConfig
-from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.games.catan import Catan, CatanConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.replay import (
     LogFormatError,
@@ -33,7 +33,7 @@ from tests.arena.support import (
     random_agents,
 )
 
-AUCTION = SealedAuctionConfig(num_players=3, lots=4)
+CATAN = CatanConfig(num_players=3, victory_points=3)
 
 
 def record_match(
@@ -63,7 +63,7 @@ def replace_first[R: LogRecord](
 def test_random_matches_replay_exactly(seed: int) -> None:
     cases: list[tuple[AnyGame, GameConfig, int]] = [
         (TicTacToe(), TicTacToeConfig(), 2),
-        (SealedAuction(), AUCTION, 3),
+        (Catan(), CATAN, 3),
     ]
     for game, config, players in cases:
         records = record_match(game, config, random_agents(players, seed), seed)
@@ -84,34 +84,34 @@ def test_changed_action_is_detected() -> None:
 
 
 def test_changed_event_text_is_detected() -> None:
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
-    tampered = replace_first(records, EventRecord, {"text": "edited"}, skip=4)
-    with pytest.raises(ReplayMismatchError, match="step 0, event 4"):
+    records = record_match(Catan(), CATAN, random_agents(3))
+    tampered = replace_first(records, EventRecord, {"text": "edited"}, skip=2)
+    with pytest.raises(ReplayMismatchError, match="step 0, event 2"):
         replay_match(tampered)
     return
 
 
 def test_changed_seed_is_detected() -> None:
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    records = record_match(Catan(), CATAN, random_agents(3))
     with pytest.raises(ReplayMismatchError, match="step 0"):
         replay_match(replace_first(records, MatchStarted, {"seed": 4}))
     return
 
 
 def test_changed_observation_is_detected() -> None:
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    records = record_match(Catan(), CATAN, random_agents(3))
     tampered = replace_first(
         records, DecisionRecord, {"observation_digest": "0" * 64}, skip=2
     )
-    with pytest.raises(ReplayMismatchError, match="P3 observation differs"):
+    with pytest.raises(ReplayMismatchError, match="P2 observation differs"):
         replay_match(tampered)
     return
 
 
 def test_changed_observation_data_is_detected() -> None:
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    records = record_match(Catan(), CATAN, random_agents(3))
     first = next(record for record in records if isinstance(record, DecisionRecord))
-    observation = dict(first.observation, coins=[99, 99, 99])
+    observation = dict(first.observation, hand_sizes=[99, 99, 99])
     tampered = replace_first(records, DecisionRecord, {"observation": observation})
     with pytest.raises(ReplayMismatchError, match="P1 logged observation data"):
         replay_match(tampered)
@@ -119,7 +119,7 @@ def test_changed_observation_data_is_detected() -> None:
 
 
 def test_event_at_a_step_without_a_decision_is_detected() -> None:
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    records = record_match(Catan(), CATAN, random_agents(3))
     orphan = EventRecord(step=40, kind="won", text="P1 wins", data={}, audience=[0])
     tampered = [*records[:-1], orphan, records[-1]]
     with pytest.raises(ReplayMismatchError, match="events at step 40 follow no"):
@@ -128,7 +128,7 @@ def test_event_at_a_step_without_a_decision_is_detected() -> None:
 
 
 def test_observed_step_the_replay_has_not_reached_is_detected() -> None:
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    records = record_match(Catan(), CATAN, random_agents(3))
     tampered = replace_first(records, DecisionRecord, {"observed_at_step": 99})
     with pytest.raises(ReplayMismatchError, match="observed_at_step 99 is not"):
         replay_match(tampered)
@@ -139,7 +139,7 @@ def test_observed_step_the_replay_has_not_reached_is_detected() -> None:
 def test_changed_decision_kind_or_prompt_is_detected(
     update: dict[str, object],
 ) -> None:
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    records = record_match(Catan(), CATAN, random_agents(3))
     with pytest.raises(ReplayMismatchError, match="step 1: P1 decision: log has"):
         replay_match(replace_first(records, DecisionRecord, update))
     return
@@ -172,7 +172,7 @@ def test_log_without_finish_is_malformed() -> None:
 
 def test_read_log_round_trips_a_file(tmp_path: Path) -> None:
     path = tmp_path / "match.jsonl"
-    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    records = record_match(Catan(), CATAN, random_agents(3))
     with JsonlFile(path) as log_file:
         for record in records:
             log_file.write(record)
@@ -193,9 +193,9 @@ def test_cli_replay_reports_a_match(
 ) -> None:
     log = tmp_path / "match.jsonl"
     config = tmp_path / "match.yaml"
-    bots = "seats: [{agent: random}, {agent: random}, {agent: random}]\n"
-    config.write_text(f"game: sealed_auction\n{bots}", encoding="utf-8")
+    bots = "seats: [{agent: random}, {agent: random}]\n"
+    config.write_text(f"game: tic_tac_toe\n{bots}", encoding="utf-8")
     cli.run_command(cli.parse_arguments(["play", str(config), "--log", str(log)]))
     cli.run_command(cli.parse_arguments(["replay", str(log)]))
-    assert "Replay matches the log: sealed_auction, 18 steps" in capsys.readouterr().out
+    assert "Replay matches the log: tic_tac_toe, 7 steps" in capsys.readouterr().out
     return

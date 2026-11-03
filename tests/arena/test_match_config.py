@@ -18,10 +18,10 @@ from boardgames.arena.match_config import (
 from boardgames.core import ConfigError
 
 FULL = """
-game: sealed_auction
+game: puerto_rico
 config: {num_players: 3}
 seed: 7
-log: runs/auction.jsonl
+log: runs/puerto_rico.jsonl
 llm:
   temperature: 0.2
   max_tokens: 512
@@ -58,9 +58,9 @@ def test_full_file_loads(tmp_path: Path) -> None:
     path = tmp_path / "match.yaml"
     path.write_text(FULL, encoding="utf-8")
     config = load_match_config(path)
-    assert (config.game, config.seed) == ("sealed_auction", 7)
+    assert (config.game, config.seed) == ("puerto_rico", 7)
     assert config.config == {"num_players": 3}
-    assert config.log == Path("runs/auction.jsonl")
+    assert config.log == Path("runs/puerto_rico.jsonl")
     assert config.llm.cache is True
     assert config.seats is not None
     assert [type(seat) for seat in config.seats] == [LlmSeat, LlmSeat, RandomSeat]

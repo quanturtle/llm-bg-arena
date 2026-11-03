@@ -4,8 +4,21 @@ from typing import Any
 
 from boardgames.agents import DecisionRequest
 from boardgames.core import AnyGame, Event, GameConfig
-from boardgames.games.sealed_auction import Bid, SealedAuction, SealedAuctionConfig
+from boardgames.games import catan, puerto_rico
+from boardgames.games.catan import Catan, CatanConfig
+from boardgames.games.puerto_rico import PuertoRico, PuertoRicoConfig
 from boardgames.games.tic_tac_toe import Mark, TicTacToe, TicTacToeConfig
+
+# Puerto Rico moves to a mayor decision of `pick plantation 0`, `... 1` and `finish`
+MAYOR_MOVES = [
+    "role settler",
+    "take corn",
+    "take corn",
+    "take sugar",
+    "role mayor",
+    "place plantation 0",
+    "place plantation 1",
+]
 
 
 def request_at(
@@ -40,6 +53,10 @@ def tic_tac_toe_request(
     return request_at(TicTacToe(), TicTacToeConfig(), moves, events)
 
 
-def auction_request(coins: int = 10) -> DecisionRequest[Bid]:
-    config = SealedAuctionConfig(num_players=3, lots=3, starting_coins=coins)
-    return request_at(SealedAuction(), config, [])
+def catan_request() -> DecisionRequest[catan.Action]:
+    """The first settlement of a three-player game: `settle v0` to `settle v53`."""
+    return request_at(Catan(), CatanConfig(num_players=3), [])
+
+
+def puerto_rico_request(moves: list[str]) -> DecisionRequest[puerto_rico.Action]:
+    return request_at(PuertoRico(), PuertoRicoConfig(num_players=3), moves)

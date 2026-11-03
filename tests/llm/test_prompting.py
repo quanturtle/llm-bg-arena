@@ -12,7 +12,11 @@ from boardgames.llm.prompting import (
     submit_tool,
 )
 from tests.agents.test_random_agent import UnlistableStepSpace, step_request
-from tests.llm.requests import auction_request, tic_tac_toe_request
+from tests.llm.requests import (
+    catan_request,
+    puerto_rico_request,
+    tic_tac_toe_request,
+)
 
 SETTINGS = PromptSettings()
 
@@ -64,12 +68,10 @@ def test_few_actions_are_numbered_with_descriptions() -> None:
 
 
 def test_many_actions_switch_to_templates() -> None:
-    prompt = build_prompt(
-        auction_request(coins=10), "", PromptSettings(listing_limit=5)
-    )
+    prompt = build_prompt(puerto_rico_request([]), "", PromptSettings(listing_limit=5))
     user = prompt.messages[1].content
     assert prompt.numbered is None
-    assert "- bid <0|1|2|3|4|5|6|7|8|9|10>" in user
+    assert "- role <settler|mayor|builder|craftsman|trader|captain>" in user
     assert "Write one full legal action in notation." in user
     return
 
@@ -84,8 +86,8 @@ def test_templates_fold_final_tokens_of_a_factored_space() -> None:
 
 
 def test_templates_shorten_long_option_lists() -> None:
-    templates = action_templates(auction_request(coins=20).actions)
-    assert templates == ["bid <0|1|2|3|4|5|6|7|8|9|10|11|...9 more>"]
+    templates = action_templates(catan_request().actions)
+    assert templates == ["settle <v0|v1|v2|v3|v4|v5|v6|v7|v8|v9|v10|v11|...42 more>"]
     return
 
 

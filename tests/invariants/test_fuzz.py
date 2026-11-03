@@ -25,11 +25,6 @@ from boardgames.games.puerto_rico import (
 )
 from boardgames.games.puerto_rico.constants import COLONIST_SUPPLY, GOOD_SUPPLY
 from boardgames.games.puerto_rico.model import goods_total
-from boardgames.games.sealed_auction import (
-    SealedAuction,
-    SealedAuctionConfig,
-    SealedAuctionState,
-)
 from boardgames.games.tic_tac_toe import (
     TicTacToe,
     TicTacToeConfig,
@@ -39,7 +34,6 @@ from tests.invariants.playthrough import random_playthrough
 
 SEEDS = st.integers(min_value=0, max_value=2**32 - 1)
 TIC_TAC_TOE = TicTacToe()
-AUCTION = SealedAuction()
 CATAN = Catan()
 DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
 
@@ -68,24 +62,6 @@ def check_tic_tac_toe(state: TicTacToeState) -> None:
     assert state.to_move == PlayerId(x_marks - o_marks)
     is_full = None not in cells
     assert TIC_TAC_TOE.is_terminal(state) == (has_line(state) or is_full)
-    return
-
-
-def check_auction(state: SealedAuctionState) -> None:
-    """Coins only go to the bank as winning bids; every lot is accounted for."""
-    config = state.config
-    paid = config.starting_coins * config.num_players - sum(state.coins)
-    out = [lot for lots in state.won for lot in lots] + list(state.unsold)
-    assert all(coins >= 0 for coins in state.coins)
-    assert paid >= 0
-    assert len(out) + len(state.deck) + (state.current is not None) == config.lots
-    assert len(set(out) | set(state.deck)) == len(out) + len(state.deck)
-    for player in seats(config.num_players):
-        bid = state.bids[player]
-        assert bid is None or 0 <= bid <= state.coins[player]
-    scores = AUCTION.scores(state)
-    for player, points in scores.points.items():
-        assert points == sum(scores.breakdown[player].values())
     return
 
 
@@ -156,17 +132,6 @@ def test_tic_tac_toe_random_play_keeps_invariants(seed: int) -> None:
     state, steps = random_playthrough(TIC_TAC_TOE, config, seed, check_tic_tac_toe)
     assert 5 <= steps <= 9
     assert sum(TIC_TAC_TOE.scores(state).points.values()) == 1.0
-    return
-
-
-@settings(max_examples=1000, deadline=None)
-@given(seed=SEEDS, players=st.integers(2, 4), lots=st.integers(1, 12))
-def test_auction_random_play_keeps_invariants(
-    seed: int, players: int, lots: int
-) -> None:
-    config = SealedAuctionConfig(num_players=players, lots=lots, starting_coins=8)
-    _, steps = random_playthrough(AUCTION, config, seed, check_auction)
-    assert steps == players * lots
     return
 
 

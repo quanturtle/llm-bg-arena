@@ -63,40 +63,5 @@ window.boards = window.boards || {};
     return h("div", {}, grid, h("p", { class: "muted small" }, status));
   }
 
-  const LOT_COLORS = { red: "#d94a3d", green: "#2e8b57", blue: "#2f6fde", yellow: "#d9a21b", purple: "#8e44ad", orange: "#e67e22" };
-
-  function lotChip(lot) {
-    const [color] = lot.split(" ");
-    const fill = LOT_COLORS[color] || "var(--muted)";
-    return h("span", { class: "badge", style: `border-color: ${fill}; color: ${fill}` }, lot);
-  }
-
-  // Sealed auction: the lot on the block, then one row per bidder.
-  function renderAuction(observation, context) {
-    const seats = context.match.seats;
-    const head = observation.current_lot
-      ? h("div", {}, h("span", { class: "muted small" }, `Round ${observation.round} of ${observation.total_rounds}: `), h("span", { class: "lot" }, observation.current_lot))
-      : h("div", { class: "lot" }, "Auction over");
-    const rows = seats.map((seat, i) =>
-      h(
-        "tr",
-        {},
-        h("td", {}, h("span", { class: "seat" }, h("span", { class: `dot p${i}` }), `P${i + 1} ${window.viewer.seatName(seat)}`)),
-        h("td", { class: "num" }, observation.coins[i]),
-        h("td", {}, observation.won[i].length ? observation.won[i].map(lotChip) : h("span", { class: "muted" }, "none")),
-        h("td", {}, observation.has_bid[i] ? "sealed" : h("span", { class: "muted" }, "waiting")),
-        h("td", {}, observation.revealed_colors ? lotChip(observation.revealed_colors[i]) : h("span", { class: "muted" }, "secret")),
-      ),
-    );
-    const table = h(
-      "table",
-      {},
-      h("thead", {}, h("tr", {}, h("th", {}, "Player"), h("th", { class: "num" }, "Coins"), h("th", {}, "Won lots"), h("th", {}, "Bid"), h("th", {}, "Color"))),
-      h("tbody", {}, rows),
-    );
-    return h("div", { class: "auction stack" }, head, table);
-  }
-
   window.boards.tic_tac_toe = renderTicTacToe;
-  window.boards.sealed_auction = renderAuction;
 })();

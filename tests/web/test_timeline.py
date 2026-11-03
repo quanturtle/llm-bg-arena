@@ -1,8 +1,9 @@
-from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.agents import Agent
+from boardgames.games.catan import Catan, CatanConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.schema import DecisionRecord
 from boardgames.web.timeline import build_timeline, outline
-from tests.arena.support import ForfeitingAgent, random_agents
+from tests.arena.support import ForfeitingAgent, ScriptedAgent, random_agents
 from tests.web.support import costly_agents, play_records
 
 
@@ -46,10 +47,18 @@ def test_an_ended_log_that_diverges_shows_its_steps_up_to_there() -> None:
     return
 
 
-def test_private_events_and_forfeits_are_kept() -> None:
-    config = SealedAuctionConfig(num_players=3, lots=2)
-    agents = [*random_agents(2), ForfeitingAgent()]
-    timeline = build_timeline(play_records(SealedAuction(), config, agents, 1, "m"))
-    assert [e.audience for e in timeline.frames[0].events[1:4]] == [[0], [1], [2]]
-    assert [f.player for f in timeline.frames[-1].forfeits] == [2]
+def test_private_events_keep_their_audience() -> None:
+    config = CatanConfig(num_players=3, victory_points=3)
+    timeline = build_timeline(play_records(Catan(), config, random_agents(3), 7, "m"))
+    theft = ("stole_card", "card_stolen")
+    events = [e for f in timeline.frames for e in f.events if e.kind in theft]
+    assert [e.audience for e in events[:2]] == [[1], [2]]
+    return
+
+
+def test_forfeits_are_kept() -> None:
+    agents: list[Agent] = [ScriptedAgent(["b2"]), ForfeitingAgent()]
+    records = play_records(TicTacToe(), TicTacToeConfig(), agents, 1, "m")
+    timeline = build_timeline(records)
+    assert [f.player for f in timeline.frames[-1].forfeits] == [1]
     return

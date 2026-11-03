@@ -7,7 +7,7 @@ import pytest
 from boardgames.agents import AgentChoice, Chosen, DecisionRequest, Forfeited
 from boardgames.agents.llm_agent import LlmAgent, LlmAgentSettings
 from boardgames.arena.runner import play_match
-from boardgames.games.sealed_auction import Bid
+from boardgames.games.puerto_rico import Pass
 from boardgames.games.tic_tac_toe import Mark, TicTacToe, TicTacToeConfig
 from boardgames.llm.model import (
     Completion,
@@ -24,7 +24,7 @@ from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import DecisionRecord
 from tests.arena.support import FakeClock, MemorySink, ScriptedAgent
 from tests.llm.fakes import QueuedChatModel, reply, tool_calls_reply
-from tests.llm.requests import auction_request, tic_tac_toe_request
+from tests.llm.requests import puerto_rico_request, tic_tac_toe_request
 from tests.llm.test_model_layer import RecordedSleep
 
 MODEL = ModelSettings(model="test/model")
@@ -105,10 +105,10 @@ def test_random_fallback_plays_a_legal_action() -> None:
 
 
 def test_default_fallback_plays_the_decision_default() -> None:
-    llm, _ = agent([answer("bid 99")], max_illegal_retries=0, fallback="default")
-    choice = decide(llm, auction_request())
+    llm, _ = agent([answer("role mayor")], max_illegal_retries=0, fallback="default")
+    choice = decide(llm, puerto_rico_request(["role settler"]))
     assert isinstance(choice, Chosen)
-    assert (choice.action, choice.trace.fallback) == (Bid(0), "default")
+    assert (choice.action, choice.trace.fallback) == (Pass(), "default")
     return
 
 

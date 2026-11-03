@@ -8,7 +8,7 @@ from boardgames.core.players import PlayerId
 
 @dataclass(frozen=True)
 class Decision:
-    """`kind` is game-defined ("move", "bid"); `prompt` says what is being asked."""
+    """`kind` is game-defined ("mark", "discard"); `prompt` says what is being asked."""
 
     player: PlayerId
     kind: str

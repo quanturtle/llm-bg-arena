@@ -162,7 +162,6 @@ def test_games_lists_registered_ids(capsys: pytest.CaptureFixture[str]) -> None:
     assert capsys.readouterr().out.split() == [
         "catan",
         "puerto_rico",
-        "sealed_auction",
         "tic_tac_toe",
     ]
     return

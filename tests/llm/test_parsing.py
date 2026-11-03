@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from boardgames.games.sealed_auction import Bid
+from boardgames.games.puerto_rico import PickUpColonist
 from boardgames.games.tic_tac_toe import Mark
 from boardgames.llm.model import ModelSettings
 from boardgames.llm.parsing import (
@@ -17,7 +17,7 @@ from boardgames.llm.parsing import (
 from tests.agents.test_random_agent import UnlistableStepSpace, step_request
 from tests.core.test_actions import Move
 from tests.llm.fakes import QueuedChatModel, reply
-from tests.llm.requests import auction_request, tic_tac_toe_request
+from tests.llm.requests import MAYOR_MOVES, puerto_rico_request, tic_tac_toe_request
 
 
 def test_tool_arguments_give_answer_reasoning_and_memory() -> None:
@@ -102,13 +102,10 @@ def test_loose_answers_resolve_to_one_legal_cell(answer: str, cell: Mark) -> Non
     return
 
 
-@pytest.mark.parametrize(
-    ("answer", "bid"), [("3", Bid(3)), ("bid3", Bid(3)), ("BID 7", Bid(7))]
-)
-def test_number_means_the_bid_when_notation_uses_it(answer: str, bid: Bid) -> None:
-    request = auction_request()
-    resolved = resolve_answer(answer, request, request.actions.listing(60))
-    assert resolved == Resolved(bid, "soft")
+def test_number_means_the_action_whose_notation_uses_it() -> None:
+    request = puerto_rico_request(MAYOR_MOVES)
+    resolved = resolve_answer("1", request, request.actions.listing(60))
+    assert resolved == Resolved(PickUpColonist("plantation", 1), "soft")
     return
 
 
@@ -149,9 +146,9 @@ def test_non_ascii_digits_are_not_numbers() -> None:
 
 
 def test_numbers_are_not_indexes_when_the_notation_has_numeric_tokens() -> None:
-    request = auction_request(coins=10)
+    request = puerto_rico_request(MAYOR_MOVES)
     numbered = request.actions.listing(60)
-    assert isinstance(resolve_answer("11", request, numbered), Rejected)
+    assert isinstance(resolve_answer("3", request, numbered), Rejected)
     return
 
 

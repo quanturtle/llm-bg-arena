@@ -14,7 +14,7 @@ from boardgames.llm.tools import (
     answer_tool_calls,
     game_tools,
 )
-from tests.llm.requests import auction_request, tic_tac_toe_request
+from tests.llm.requests import catan_request, tic_tac_toe_request
 
 SETTINGS = PromptSettings()
 BUDGET = ToolBudget(max_tool_calls=4, max_illegal_retries=1)
@@ -58,17 +58,20 @@ def test_list_legal_actions_numbers_a_small_space() -> None:
     return
 
 
+def walk_tokens(prefix: str) -> str:
+    """list_legal_actions on Catan's 54 first settlements with a listing limit of 50."""
+    settings = PromptSettings(listing_limit=50)
+    tool_call = call("list_legal_actions", prefix=prefix)
+    return answer_tool_call(tool_call, catan_request(), settings).text
+
+
 def test_list_legal_actions_walks_tokens_of_a_large_space() -> None:
-    request = auction_request(coins=100)
-    assert answer("list_legal_actions", request).text == "First tokens: bid."
-    text = answer("list_legal_actions", request, prefix="bid").text
-    assert text.startswith("Tokens that can follow 'bid': 0, 1, 2,")
-    assert text.endswith("and 61 more.")
-    complete = answer("list_legal_actions", request, prefix="bid 3").text
-    assert complete == "'bid 3' is a complete legal action."
-    assert answer("list_legal_actions", request, prefix="fold").text == (
-        "No legal action starts with 'fold'."
-    )
+    assert walk_tokens("") == "First tokens: settle."
+    text = walk_tokens("settle")
+    assert text.startswith("Tokens that can follow 'settle': v0, v1, v2,")
+    assert text.endswith("and 14 more.")
+    assert walk_tokens("settle v3") == "'settle v3' is a complete legal action."
+    assert walk_tokens("fold") == "No legal action starts with 'fold'."
     return
 
 

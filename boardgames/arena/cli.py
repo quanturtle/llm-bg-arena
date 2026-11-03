@@ -2,7 +2,7 @@
 
 arena games
 arena play examples/tic_tac_toe.yaml
-arena play examples/auction_llms.yaml --seed 3 --log runs/auction.jsonl
+arena play examples/catan.yaml --seed 3 --log runs/catan.jsonl
 arena replay runs/<log>.jsonl
 arena serve
 

@@ -1,9 +1,9 @@
 """Game implementations. Importing this package registers every game."""
 
 from boardgames.core import registered_game_ids
-from boardgames.games import catan, puerto_rico, sealed_auction, tic_tac_toe
+from boardgames.games import catan, puerto_rico, tic_tac_toe
 
-__all__ = ["catan", "game_ids", "puerto_rico", "sealed_auction", "tic_tac_toe"]
+__all__ = ["catan", "game_ids", "puerto_rico", "tic_tac_toe"]
 
 
 def game_ids() -> tuple[str, ...]:

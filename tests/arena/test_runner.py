@@ -16,7 +16,7 @@ from boardgames.arena.runner import (
     play_match,
 )
 from boardgames.core import AnyGame, ConfigError, GameConfig, PlayerId
-from boardgames.games.sealed_auction import SealedAuction, SealedAuctionConfig
+from boardgames.games.catan import Catan, CatanConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import (
@@ -84,25 +84,12 @@ def test_scripted_win_ranks_the_winner_first() -> None:
     return
 
 
-def test_simultaneous_decisions_are_asked_from_the_same_state() -> None:
-    agents = [RecordingAgent(seed) for seed in range(3)]
-    run(SealedAuction(), SealedAuctionConfig(lots=2), agents)
-    first_requests = [agent.requests[0] for agent in agents]
-    assert {r.observation.data["round"] for r in first_requests} == {1}
-    for request in first_requests:
-        assert request.observation.data["has_bid"] == [False, False, False]
-    return
-
-
-def test_recent_events_hold_only_what_the_player_may_see() -> None:
-    agents = [RecordingAgent(seed) for seed in range(3)]
-    run(SealedAuction(), SealedAuctionConfig(lots=2), agents)
+def test_recent_events_start_after_the_players_previous_decision() -> None:
+    agents = [RecordingAgent(seed) for seed in range(2)]
+    run(TicTacToe(), TicTacToeConfig(), agents)
     first, second = agents[0].requests[0], agents[0].requests[1]
-    dealt = [e.data["player"] for e in first.recent_events if e.kind == "color_dealt"]
-    assert dealt == [0]
-    assert first.recent_events[0].kind == "started"
-    assert [e.kind for e in second.recent_events][-2:] == ["lot_sold", "lot_revealed"]
-    assert "started" not in [e.kind for e in second.recent_events]
+    assert [e.kind for e in first.recent_events] == ["started"]
+    assert [e.kind for e in second.recent_events] == ["marked", "marked"]
     return
 
 
@@ -145,13 +132,13 @@ def test_seat_count_must_match_agent_count() -> None:
 
 def test_private_events_keep_their_audience_in_the_log() -> None:
     sink = MemorySink()
-    run(SealedAuction(), SealedAuctionConfig(lots=1), random_agents(3), sink)
-    dealt = [
-        r
+    run(Catan(), CatanConfig(num_players=3, victory_points=3), random_agents(3), sink)
+    theft = [
+        r.audience
         for r in sink.records
-        if isinstance(r, EventRecord) and r.kind == "color_dealt"
+        if isinstance(r, EventRecord) and r.kind in ("stole_card", "card_stolen")
     ]
-    assert [r.audience for r in dealt] == [[0], [1], [2]]
+    assert theft[:2] == [[1], [2]]
     return
 
 
