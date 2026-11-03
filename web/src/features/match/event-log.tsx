@@ -74,7 +74,21 @@ function ResultRow({ outline, step }: { outline: Outline; step: number }) {
   );
 }
 
-/** The events up to the step on screen, filtered by audience; the list scrolls itself, never the page. */
+// Scrolls the list itself, never the page, until the last current row is in view.
+function revealCurrent(box: HTMLElement): void {
+  const rows = box.querySelectorAll("[data-current]");
+  const target = rows.length ? rows[rows.length - 1] : null;
+  if (!(target instanceof HTMLElement)) return;
+  // the list box is the rows' offset parent, so offsetTop is measured from its top
+  const top = target.offsetTop;
+  // before the page scrolls, the bottom of the list can sit below the window
+  const listTop = box.getBoundingClientRect().top;
+  const visible = Math.max(target.offsetHeight, Math.min(box.clientHeight, window.innerHeight - listTop));
+  if (top + target.offsetHeight > box.scrollTop + visible) box.scrollTop = top + target.offsetHeight - visible;
+  else if (top < box.scrollTop) box.scrollTop = top;
+}
+
+/** The events up to the step on screen, filtered by audience. */
 export function EventLog({
   outline,
   step,
@@ -95,13 +109,12 @@ export function EventLog({
   const events = outline.events.filter((event) => isVisible(event, step, viewer, omniscient));
   useEffect(() => {
     const box = list.current;
-    const rows = box?.querySelectorAll("[data-current]");
-    const target = rows && rows.length ? rows[rows.length - 1] : null;
-    if (!box || !(target instanceof HTMLElement)) return;
-    // the list box is the rows' offset parent, so offsetTop is measured from its top
-    const top = target.offsetTop;
-    if (top + target.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = top + target.offsetHeight - box.clientHeight;
-    else if (top < box.scrollTop) box.scrollTop = top;
+    if (!box) return;
+    revealCurrent(box);
+    // the column settles its height after the first paint; keep the current rows in view
+    const observer = new ResizeObserver(() => revealCurrent(box));
+    observer.observe(box);
+    return () => observer.disconnect();
   }, [step, events.length]);
   return (
     <Card aria-label="Events" className={cn("gap-2 py-4", className)}>

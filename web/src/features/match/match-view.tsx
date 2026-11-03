@@ -15,6 +15,7 @@ import { ReplayBar } from "@/features/match/replay-bar";
 import { useFrame, useLaunch, useLayout, useTimeline } from "@/features/match/use-match-data";
 import { useReplay } from "@/features/match/use-replay";
 import { GAMES } from "@/games/registry";
+import { useFillViewport } from "@/hooks/use-fill-viewport";
 import { useHeight } from "@/hooks/use-height";
 import { useNow } from "@/hooks/use-now";
 import type { Outline } from "@/lib/api";
@@ -22,6 +23,9 @@ import type { Outline } from "@/lib/api";
 // the site header's height (h-14) and the gaps around the replay bar, in px
 const SITE_HEADER_PX = 56;
 const BAR_GAP_PX = 16;
+// from Tailwind's xl breakpoint the side column sticks and fills the window down to this gap
+const WIDE_SCREEN = "(min-width: 80rem)";
+const SIDE_GAP_PX = 16;
 
 function numberParam(value: string | null): number | null {
   return value === null || value === "" || Number.isNaN(Number(value)) ? null : Number(value);
@@ -41,6 +45,7 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
   const [boardTab, setBoardTab] = useState("board");
   const [decisionTab, setDecisionTab] = useState<DecisionTab>("reasoning");
   const [barRef, barHeight] = useHeight<HTMLDivElement>();
+  const sideRef = useFillViewport<HTMLDivElement>(WIDE_SCREEN, SIDE_GAP_PX);
   const match = outline.match;
   const launch = useLaunch(matchId, state.running).data ?? null;
   const layout = useLayout(match.game_id).data ?? null;
@@ -70,7 +75,7 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
             />
             <PointsChart outline={outline} step={state.step} onSeek={(step) => dispatch({ type: "seek", step })} />
           </div>
-          <div className="flex flex-col gap-4 xl:sticky xl:top-(--side-top) xl:h-[calc(100dvh-var(--side-top)-1rem)] xl:self-start">
+          <div ref={sideRef} className="flex flex-col gap-4 xl:sticky xl:top-(--side-top) xl:self-start">
             <DecisionCard match={match} frame={frame.data} tab={decisionTab} onTab={setDecisionTab} className="h-88 shrink-0" />
             <EventLog
               outline={outline}
