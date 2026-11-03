@@ -109,6 +109,11 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 button:disabled { opacity: 0.5; cursor: default; }
 button.danger { background: var(--bad); color: #fff; border-color: var(--bad); }
 .live-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.clocks { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.clock-match, .clock-seat { display: inline-flex; align-items: center; gap: 6px; }
+.clock-time { color: var(--ink); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.clock-seat.thinking .clock-time { color: var(--warn); font-weight: 700; }
+.clock-seat.thinking::after { content: "thinking"; font-size: 12px; color: var(--warn); }
 .row-actions { text-align: right; white-space: nowrap; }
 button.small { font-size: 13px; padding: 3px 8px; }
 .new-match .toolbar { display: flex; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }

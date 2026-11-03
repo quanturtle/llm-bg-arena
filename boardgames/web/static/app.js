@@ -82,6 +82,15 @@
     return seconds < 1 ? `${Math.round(seconds * 1000)} ms` : `${seconds.toFixed(1)} s`;
   }
 
+  // Milliseconds as m:ss, or h:mm:ss from an hour on.
+  function formatClock(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = String(total % 60).padStart(2, "0");
+    return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}` : `${minutes}:${seconds}`;
+  }
+
   // The seat's agent name, followed by its model id when the name is a label that hides it.
   function seatName(seat) {
     if (!seat) return "";
@@ -408,6 +417,9 @@
     let confirmingDelete = false;
     // The page's slots and replay controls, built once by `buildView`.
     let view = null;
+    // players deciding at the step on screen; while live, their clocks tick each second
+    let pending = [];
+    let clockTimer = null;
 
     const frameOf = async (n) => {
       if (!frames.has(n)) frames.set(n, api(`/api/matches/${matchId}/frames/${n}`));
@@ -572,10 +584,42 @@
       stepLabel.textContent = `step ${step} / ${last()}`;
     };
 
+    const buildClocks = () => {
+      const matchTime = h("span", { class: "clock-time" });
+      const seats = outline.match.seats.map((seat) => {
+        const time = h("span", { class: "clock-time" });
+        const box = h("span", { class: "clock-seat", title: `Time ${seatName(seat)} has spent on its moves` }, h("span", { class: `dot p${seat.player}` }), `P${seat.player + 1}`, time);
+        return { box, time };
+      });
+      const row = h("div", { class: "clocks" }, h("span", { class: "clock-match", title: "Time since the match began" }, "⏱ Match", matchTime), seats.map((seat) => seat.box));
+      return { row, matchTime, seats };
+    };
+
+    // The match clock runs from the start to the end, or to now while the match runs. A player's
+    // clock adds up its moves to the step on screen, plus the move it is making while live.
+    const updateClocks = () => {
+      if (!view) return;
+      const match = outline.match;
+      const now = Date.now();
+      const end = match.finished_at ? Date.parse(match.finished_at) : now;
+      view.clocks.matchTime.textContent = formatClock(end - Date.parse(match.started_at));
+      const totals = match.seats.map(() => 0);
+      for (const move of outline.moves) if (move.step <= step) totals[move.player] += move.latency_seconds * 1000;
+      for (const forfeit of outline.forfeits) if (forfeit.observed_at_step < step) totals[forfeit.player] += forfeit.latency_seconds * 1000;
+      const thinking = liveState() === "on" && outline.log_updated_at ? pending : [];
+      const since = thinking.length ? now - Date.parse(outline.log_updated_at) : 0;
+      view.clocks.seats.forEach((seat, player) => {
+        const isThinking = thinking.includes(player);
+        seat.time.textContent = formatClock(totals[player] + (isThinking ? since : 0));
+        seat.box.classList.toggle("thinking", isThinking);
+      });
+    };
+
     const buildView = () => {
       const controls = buildControls();
+      const clocks = buildClocks();
       const slots = { header: h("div", {}), bar: h("div", {}), notice: h("div", {}), grid: h("div", { class: "match-grid" }) };
-      return { ...slots, controls, root: h("div", {}, slots.header, slots.bar, slots.notice, controls.row, slots.grid) };
+      return { ...slots, controls, clocks, root: h("div", {}, slots.header, clocks.row, slots.bar, slots.notice, controls.row, slots.grid) };
     };
 
     // "on" at the latest step of a match that is playing; "off" when paused or scrolled back.
@@ -611,6 +655,8 @@
         ? h("p", { class: "panel error small" }, `Only steps 0–${last()} can be shown: this log stops matching the current ${match.game_id} rules after that, probably because the rules changed after it was recorded. `, h("span", { class: "muted" }, outline.replay_error))
         : null);
       updateControls();
+      pending = frame.pending || [];
+      updateClocks();
       view.grid.replaceChildren(
         h("div", { class: "stack" }, boardPanel(match, frame, viewer, layout), h("div", { class: "panel" }, pointsChart(outline, step, seek))),
         h("div", { class: "stack" }, decisionPanel(match, frame), h("div", { class: "panel" }, h("h3", {}, "Events"), eventList(outline, step, viewer, omniscient))),
@@ -630,6 +676,7 @@
       if (outline.match.status === "running") poll = setInterval(refreshOutline, 2000);
       document.addEventListener("keydown", onKey);
       view = buildView();
+      if (outline.match.status === "running") clockTimer = setInterval(updateClocks, 1000);
       render();
     };
 
@@ -637,6 +684,7 @@
       disposed = true;
       stop();
       if (poll) clearInterval(poll);
+      if (clockTimer) clearInterval(clockTimer);
       document.removeEventListener("keydown", onKey);
     };
 
