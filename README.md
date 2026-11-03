@@ -1,4 +1,6 @@
-# Boardgames
+# LLM Boardgame Arena
+
+![A Catan replay in the viewer: the board, each player's cards, the deciding model's reasoning and notes, and the event log](img/llm-bg-arena.png)
 
 Seat language models at the same board game table, and keep a replayable record of every move.
 
