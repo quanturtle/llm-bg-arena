@@ -51,6 +51,7 @@ class MessagePayload(BaseModel):
 
 class ChoicePayload(BaseModel):
     message: MessagePayload
+    error: "ErrorPayload | None" = None
 
 
 class UsagePayload(BaseModel):
@@ -86,7 +87,7 @@ class OpenRouterChatModel:
         self._transport = transport
         self._headers = {
             "Authorization": f"Bearer {api_key}",
-            "X-Title": "tabletop-arena",
+            "X-Title": "boardgames",
         }
         return
 
@@ -161,13 +162,19 @@ def parse_payload(response: httpx.Response) -> ResponsePayload:
 
 
 def failure(status: int, payload: ResponsePayload) -> tuple[FailureKind, str] | None:
-    """What went wrong, from the HTTP status or an error object in the body."""
-    if status < 400 and payload.error is None:
+    """What went wrong, from the HTTP status or an error object in the body.
+
+    The error object may sit at the top level or inside the first choice.
+    """
+    error = payload.error
+    if error is None and payload.choices:
+        error = payload.choices[0].error
+    if status < 400 and error is None:
         return None
     code, message = status, f"HTTP {status}"
-    if payload.error is not None:
-        code = payload.error.code if payload.error.code is not None else code
-        message = payload.error.message or message
+    if error is not None:
+        code = error.code if error.code is not None else code
+        message = error.message or message
     if code in TRANSIENT_STATUSES or code >= 500:
         return "transient", message
     return "rejected", message
@@ -182,8 +189,10 @@ def completion_from(payload: ResponsePayload, model: str) -> Completion:
     return Completion(
         text=message.content or "",
         tool_calls=tuple(
-            ToolCall(call.id, call.function.name, call.function.arguments)
-            for call in message.tool_calls or ()
+            ToolCall(
+                call.id or f"call_{index}", call.function.name, call.function.arguments
+            )
+            for index, call in enumerate(message.tool_calls or ())
         ),
         usage=Usage(usage.prompt_tokens, usage.completion_tokens),
         cost_usd=usage.cost,

@@ -200,3 +200,21 @@ def test_connection_failure_is_transient() -> None:
     with pytest.raises(TransientModelError, match="refused"):
         complete(model_with(handler))
     return
+
+
+def test_an_error_inside_the_choice_is_a_failure() -> None:
+    body = {"choices": [{"message": {}, "error": {"code": 502, "message": "down"}}]}
+    with pytest.raises(TransientModelError, match="down"):
+        complete(model_with(lambda request: httpx.Response(200, json=body)))
+    return
+
+
+def test_tool_calls_without_ids_get_distinct_ids() -> None:
+    payload = reply_payload(content=None)
+    payload["choices"][0]["message"]["tool_calls"] = [  # type: ignore[index]
+        {"function": {"name": "get_state", "arguments": "{}"}},
+        {"function": {"name": "get_rules", "arguments": "{}"}},
+    ]
+    completion = completion_from(ResponsePayload.model_validate(payload), "m")
+    assert [call.id for call in completion.tool_calls] == ["call_0", "call_1"]
+    return
