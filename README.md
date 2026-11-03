@@ -62,7 +62,7 @@ Catan uses the standard board and costs. Player-to-player trades are one card fo
 
 ## Check a match
 
-Every match writes a log to `runs/`. Replaying it rebuilds the game from the seed and compares every move, observation and event:
+Every match writes two files to `runs/`: a JSONL log, and next to it a `.thoughts.md` you can read while the match runs, with each model's reasoning, tool calls, rejected answers and notes per move. Replaying the log rebuilds the game from the seed and compares every move, observation and event:
 
 ```console
 $ uv run arena play examples/tic_tac_toe.yaml --log runs/demo.jsonl

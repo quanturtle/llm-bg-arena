@@ -49,6 +49,7 @@ from boardgames.llm.parsing import ActionExtractor
 from boardgames.llm.retry import RetryingChatModel
 from boardgames.logs.replay import read_log, replay_match
 from boardgames.logs.sink import Broadcast, JsonlFile, RecordSink
+from boardgames.logs.thoughts import ThoughtsFile
 from boardgames.web.app import create_app
 from boardgames.web.store import MatchStore
 
@@ -196,10 +197,12 @@ def play(args: argparse.Namespace) -> None:
     match_id = uuid.uuid4().hex[:12]
     default_log = DEFAULT_LOG_DIR / f"{game.id}-{seed}-{match_id}.jsonl"
     log_path = args.log or config.log or default_log
-    with JsonlFile(log_path) as log_file:
-        sink: RecordSink = log_file
+    thoughts_path = log_path.with_suffix(".thoughts.md")
+    with JsonlFile(log_path) as log_file, ThoughtsFile(thoughts_path) as thoughts:
+        sinks: list[RecordSink] = [log_file, thoughts]
         if not args.quiet:
-            sink = Broadcast([log_file, ConsoleLog(sys.stdout)])
+            sinks.append(ConsoleLog(sys.stdout))
+        sink = Broadcast(sinks)
         result = asyncio.run(
             play_match(
                 game,
@@ -214,6 +217,7 @@ def play(args: argparse.Namespace) -> None:
     ranks = ", ".join(f"P{player + 1} #{rank}" for player, rank in result.ranks.items())
     print(f"Ranks: {ranks}")
     print(f"Log: {log_path}")
+    print(f"Thoughts: {thoughts_path}")
     return
 
 
