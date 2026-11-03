@@ -1,8 +1,9 @@
 """Statistics over match summaries: per-agent results, usage and Elo ratings.
 
 Everything here is a pure function of a list of `MatchSummary`; only finished
-matches count. An agent is identified by the name its seat recorded, so two
-runs of one model with different settings share a row.
+matches and language model seats count, so bots get no rows or ratings. An
+agent is identified by the name its seat recorded, so two runs of one model
+with different settings share a row.
 """
 
 from collections import defaultdict
@@ -121,8 +122,8 @@ class Ratings:
         return self.values.get(agent, ELO_START)
 
     def update(self, match: MatchSummary) -> None:
-        """Every pair of seats plays one Elo game; a seat's change is the average."""
-        seats = match.seats
+        """Each pair of model seats plays one Elo game; a seat's change is the mean."""
+        seats = model_seats(match)
         if len(seats) < 2:
             return
         changes: defaultdict[str, float] = defaultdict(float)
@@ -145,6 +146,11 @@ def score_against(seat: SeatSummary, other: SeatSummary) -> float:
     if seat.rank < other.rank:
         return 1.0
     return 0.5 if seat.rank == other.rank else 0.0
+
+
+def model_seats(match: MatchSummary) -> list[SeatSummary]:
+    """The language model seats of a match; bots are left out of statistics."""
+    return [seat for seat in match.seats if seat.kind == "llm"]
 
 
 def finished_in_order(matches: Iterable[MatchSummary]) -> list[MatchSummary]:
@@ -188,13 +194,17 @@ def stats_row(
 
 
 def leaderboard(matches: Sequence[MatchSummary], game_id: str | None) -> Leaderboard:
-    """Rows per agent at `game_id`, by Elo; across all games (None), by win rate."""
-    finished = [m for m in finished_in_order(matches) if game_id in (None, m.game_id)]
+    """Rows per model agent at `game_id` by Elo; across all games (None) by win rate."""
+    finished = [
+        m
+        for m in finished_in_order(matches)
+        if game_id in (None, m.game_id) and model_seats(m)
+    ]
     tallies: defaultdict[str, Tally] = defaultdict(Tally)
     ratings = Ratings()
     for match in finished:
         sole_winner = len(match.winners()) == 1
-        for seat in match.seats:
+        for seat in model_seats(match):
             tallies[seat.agent].add(seat, won_outright=sole_winner and seat.rank == 1)
         if game_id is not None:
             ratings.update(match)
