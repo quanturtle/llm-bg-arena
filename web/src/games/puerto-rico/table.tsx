@@ -6,7 +6,7 @@ import { StatusBar } from "@/components/board-parts";
 import { SeatChip, SeatDot, seatLabel } from "@/components/seat";
 import { GOOD_META, ROLE_META, TRADING_HOUSE_CARD } from "@/games/puerto-rico/assets";
 import type { PuertoRicoObservation } from "@/games/puerto-rico/observation";
-import { Art, Coin, GoodCounts, IslandTile, Pips } from "@/games/puerto-rico/pieces";
+import { Art, Coin, GoodRow, IslandTile, Pips } from "@/games/puerto-rico/pieces";
 import type { MatchSummary } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -64,31 +64,31 @@ export function RolesStrip({ observation }: { observation: PuertoRicoObservation
           <div
             key={role.role}
             className={cn(
-              "flex h-36 min-w-0 flex-col items-center gap-1 rounded-lg border bg-card p-2 text-center",
+              "flex h-16 min-w-0 items-center gap-2 rounded-lg border bg-card px-2",
               role.taken_by !== null && "bg-muted/50",
               isActive && "border-primary ring-1 ring-primary",
             )}
           >
-            {meta.art ? <Art path={meta.art} alt={meta.label} size={64} className="h-16 w-auto rounded-sm shadow-sm" /> : null}
-            <span className="w-full truncate text-xs font-semibold">{meta.label}</span>
-            <span className="flex h-4 items-center gap-1 text-xs font-semibold text-amber-600 tabular-nums dark:text-amber-400">
-              {role.doubloons ? (
-                <>
-                  <Coin value={role.doubloons} />
-                  {role.doubloons}
-                </>
-              ) : null}
-            </span>
-            <span className="flex h-4 items-center gap-1 text-xs">
-              {role.taken_by === null ? (
-                <span className="text-muted-foreground">open</span>
-              ) : (
-                <>
-                  <SeatDot player={role.taken_by} />
-                  {seatLabel(role.taken_by)}
-                </>
-              )}
-            </span>
+            {meta.art ? <Art path={meta.art} alt={meta.label} size={64} className="h-12 w-auto shrink-0 rounded-sm shadow-sm" /> : null}
+            <div className="flex min-w-0 flex-col gap-0.5 text-xs">
+              <span className="truncate font-semibold">{meta.label}</span>
+              <span className="flex h-4 items-center gap-1.5">
+                {role.taken_by === null ? (
+                  <span className="text-muted-foreground">open</span>
+                ) : (
+                  <>
+                    <SeatDot player={role.taken_by} />
+                    {seatLabel(role.taken_by)}
+                  </>
+                )}
+                {role.doubloons ? (
+                  <span className="flex items-center gap-1 font-semibold text-amber-600 tabular-nums dark:text-amber-400">
+                    <Coin value={role.doubloons} />
+                    {role.doubloons}
+                  </span>
+                ) : null}
+              </span>
+            </div>
           </div>
         );
       })}
@@ -98,8 +98,8 @@ export function RolesStrip({ observation }: { observation: PuertoRicoObservation
 
 function Section({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("flex min-w-0 flex-col gap-2 rounded-lg border bg-card p-3", className)}>
-      <h4 className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{title}</h4>
+    <section className={cn("flex min-w-0 flex-col gap-1.5 rounded-lg border bg-card px-2.5 py-2", className)}>
+      <h4 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">{title}</h4>
       {children}
     </section>
   );
@@ -107,18 +107,18 @@ function Section({ title, children, className }: { title: string; children: Reac
 
 function SupplyStats({ observation }: { observation: PuertoRicoObservation }) {
   const stats: [string, number][] = [
-    ["Colonist ship", observation.colonist_ship],
+    ["Ship", observation.colonist_ship],
     ["Colonists", observation.colonist_supply],
     ["VP chips", observation.vp_supply],
     ["Quarries", observation.quarry_supply],
-    ["Plantation deck", observation.plantation_deck_count],
+    ["Deck", observation.plantation_deck_count],
   ];
   return (
-    <dl className="flex flex-col gap-1 text-sm">
+    <dl className="grid grid-cols-[auto_auto_auto_auto] gap-x-2 gap-y-0.5 text-xs">
       {stats.map(([label, value]) => (
-        <div key={label} className="flex h-6 items-center justify-between gap-2">
-          <dt className="truncate text-muted-foreground">{label}</dt>
-          <dd className="font-medium tabular-nums">{value}</dd>
+        <div key={label} className="contents">
+          <dt className="text-muted-foreground">{label}</dt>
+          <dd className="w-[3ch] font-medium tabular-nums">{value}</dd>
         </div>
       ))}
     </dl>
@@ -127,38 +127,36 @@ function SupplyStats({ observation }: { observation: PuertoRicoObservation }) {
 
 function TradingHouse({ observation }: { observation: PuertoRicoObservation }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="grid grid-cols-2 gap-1.5">
-        {Array.from({ length: TRADING_HOUSE_SPACES }, (_, index) => {
-          const good = observation.trading_house[index];
-          return (
-            <div
-              key={index}
-              className={cn("flex size-10 items-center justify-center rounded-md border", !good && "border-dashed")}
-              style={good ? { background: `color-mix(in oklab, ${GOOD_META[good].color} 18%, transparent)` } : undefined}
-              title={good ? GOOD_META[good].label : "Empty trading-house space"}
-            >
-              {good ? <Art path={GOOD_META[good].barrel} alt={GOOD_META[good].label} size={28} className="size-7" /> : null}
-            </div>
-          );
-        })}
-      </div>
-      <Art path={TRADING_HOUSE_CARD} alt="Trading house prices" size={64} className="h-20 w-auto rounded-sm" />
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: TRADING_HOUSE_SPACES }, (_, index) => {
+        const good = observation.trading_house[index];
+        return (
+          <div
+            key={index}
+            className={cn("flex size-8 items-center justify-center rounded-md border", !good && "border-dashed")}
+            style={good ? { background: `color-mix(in oklab, ${GOOD_META[good].color} 18%, transparent)` } : undefined}
+            title={good ? GOOD_META[good].label : "Empty trading-house space"}
+          >
+            {good ? <Art path={GOOD_META[good].barrel} alt={GOOD_META[good].label} size={24} className="size-6" /> : null}
+          </div>
+        );
+      })}
+      <Art path={TRADING_HOUSE_CARD} alt="Trading house prices" size={64} className="ml-1 h-12 w-auto rounded-sm" />
     </div>
   );
 }
 
 function CargoShips({ observation }: { observation: PuertoRicoObservation }) {
   return (
-    <ul className="flex flex-col gap-1.5">
+    <ul className="flex flex-col gap-0.5">
       {observation.cargo_ships.map((ship, index) => {
         const meta = ship.good ? GOOD_META[ship.good] : null;
         return (
-          <li key={index} className="flex h-6 items-center gap-2 text-sm" title={`Cargo ship ${index + 1}`}>
-            {meta ? <Art path={meta.barrel} alt={meta.label} size={20} className="size-5" /> : <span className="size-5 rounded-full border border-dashed" />}
-            <span className={cn("w-16 truncate", !meta && "text-muted-foreground")}>{meta ? meta.label : "empty"}</span>
+          <li key={index} className="flex h-4 items-center gap-1.5 text-xs" title={`Cargo ship ${index + 1}`}>
+            {meta ? <Art path={meta.barrel} alt={meta.label} size={16} className="size-4" /> : <span className="size-4 rounded-full border border-dashed" />}
+            <span className={cn("w-14 truncate", !meta && "text-muted-foreground")}>{meta ? meta.label : "empty"}</span>
             <Pips filled={ship.filled} total={ship.capacity} color={meta?.color} round={false} />
-            <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+            <span className="ml-auto pl-1 text-muted-foreground tabular-nums">
               {ship.filled}/{ship.capacity}
             </span>
           </li>
@@ -172,7 +170,7 @@ function CargoShips({ observation }: { observation: PuertoRicoObservation }) {
 function FaceUp({ observation }: { observation: PuertoRicoObservation }) {
   const slots = observation.players.length + 1;
   return (
-    <div className="grid grid-cols-[repeat(3,2.75rem)] gap-1.5">
+    <div className="flex gap-1">
       {Array.from({ length: slots }, (_, index) => {
         const good = observation.face_up[index];
         return good ? <IslandTile key={index} good={good} /> : <IslandTile key={index} />;
@@ -181,14 +179,15 @@ function FaceUp({ observation }: { observation: PuertoRicoObservation }) {
   );
 }
 
+/** The common table in one short row on wide boards: supply, bank, trading house, ships, plantations. */
 export function TableStrip({ observation }: { observation: PuertoRicoObservation }) {
   return (
-    <div className="grid gap-2 @2xl:grid-cols-3 @4xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_minmax(0,1.2fr)_auto]">
+    <div className="grid gap-2 @2xl:grid-cols-3 @4xl:grid-cols-[auto_auto_auto_minmax(0,1fr)_auto]">
       <Section title="Supply">
         <SupplyStats observation={observation} />
       </Section>
       <Section title="Goods bank">
-        <GoodCounts counts={observation.goods_supply} />
+        <GoodRow counts={observation.goods_supply} />
       </Section>
       <Section title="Trading house">
         <TradingHouse observation={observation} />

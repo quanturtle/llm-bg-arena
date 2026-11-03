@@ -13,17 +13,20 @@ export function Coin({ value }: { value: number }) {
   return <Art path={value >= 5 ? COIN_5 : COIN_1} alt="doubloon" size={16} className="size-4" />;
 }
 
-/** All five goods with their counts; zeros stay in their row, dimmed, so the list never reflows. */
-export function GoodCounts({ counts, className }: { counts: Partial<Record<Good, number>>; className?: string }) {
+/** All five goods in one row, a barrel and its count each; zeros stay in place, dimmed. */
+export function GoodRow({ counts, className }: { counts: Partial<Record<Good, number>>; className?: string }) {
   return (
-    <ul className={cn("flex flex-col gap-1", className)}>
+    <ul className={cn("flex h-5 items-center gap-3", className)}>
       {GOODS.map((good) => {
         const count = counts[good] ?? 0;
         return (
-          <li key={good} className={cn("flex h-6 items-center gap-2 text-sm", count === 0 && "opacity-40")}>
-            <Art path={GOOD_META[good].barrel} alt="" size={20} className="size-5" />
-            <span className="flex-1 truncate">{GOOD_META[good].label}</span>
-            <span className="font-medium tabular-nums">{count}</span>
+          <li
+            key={good}
+            title={`${GOOD_META[good].label}: ${count}`}
+            className={cn("flex w-9 items-center gap-1 text-xs font-medium tabular-nums", count === 0 && "opacity-35")}
+          >
+            <Art path={GOOD_META[good].barrel} alt={GOOD_META[good].label} size={16} className="size-4" />
+            {count}
           </li>
         );
       })}
@@ -33,19 +36,18 @@ export function GoodCounts({ counts, className }: { counts: Partial<Record<Good,
 
 /** One island space: a plantation, a quarry, or empty. A dot marks a colonist on it. */
 export function IslandTile({ good, quarry, colonized }: { good?: Good; quarry?: boolean; colonized?: boolean }) {
-  if (!good && !quarry) return <div className="aspect-square rounded-md border border-dashed" title="Empty island space" />;
+  if (!good && !quarry) return <div className="size-8 rounded-md border border-dashed" title="Empty island space" />;
   const label = quarry ? "Quarry" : GOOD_META[good as Good].label;
   const path = quarry ? (colonized ? QUARRY_OCCUPIED : QUARRY_TILE) : colonized ? GOOD_META[good as Good].occupied : GOOD_META[good as Good].tile;
   const color = quarry ? QUARRY_COLOR : GOOD_META[good as Good].color;
   return (
     <div
-      className="relative aspect-square overflow-hidden rounded-md border"
-      style={{ borderColor: `color-mix(in oklab, ${color} 50%, transparent)` }}
+      className="relative size-8 overflow-hidden rounded-md border"
+      style={{ borderColor: `color-mix(in oklab, ${color} 60%, transparent)` }}
       title={`${label}${colonized ? " (colonized)" : ""}`}
     >
-      <Art path={path} alt={label} size={64} className="size-full object-cover" />
-      <span className="absolute inset-x-0 top-0 truncate bg-background/80 px-0.5 text-center text-[9px] leading-tight font-semibold">{label}</span>
-      {colonized ? <span className="absolute right-1 bottom-1 size-2 rounded-full bg-foreground ring-2 ring-background" /> : null}
+      <Art path={path} alt={label} size={48} className="size-full object-cover" />
+      {colonized ? <span className="absolute right-0.5 bottom-0.5 size-1.5 rounded-full bg-foreground ring-2 ring-background" /> : null}
     </div>
   );
 }

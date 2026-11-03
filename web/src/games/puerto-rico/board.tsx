@@ -39,7 +39,7 @@ function PuertoRicoBoard({ observation, context }: { observation: PuertoRicoObse
   const specs = buildingSpecs(context.layout);
   if (typeof specs === "string") return <MissingSpecs error={specs} />;
   return (
-    <div className="@container flex flex-col gap-3">
+    <div className="@container flex flex-col gap-2">
       <PuertoRicoStatus observation={observation} match={context.match} />
       <RolesStrip observation={observation} />
       <TableStrip observation={observation} />
