@@ -64,10 +64,23 @@ def read_log(path: Path) -> list[LogRecord]:
     return records
 
 
-def replay_match(records: Sequence[LogRecord]) -> ReplayReport:
-    """Replay a logged match; any difference raises ReplayMismatchError."""
+@dataclass(frozen=True)
+class Replayed:
+    """The states a log rebuilds to: `states[step]` is the state after `step`."""
+
+    game: AnyGame
+    start: MatchStarted
+    states: dict[int, Any]
+    forfeited: tuple[PlayerId, ...]
+
+    @property
+    def last_step(self) -> int:
+        return max(self.states)
+
+
+def replay_states(records: Sequence[LogRecord]) -> Replayed:
+    """Every state of a log, checking each decision; the log may be unfinished."""
     start = first_record(records, MatchStarted)
-    finish = first_record(records, MatchFinished)
     game = create_game(start.game_id)
     events = events_by_step(records)
     setup = game.setup(game.parse_config(start.config), start.seed)
@@ -83,12 +96,20 @@ def replay_match(records: Sequence[LogRecord]) -> ReplayReport:
         elif isinstance(record, ForfeitRecord):
             check_observation(game, states, record)
             forfeited.append(PlayerId(record.player))
-    check_finish(game, states[step], step, forfeited, finish)
+    return Replayed(game, start, states, tuple(forfeited))
+
+
+def replay_match(records: Sequence[LogRecord]) -> ReplayReport:
+    """Replay a logged match; any difference raises ReplayMismatchError."""
+    finish = first_record(records, MatchFinished)
+    replayed = replay_states(records)
+    step = replayed.last_step
+    check_finish(replayed.game, replayed.states[step], step, replayed.forfeited, finish)
     return ReplayReport(
-        match_id=start.match_id,
-        game_id=start.game_id,
+        match_id=replayed.start.match_id,
+        game_id=replayed.start.game_id,
         steps=step,
-        events=sum(len(logged) for logged in events.values()),
+        events=sum(1 for record in records if isinstance(record, EventRecord)),
     )
 
 
@@ -176,7 +197,7 @@ def check_finish(
     game: AnyGame,
     state: Any,
     step: int,
-    forfeited: list[PlayerId],
+    forfeited: Sequence[PlayerId],
     finish: MatchFinished,
 ) -> None:
     """Final step count, forfeits, terminal state and scores must match the log."""
