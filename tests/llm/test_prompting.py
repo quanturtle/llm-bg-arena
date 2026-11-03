@@ -1,11 +1,13 @@
 from dataclasses import replace
 
-from boardgames.core import Event
+from boardgames.core import Event, FlatActionSpace
 from boardgames.llm.model import Message
 from boardgames.llm.prompting import (
+    MAX_TEMPLATE_LINES,
     PromptSettings,
     action_templates,
     build_prompt,
+    recent_events_text,
     retry_messages,
     submit_tool,
 )
@@ -121,4 +123,18 @@ def test_submit_tool_requires_action_and_states_memory_limit() -> None:
     tool = submit_tool(500)
     assert tool.parameters["required"] == ["reasoning", "action", "memory"]
     assert "at most 500 characters" in str(tool.parameters["properties"])
+    return
+
+
+def test_templates_at_exactly_the_limit_omit_nothing() -> None:
+    actions = [(f"t{index}", "x") for index in range(MAX_TEMPLATE_LINES)]
+    lines = action_templates(FlatActionSpace(actions, " ".join))
+    assert len(lines) == MAX_TEMPLATE_LINES
+    return
+
+
+def test_recent_events_cap_of_zero_shows_no_event() -> None:
+    request = tic_tac_toe_request([], events=(Event("e", "moved"),))
+    text = recent_events_text(request, replace(PromptSettings(), max_recent_events=0))
+    assert "moved" not in text
     return

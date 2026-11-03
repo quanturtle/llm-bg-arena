@@ -140,7 +140,7 @@ def recent_events_text[A](request: DecisionRequest[A], settings: PromptSettings)
     events = request.recent_events
     if not events:
         return "Nothing new."
-    shown = events[-settings.max_recent_events :]
+    shown = events[-settings.max_recent_events :] if settings.max_recent_events else ()
     lines = [f"- {event.text}" for event in shown]
     omitted = len(events) - len(shown)
     if omitted:
@@ -173,7 +173,7 @@ def action_templates[A](space: ActionSpace[A]) -> list[str]:
     """Patterns covering every legal action, folding final tokens into <a|b|c>."""
     lines: list[str] = []
     collect_templates(space, (), lines)
-    if len(lines) >= MAX_TEMPLATE_LINES:
+    if len(lines) > MAX_TEMPLATE_LINES:
         lines = [*lines[:MAX_TEMPLATE_LINES], "(more patterns omitted)"]
     return lines
 
@@ -181,8 +181,11 @@ def action_templates[A](space: ActionSpace[A]) -> list[str]:
 def collect_templates[A](
     space: ActionSpace[A], prefix: Tokens, lines: list[str]
 ) -> None:
-    """Append template lines for the subtree under `prefix`, depth-first."""
-    if len(lines) >= MAX_TEMPLATE_LINES:
+    """Append template lines for the subtree under `prefix`, depth-first.
+
+    Collection stops one line past the limit, so the caller knows lines were dropped.
+    """
+    if len(lines) > MAX_TEMPLATE_LINES:
         return
     if prefix and space.action_at(prefix) is not None:
         lines.append(" ".join(prefix))
