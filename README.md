@@ -92,7 +92,7 @@ The web viewer lists every match in `runs/`, replays it move by move, and starts
 uv run arena serve
 ```
 
-Open http://127.0.0.1:8000/. Each replay shows the board at every step (a drawn board for tic-tac-toe, Catan and Puerto Rico), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Stepping through a match keeps every panel in place: the board, the players and the event log hold their size from the first step to the last. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. The leaderboard ranks agents per game by Elo, with win rate, average rank, forfeits, the share of rejected answers, latency, tokens and cost per match; each agent has a page with its record per game and against each opponent. Each game has a page with its rules, default config, standings and matches. `--runs` points at another log directory, `--port` changes the port, and `--viewer` points at another viewer build (default `web/out`). Without a build, `arena serve` stops and prints the command that makes one.
+Open http://127.0.0.1:8765/. Each replay shows the board at every step (a drawn board for tic-tac-toe, Catan and Puerto Rico), what the deciding model was asked, what it answered, its reasoning and notes, any rejected attempts, and points over time. Stepping through a match keeps every panel in place: the board, the players and the event log hold their size from the first step to the last. Private events can be shown for one seat or for everyone. A match that is still running is updated as its log grows. The leaderboard ranks agents per game by Elo, with win rate, average rank, forfeits, the share of rejected answers, latency, tokens and cost per match; each agent has a page with its record per game and against each opponent. Each game has a page with its rules, default config, standings and matches. `--runs` points at another log directory, `--port` changes the port, and `--viewer` points at another viewer build (default `web/out`). Without a build, `arena serve` stops and prints the command that makes one.
 
 ## Develop
 
@@ -104,6 +104,6 @@ pnpm --dir web lint
 pnpm --dir web build
 ```
 
-To work on the viewer with live reload, keep `uv run arena serve` running and start `pnpm --dir web dev`, then open http://localhost:3000/. The dev server sends `/api` requests to port 8000. After an API change, `pnpm --dir web gen:api` regenerates the viewer's API types from the running server.
+To work on the viewer with live reload, keep `uv run arena serve` running and start `pnpm --dir web dev`, then open http://localhost:3000/. The dev server sends `/api` requests to port 8765. After an API change, `pnpm --dir web gen:api` regenerates the viewer's API types from the running server.
 
 How games, players and logs fit together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

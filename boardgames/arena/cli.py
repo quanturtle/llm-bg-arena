@@ -40,6 +40,8 @@ DEFAULT_LOG_DIR = Path("runs")
 DEFAULT_EXAMPLES_DIR = Path("examples")
 DEFAULT_VIEWER_DIR = Path("web/out")
 VIEWER_BUILD_COMMAND = "pnpm --dir web install && pnpm --dir web build"
+# 8000 is where local model servers listen, and coding tools probe it for /v1/models
+DEFAULT_PORT = 8765
 ENV_FILE = Path(".env")
 
 type Commands = argparse._SubParsersAction[argparse.ArgumentParser]
@@ -105,7 +107,9 @@ def add_serve_command(commands: Commands) -> None:
         help=f"built web viewer (default web/out, from: {VIEWER_BUILD_COMMAND})",
     )
     parser.add_argument("--host", default="127.0.0.1", help="bind address")
-    parser.add_argument("--port", type=int, default=8000, help="port (default 8000)")
+    parser.add_argument(
+        "--port", type=int, default=DEFAULT_PORT, help=f"port (default {DEFAULT_PORT})"
+    )
     parser.set_defaults(handler=serve)
     return
 

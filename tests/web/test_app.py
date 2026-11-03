@@ -89,6 +89,7 @@ def test_serve_command_parses_its_options() -> None:
     args = cli.parse_arguments(["serve", "--runs", "logs", "--port", "9000"])
     assert (args.runs, args.port, args.handler) == (Path("logs"), 9000, cli.serve)
     assert args.viewer == Path("web/out")
+    assert cli.parse_arguments(["serve"]).port == 8765
     return
 
 
