@@ -15,10 +15,11 @@ The lot deck is shuffled. Each player is dealt a secret color that only they see
 1. Every player secretly bids a whole number of coins, from 0 up to the coins they have. All players bid at the same time; no one sees another bid before bidding.
 2. The bids are revealed. The highest bid wins the lot. If several players tie for the highest bid, a die roll picks one of them.
 3. The winner pays their bid to the bank and takes the lot. Everyone else keeps their coins.
-4. The next lot is turned face up.
+4. If every bid is 0, no one takes the lot: it goes unsold, leaves the game, and everyone keeps their coins.
+5. The next lot is turned face up.
 
 ## End and scoring
-The game ends when the last lot of the game has been sold. Secret colors are then revealed. Each player scores:
+The game ends after the round of the last lot of the game. Secret colors are then revealed. Each player scores:
 - the value of each lot they won,
 - that value again for each lot in their secret color,
 - 1 point for every 2 coins left, rounded down.

@@ -54,7 +54,7 @@ BID_PATTERN = re.compile(r"bid (0|[1-9][0-9]*)")
 
 @dataclass(frozen=True)
 class SealedAuctionConfig:
-    """`lots` lots are sold, one per round; each player starts with `starting_coins`."""
+    """`lots` lots, one per round; each player starts with `starting_coins`."""
 
     num_players: int = 3
     lots: int = 6
@@ -81,7 +81,8 @@ class Bid:
 class SealedAuctionState:
     """Full state; `deck`, `secret_colors`, `bids` and `rng` are hidden from players.
 
-    `current` is the lot up for auction, or None once the game is over.
+    `current` is the lot up for auction, or None once the game is over. `unsold`
+    holds the lots every player passed on.
     """
 
     config: SealedAuctionConfig
@@ -91,6 +92,7 @@ class SealedAuctionState:
     round: int
     coins: tuple[int, ...]
     won: tuple[tuple[Lot, ...], ...]
+    unsold: tuple[Lot, ...]
     secret_colors: tuple[Color, ...]
     bids: tuple[int | None, ...]
 
@@ -124,6 +126,7 @@ class SealedAuction:
             round=1,
             coins=(config.starting_coins,) * config.num_players,
             won=((),) * config.num_players,
+            unsold=(),
             secret_colors=secret_colors,
             bids=(None,) * config.num_players,
         )
@@ -154,7 +157,7 @@ class SealedAuction:
         return FlatActionSpace(
             bids,
             bid_notation,
-            explain=partial(explain_bid, state, decision.player),
+            explain=partial(explain_bid, state.coins[decision.player]),
             default=Bid(0),
         )
 
@@ -299,18 +302,12 @@ def bid_notation(action: Bid) -> str:
     return f"bid {action.coins}"
 
 
-def explain_bid(state: SealedAuctionState, player: PlayerId, action: Bid) -> str:
-    """Why this bid is illegal for `player` now."""
-    if state.current is None:
-        return "The game is over."
-    if state.bids[player] is not None:
-        return "You already bid this round."
+def explain_bid(coins: int, action: Bid) -> str:
+    """Why this bid is illegal for a bidder holding `coins`."""
     if action.coins < 0:
         return "A bid cannot be negative."
-    if action.coins > state.coins[player]:
-        return (
-            f"You have {state.coins[player]} coins, so you cannot bid {action.coins}."
-        )
+    if action.coins > coins:
+        return f"You have {coins} coins, so you cannot bid {action.coins}."
     return f"{bid_notation(action)!r} is not a legal bid now."
 
 
@@ -318,54 +315,78 @@ def check_bid(state: SealedAuctionState, player: PlayerId, action: Bid) -> None:
     """Raise IllegalActionError unless `player` may make this bid now."""
     if not 0 <= player < state.config.num_players:
         raise IllegalActionError(f"there is no seat {player}")
-    if (
-        state.current is None
-        or state.bids[player] is not None
-        or not 0 <= action.coins <= state.coins[player]
-    ):
-        raise IllegalActionError(explain_bid(state, player, action))
+    if state.current is None:
+        raise IllegalActionError("The game is over.")
+    if state.bids[player] is not None:
+        raise IllegalActionError("You already bid this round.")
+    if not 0 <= action.coins <= state.coins[player]:
+        raise IllegalActionError(explain_bid(state.coins[player], action))
     return
 
 
 def resolve_round(state: SealedAuctionState) -> Transition[SealedAuctionState]:
-    """Reveal all bids, sell the lot, then reveal the next lot or end the game."""
+    """Reveal all bids, sell the lot unless every bid is 0, then reveal the next lot.
+
+    After the last lot the game ends and the secret colors are revealed.
+    """
     lot = state.current
     bids = tuple(bid for bid in state.bids if bid is not None)
     if lot is None or len(bids) != len(state.bids):
         raise ValueError("a round resolves only with a lot up and every bid in")
+    if max(bids) == 0:
+        auctioned = Transition(
+            replace(state, unsold=(*state.unsold, lot)), (unsold_event(lot, bids),)
+        )
+    else:
+        auctioned = sell_lot(state, lot, bids)
+    next_state = replace(
+        auctioned.state,
+        deck=state.deck[1:],
+        current=state.deck[0] if state.deck else None,
+        round=state.round + 1 if state.deck else state.round,
+        bids=(None,) * state.config.num_players,
+    )
+    if next_state.current is None:
+        closing = reveal_event(next_state)
+    else:
+        closing = lot_event(next_state)
+    return Transition(next_state, (*auctioned.events, closing))
+
+
+def unsold_event(lot: Lot, bids: tuple[int, ...]) -> Event:
+    """Public event for a lot every player passed on."""
+    return Event(
+        "lot_unsold",
+        f"Bids: {bid_list(bids)}. Every player passed, so {lot} goes unsold.",
+        {"bids": list(bids)},
+    )
+
+
+def bid_list(bids: tuple[int, ...]) -> str:
+    """ "P1 3, P2 0" from one bid per seat."""
+    return ", ".join(
+        f"{seat_label(PlayerId(player))} {bid}" for player, bid in enumerate(bids)
+    )
+
+
+def sell_lot(
+    state: SealedAuctionState, lot: Lot, bids: tuple[int, ...]
+) -> Transition[SealedAuctionState]:
+    """The top bidder pays their bid and takes the lot; a die roll breaks a tie."""
     top = max(bids)
     tied = [PlayerId(player) for player, bid in enumerate(bids) if bid == top]
     winner, rng = state.rng.choice(tied)
-    events = tie_events(tied, top, winner)
-    bid_text = ", ".join(
-        f"{seat_label(PlayerId(player))} {bid}" for player, bid in enumerate(bids)
-    )
-    events.append(
-        Event(
-            "lot_sold",
-            f"Bids: {bid_text}. {seat_label(winner)} wins {lot} for {top} coins.",
-            {"bids": list(bids), "winner": winner, "price": top},
-        )
+    sold = Event(
+        "lot_sold",
+        f"Bids: {bid_list(bids)}. {seat_label(winner)} wins {lot} for {top} coins.",
+        {"bids": list(bids), "winner": winner, "price": top},
     )
     coins = list(state.coins)
     coins[winner] -= top
     won = list(state.won)
     won[winner] = (*won[winner], lot)
-    next_state = replace(
-        state,
-        rng=rng,
-        deck=state.deck[1:],
-        current=state.deck[0] if state.deck else None,
-        round=state.round + 1 if state.deck else state.round,
-        coins=tuple(coins),
-        won=tuple(won),
-        bids=(None,) * state.config.num_players,
-    )
-    if next_state.current is None:
-        events.append(reveal_event(next_state))
-    else:
-        events.append(lot_event(next_state))
-    return Transition(next_state, tuple(events))
+    sold_state = replace(state, rng=rng, coins=tuple(coins), won=tuple(won))
+    return Transition(sold_state, (*tie_events(tied, top, winner), sold))
 
 
 def tie_events(tied: list[PlayerId], top: int, winner: PlayerId) -> list[Event]:
@@ -410,7 +431,7 @@ def round_line(data: JsonObject) -> str:
     """Which lot is up, or that the game is over."""
     total = json_int(data, "total_rounds")
     if data["current_lot"] is None:
-        return f"Sealed auction: all {total} lots are sold; the game is over."
+        return f"Sealed auction: all {total} lots are auctioned; the game is over."
     lot = json_str(data, "current_lot")
     return f"Sealed auction, lot {json_int(data, 'round')} of {total}: {lot} is up."
 

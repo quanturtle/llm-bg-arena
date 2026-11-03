@@ -1,3 +1,5 @@
+import gc
+import weakref
 from dataclasses import replace
 
 import pytest
@@ -67,6 +69,17 @@ def test_bids_range_from_zero_to_own_coins_with_pass_default() -> None:
     return
 
 
+def test_bid_space_does_not_keep_the_game_state_alive() -> None:
+    state = start()
+    space = GAME.legal_actions(state, GAME.pending_decisions(state)[0])
+    watched = weakref.ref(state)
+    del state
+    gc.collect()
+    assert watched() is None
+    assert space.explain(Bid(11)) == "You have 10 coins, so you cannot bid 11."
+    return
+
+
 def test_submitted_bid_stays_hidden_from_others() -> None:
     state = start()
     after = GAME.apply(state, P1, Bid(7)).state
@@ -85,6 +98,24 @@ def test_highest_bid_wins_and_pays() -> None:
     assert after.won[P2] == (lot,)
     assert after.round == 2
     assert after.bids == (None, None, None)
+    return
+
+
+def test_lot_goes_unsold_when_every_bid_is_zero() -> None:
+    state = start()
+    lot = state.current
+    for player in (P1, P2):
+        state = GAME.apply(state, player, Bid(0)).state
+    transition = GAME.apply(state, P3, Bid(0))
+    after = transition.state
+    assert [event.kind for event in transition.events] == [
+        "bid_submitted",
+        "lot_unsold",
+        "lot_revealed",
+    ]
+    assert (after.won, after.unsold) == (((), (), ()), (lot,))
+    assert (after.coins, after.round) == ((10, 10, 10), 2)
+    assert GAME.scores(after).points == {P1: 5, P2: 5, P3: 5}
     return
 
 

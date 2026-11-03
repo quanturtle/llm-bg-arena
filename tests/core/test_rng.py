@@ -28,9 +28,10 @@ def test_below_stays_in_range(seed: int, bound: int) -> None:
     return
 
 
-def test_below_rejects_non_positive_bound() -> None:
-    with pytest.raises(ValueError, match="positive"):
-        Rng.seeded(1).below(0)
+@pytest.mark.parametrize("bound", [0, -3, 2**64 + 1])
+def test_below_rejects_bound_outside_1_to_2_64(bound: int) -> None:
+    with pytest.raises(ValueError, match=r"from 1 to 2\*\*64"):
+        Rng.seeded(1).below(bound)
     return
 
 

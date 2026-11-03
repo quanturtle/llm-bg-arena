@@ -35,11 +35,11 @@ def check_auction(state: SealedAuctionState) -> None:
     """Coins only go to the bank as winning bids; every lot is accounted for."""
     config = state.config
     paid = config.starting_coins * config.num_players - sum(state.coins)
-    won = [lot for lots in state.won for lot in lots]
+    out = [lot for lots in state.won for lot in lots] + list(state.unsold)
     assert all(coins >= 0 for coins in state.coins)
     assert paid >= 0
-    assert len(won) + len(state.deck) + (state.current is not None) == config.lots
-    assert len(set(won) | set(state.deck)) == len(won) + len(state.deck)
+    assert len(out) + len(state.deck) + (state.current is not None) == config.lots
+    assert len(set(out) | set(state.deck)) == len(out) + len(state.deck)
     for player in seats(config.num_players):
         bid = state.bids[player]
         assert bid is None or 0 <= bid <= state.coins[player]
