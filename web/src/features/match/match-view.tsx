@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ErrorAlert, LoadingRows } from "@/components/page";
 import { BoardPanel } from "@/features/match/board-panel";
 import { clocksAt } from "@/features/match/clocks";
-import { DecisionCard, type DecisionTab } from "@/features/match/decision-card";
+import { DecisionCard } from "@/features/match/decision-card";
 import { EventLog } from "@/features/match/event-log";
 import { MatchHeader } from "@/features/match/match-header";
 import { PointsChart } from "@/features/match/points-chart";
@@ -35,7 +35,6 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
     omniscient: params.get("all") === "1",
   });
   const [boardTab, setBoardTab] = useState("board");
-  const [decisionTab, setDecisionTab] = useState<DecisionTab>("reasoning");
   const match = outline.match;
   const launch = useLaunch(matchId, state.running).data ?? null;
   const layout = useLayout(match.game_id).data ?? null;
@@ -64,13 +63,7 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
             className="min-w-0 xl:min-h-0"
           />
           <div className="flex min-w-0 flex-col gap-3 xl:min-h-0">
-            <DecisionCard
-              match={match}
-              frame={frame.data}
-              tab={decisionTab}
-              onTab={setDecisionTab}
-              className="h-88 shrink-0 xl:h-[min(22rem,45%)]"
-            />
+            <DecisionCard match={match} frame={frame.data} className="h-120 shrink-0 xl:h-[56%]" />
             <EventLog
               outline={outline}
               step={state.step}

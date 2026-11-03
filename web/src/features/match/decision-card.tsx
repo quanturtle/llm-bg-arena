@@ -1,17 +1,17 @@
 "use client";
 
-import { Brain, NotebookPen, OctagonX } from "lucide-react";
+import { Brain, NotebookPen, OctagonX, type LucideIcon } from "lucide-react";
 
 import { SeatChip } from "@/components/seat";
 import { ForfeitBadge } from "@/components/status";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Frame, MatchSummary, TraceRecord } from "@/lib/api";
 import { formatCost, formatSeconds } from "@/lib/format";
-
-export type DecisionTab = "reasoning" | "notes" | "rejected";
+import { cn } from "@/lib/utils";
 
 type Rejected = { answer: string | null; reason: string };
 
@@ -73,34 +73,62 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function TextPane({ text, empty }: { text: string | null; empty: string }) {
-  if (!text) return <p className="text-sm text-muted-foreground">{empty}</p>;
-  return <pre className="font-mono text-xs leading-relaxed whitespace-pre-wrap">{text}</pre>;
+// A titled text box that scrolls inside its share of the card.
+function TextPane({ icon: Icon, title, text, empty, className }: { icon: LucideIcon; title: string; text: string | null; empty: string; className?: string }) {
+  return (
+    <section aria-label={title} className={cn("flex min-h-0 flex-col gap-1.5 px-4", className)}>
+      <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Icon className="size-3.5" /> {title}
+      </h3>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-lg border bg-muted/40 px-3 py-2">
+        {text ? (
+          <pre className="font-mono text-xs leading-relaxed whitespace-pre-wrap">{text}</pre>
+        ) : (
+          <p className="text-xs text-muted-foreground">{empty}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// One line of fixed height; the rejected answers open in a popover when there are any.
+function RejectedLine({ rejected }: { rejected: Rejected[] }) {
+  const label = (
+    <>
+      <OctagonX className="size-3.5" /> Rejected answers <span className="tabular-nums">{rejected.length}</span>
+    </>
+  );
+  if (!rejected.length) return <p className="flex h-6 items-center gap-1.5 px-4 text-xs text-muted-foreground">{label}</p>;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="xs" className="mx-3 h-6 w-fit text-amber-600 dark:text-amber-400">
+          {label}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="flex max-h-80 w-96 flex-col gap-2 overflow-y-auto">
+        {rejected.map((attempt, index) => (
+          <div key={index} className="border-l-2 border-amber-500 pl-2 text-xs">
+            {attempt.answer ? <div className="font-mono">{attempt.answer}</div> : null}
+            <div className="text-muted-foreground">{attempt.reason}</div>
+          </div>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 /**
- * The decision behind the step on screen, in a card of fixed height: the header lines truncate and
- * the reasoning, notes and rejected answers scroll inside their tab, so nothing below moves.
+ * The decision behind the step on screen, in a card of fixed height: the header lines truncate,
+ * the reasoning and the notes show together and scroll inside their own boxes, so nothing moves.
  */
-export function DecisionCard({
-  match,
-  frame,
-  tab,
-  onTab,
-  className,
-}: {
-  match: MatchSummary;
-  frame: Frame;
-  tab: DecisionTab;
-  onTab: (tab: DecisionTab) => void;
-  className?: string;
-}) {
+export function DecisionCard({ match, frame, className }: { match: MatchSummary; frame: Frame; className?: string }) {
   const shown = shownAt(frame);
   const rejected = shown ? rejectedAttempts(shown.trace) : [];
   const seat = shown ? match.seats[shown.player] : null;
   const waiting = frame.pending.map((player) => `P${player + 1}`).join(", ");
   return (
-    <Card aria-label="Decision" className={`gap-3 py-4 ${className ?? ""}`}>
+    <Card aria-label="Decision" className={cn("gap-2.5 pt-4 pb-2", className)}>
       <div className="flex h-6 min-w-0 items-center gap-2 px-4">
         {seat ? <SeatChip seat={seat} className="min-w-0 max-w-[60%]" /> : <span className="font-medium">Setup</span>}
         <span className="flex min-w-0 items-center">{shown?.headline}</span>
@@ -124,40 +152,9 @@ export function DecisionCard({
         </Line>
         <Line label="Took">{shown?.took}</Line>
       </dl>
-      <Tabs value={tab} onValueChange={(value) => onTab(value as DecisionTab)} className="min-h-0 flex-1 px-4">
-        <TabsList>
-          <TabsTrigger value="reasoning">
-            <Brain /> Reasoning
-          </TabsTrigger>
-          <TabsTrigger value="notes">
-            <NotebookPen /> Notes
-          </TabsTrigger>
-          <TabsTrigger value="rejected">
-            <OctagonX /> Rejected
-            <span className="tabular-nums">{rejected.length}</span>
-          </TabsTrigger>
-        </TabsList>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-lg border bg-muted/40 p-3">
-          <TabsContent value="reasoning">
-            <TextPane text={shown?.trace.reasoning ?? null} empty="No reasoning at this step." />
-          </TabsContent>
-          <TabsContent value="notes">
-            <TextPane text={shown?.trace.memory ?? null} empty="No notes kept at this step." />
-          </TabsContent>
-          <TabsContent value="rejected" className="flex flex-col gap-2">
-            {rejected.length ? (
-              rejected.map((attempt, index) => (
-                <div key={index} className="border-l-2 border-amber-500 pl-2 text-xs">
-                  {attempt.answer ? <div className="font-mono">{attempt.answer}</div> : null}
-                  <div className="text-muted-foreground">{attempt.reason}</div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No rejected answers at this step.</p>
-            )}
-          </TabsContent>
-        </div>
-      </Tabs>
+      <TextPane icon={Brain} title="Reasoning" text={shown?.trace.reasoning ?? null} empty="No reasoning at this step." className="flex-[3]" />
+      <TextPane icon={NotebookPen} title="Notes kept" text={shown?.trace.memory ?? null} empty="No notes kept at this step." className="flex-[2]" />
+      <RejectedLine rejected={rejected} />
     </Card>
   );
 }
