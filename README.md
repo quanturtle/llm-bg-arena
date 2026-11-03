@@ -106,4 +106,13 @@ pnpm --dir web build
 
 To work on the viewer with live reload, keep `uv run arena serve` running and start `pnpm --dir web dev`, then open http://localhost:3000/. The dev server sends `/api` requests to port 8765. After an API change, `pnpm --dir web gen:api` regenerates the viewer's API types from the running server.
 
-How games, players and logs fit together: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## Credits and related projects
+
+The viewer's game art and logos come from these projects, which are also worth a look if you are building something similar:
+
+- Puerto Rico cards, tiles, barrels and boards: [Middlederg/puerto-rico](https://github.com/Middlederg/puerto-rico). That repository declares no licence.
+- Catan terrain and sea art: [baige007/Catan-web-game-](https://github.com/baige007/Catan-web-game-) (MIT), which builds on [Erodenn/Simple-Catan](https://github.com/Erodenn/Simple-Catan).
+- Catan port and robber icons: [game-icons.net](https://game-icons.net/), by Delapouite and Lorc, under CC BY 3.0.
+- Model provider logos: [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) (MIT).
+
+Where each file came from is recorded in `web/public/puerto_rico/SOURCE.md` and `web/public/catan/SOURCE.md`.

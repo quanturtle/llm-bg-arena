@@ -14,3 +14,6 @@ build/
 # match logs and model response cache
 runs/
 .arena_cache/
+
+# design notes kept on this machine only
+docs/
