@@ -682,6 +682,16 @@ def test_notation_round_trips_every_action() -> None:
         assert GAME.parse_action(GAME.format_action(action)) == action
 
 
+def test_year_of_plenty_keeps_both_resources_in_resource_order() -> None:
+    reversed_pair = GAME.parse_action("play yearofplenty ore wood")
+    assert isinstance(reversed_pair, PlayYearOfPlenty)
+    assert (reversed_pair.first, reversed_pair.second) == ("wood", "ore")
+    assert GAME.format_action(reversed_pair) == "play yearofplenty wood ore"
+    for action in (PlayYearOfPlenty("ore", "wood"), PlayYearOfPlenty("wood", "ore")):
+        assert GAME.parse_action(GAME.format_action(action)) == action
+        assert action == reversed_pair
+
+
 @pytest.mark.parametrize(
     "text",
     [
