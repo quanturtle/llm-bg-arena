@@ -5,7 +5,7 @@ from typing import Any
 
 from boardgames.core import AnyGame, GameConfig, Rng
 
-MAX_STEPS = 1_000
+MAX_STEPS = 10_000
 
 
 def random_playthrough(

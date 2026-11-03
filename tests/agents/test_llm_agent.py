@@ -12,16 +12,18 @@ from boardgames.games.sealed_auction import Bid
 from boardgames.llm.model import (
     Completion,
     ModelSettings,
+    ToolCall,
     TransientModelError,
     Usage,
 )
 from boardgames.llm.parsing import ActionExtractor
 from boardgames.llm.prompting import PromptSettings
 from boardgames.llm.retry import RetryingChatModel
+from boardgames.llm.tools import NO_TOOL_NUDGE
 from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import DecisionRecord
 from tests.arena.support import FakeClock, MemorySink, ScriptedAgent
-from tests.llm.fakes import QueuedChatModel, reply
+from tests.llm.fakes import QueuedChatModel, reply, tool_calls_reply
 from tests.llm.requests import auction_request, tic_tac_toe_request
 from tests.llm.test_model_layer import RecordedSleep
 
@@ -54,7 +56,7 @@ def test_legal_answer_is_chosen_with_its_trace() -> None:
     assert (trace.prompt_tokens, trace.completion_tokens) == (100, 20)
     assert trace.cost_usd == pytest.approx(0.001)
     assert trace.attempts[0]["resolved_by"] == "strict"
-    assert model.calls[0].tool is not None
+    assert model.calls[0].tools[0].name == "submit_action"
     return
 
 
@@ -149,15 +151,13 @@ def test_text_mode_reads_the_final_answer_line() -> None:
     assert isinstance(choice, Chosen)
     assert choice.action == Mark(0, 0)
     assert (choice.trace.reasoning, llm.memory) == ("Corners are strong.", "corners")
-    assert model.calls[0].tool is None
+    assert model.calls[0].tools == ()
     return
 
 
 def test_unknown_price_makes_the_decision_cost_unknown() -> None:
     priced = answer("z9")
-    unpriced = Completion(
-        answer("a1").text, answer("a1").tool_arguments, Usage(1, 1), None
-    )
+    unpriced = Completion(answer("a1").text, answer("a1").tool_calls, Usage(1, 1), None)
     llm, _ = agent([priced, unpriced])
     choice = decide(llm, tic_tac_toe_request([]))
     assert choice.trace.cost_usd is None
@@ -195,4 +195,102 @@ def test_llm_match_is_logged_and_replays() -> None:
     assert llm_turns[1].trace.illegal_attempts == 1
     assert llm_turns[0].trace.attempts[0]["messages"]
     assert replay_match(sink.records).steps == 5
+    return
+
+
+def tool_calls(*calls: tuple[str, dict[str, Any]]) -> Completion:
+    return tool_calls_reply(
+        [
+            ToolCall(f"c{index}", name, json.dumps(arguments))
+            for index, (name, arguments) in enumerate(calls)
+        ]
+    )
+
+
+def tools_agent(
+    outcomes: list[Completion | Exception], **settings: Any
+) -> tuple[LlmAgent, QueuedChatModel]:
+    model = QueuedChatModel(outcomes)
+    agent_settings = LlmAgentSettings(
+        model=MODEL, prompt=PromptSettings(output_mode="tools"), **settings
+    )
+    return LlmAgent(model, agent_settings, seed=1), model
+
+
+def test_tools_mode_explores_then_commits() -> None:
+    llm, model = tools_agent(
+        [
+            tool_calls(("list_legal_actions", {}), ("check_action", {"action": "b2"})),
+            tool_calls(
+                ("take_action", {"reasoning": "center", "action": "b2", "memory": "c"})
+            ),
+        ]
+    )
+    choice = decide(llm, tic_tac_toe_request([]))
+    assert isinstance(choice, Chosen)
+    assert choice.action == Mark(1, 1)
+    assert (choice.trace.reasoning, llm.memory) == ("center", "c")
+    assert choice.trace.illegal_attempts == 0
+    attempts: list[Any] = list(choice.trace.attempts)
+    names = [c["name"] for a in attempts for c in a["tool_calls"]]
+    assert names == ["list_legal_actions", "check_action", "take_action"]
+    assert model.calls[0].tool_choice == "auto"
+    assert "# Legal actions" not in model.calls[0].messages[1].content
+    roles = [message.role for message in model.calls[1].messages]
+    assert roles == ["system", "user", "assistant", "tool", "tool"]
+    assert model.calls[1].messages[3].content.startswith("1. a3")
+    assert model.calls[1].messages[4].content == "'b2' is legal."
+    return
+
+
+def test_tools_mode_feeds_a_rejected_action_back_and_counts_it() -> None:
+    llm, model = tools_agent(
+        [
+            tool_calls(("take_action", {"action": "b2"})),
+            tool_calls(("take_action", {"action": "a1"})),
+        ]
+    )
+    choice = decide(llm, tic_tac_toe_request(["b2"]))
+    assert isinstance(choice, Chosen)
+    assert choice.action == Mark(0, 0)
+    assert choice.trace.illegal_attempts == 1
+    assert choice.trace.attempts[0]["rejection"] is not None
+    feedback = model.calls[1].messages[-1]
+    assert feedback.role == "tool"
+    assert feedback.content.startswith("Not accepted:")
+    return
+
+
+def test_tools_mode_nudges_a_text_reply_once_then_falls_back() -> None:
+    llm, model = tools_agent(
+        [reply("thinking..."), reply("still thinking")], fallback="forfeit"
+    )
+    choice = decide(llm, tic_tac_toe_request([]))
+    assert isinstance(choice, Forfeited)
+    assert choice.trace.illegal_attempts == 2
+    assert model.calls[1].messages[-1].content == NO_TOOL_NUDGE
+    assert len(model.calls) == 2
+    return
+
+
+def test_tools_mode_falls_back_when_the_call_budget_runs_out() -> None:
+    lookups: list[Completion | Exception] = [tool_calls(("get_rules", {}))] * 3
+    llm, model = tools_agent(lookups, max_tool_calls=2)
+    choice = decide(llm, tic_tac_toe_request([]))
+    assert isinstance(choice, Chosen)
+    assert choice.trace.fallback == "random"
+    assert choice.trace.illegal_attempts == 0
+    assert len(model.calls) == 2
+    return
+
+
+def test_tools_mode_counts_each_rejected_call_and_keeps_the_accepted_one() -> None:
+    reply = tool_calls(
+        ("take_action", {"action": "b2"}), ("take_action", {"action": "a1"})
+    )
+    llm, _ = tools_agent([reply], max_tool_calls=1)
+    choice = decide(llm, tic_tac_toe_request(["b2"]))
+    assert isinstance(choice, Chosen)
+    assert (choice.action, choice.trace.fallback) == (Mark(0, 0), None)
+    assert choice.trace.illegal_attempts == 1
     return

@@ -144,11 +144,13 @@ def legal_free_road_edges(state: CatanState, player: PlayerId) -> tuple[int, ...
     )
 
 
-def robber_victims(state: CatanState, hex_id: int) -> tuple[PlayerId, ...]:
-    """Players with a building on `hex_id` who hold at least one card."""
+def robber_victims(
+    state: CatanState, hex_id: int, thief: PlayerId
+) -> tuple[PlayerId, ...]:
+    """Opponents of `thief` with a building on `hex_id` who hold at least one card."""
     victims: list[PlayerId] = []
     for player in seats(state.config.num_players):
-        if hand_total(state.hands[player]) == 0:
+        if player == thief or hand_total(state.hands[player]) == 0:
             continue
         if any(building_at(state, vertex) == player for vertex in HEX_VERTICES[hex_id]):
             victims.append(player)
@@ -193,48 +195,52 @@ def trade_rates(state: CatanState, player: PlayerId) -> dict[Resource, int]:
 
 
 def longest_road_length(state: CatanState, player: PlayerId) -> int:
-    """Longest continuous run of the player's roads, in paths.
+    """Longest trail of the player's roads: each road once, intersections may repeat.
 
-    Opponents' buildings break a road, so a path may not pass through an
-    intersection they occupy. With the 15-road piece limit the search is small.
+    A trail may end at an opponent's building but never passes through it.
     """
-    adjacent: dict[int, list[tuple[int, int]]] = {
-        vertex: [] for vertex in range(len(state.buildings))
-    }
-    for edge, (first, second) in enumerate(EDGE_VERTICES):
-        if state.roads[edge] != player:
-            continue
-        adjacent[first].append((edge, second))
-        adjacent[second].append((edge, first))
-    blocked = {
+    adjacent = road_adjacency(state, player)
+    blocked = frozenset(
         vertex
         for vertex, building in enumerate(state.buildings)
         if building is not None and building.player != player
-    }
-    best = 0
+    )
+    return max(
+        (trail_length(vertex, adjacent, blocked, frozenset()) for vertex in adjacent),
+        default=0,
+    )
 
-    def walk(
-        vertex: int, used: frozenset[int], visited: frozenset[int], length: int
-    ) -> None:
-        nonlocal best
-        best = max(best, length)
-        if vertex in blocked:
-            return
-        for edge, next_vertex in adjacent[vertex]:
-            if edge in used or next_vertex in visited:
-                continue
-            walk(
-                next_vertex,
-                used | {edge},
-                visited | {next_vertex},
-                length + 1,
-            )
 
+def road_adjacency(
+    state: CatanState, player: PlayerId
+) -> dict[int, list[tuple[int, int]]]:
+    """(road, far end) pairs for each intersection the player's roads touch."""
+    adjacent: dict[int, list[tuple[int, int]]] = {}
     for edge, (first, second) in enumerate(EDGE_VERTICES):
         if state.roads[edge] != player:
             continue
-        walk(first, frozenset({edge}), frozenset({first}), 1)
-        walk(second, frozenset({edge}), frozenset({second}), 1)
+        adjacent.setdefault(first, []).append((edge, second))
+        adjacent.setdefault(second, []).append((edge, first))
+    return adjacent
+
+
+def trail_length(
+    vertex: int,
+    adjacent: dict[int, list[tuple[int, int]]],
+    blocked: frozenset[int],
+    used: frozenset[int],
+) -> int:
+    """Longest trail leaving `vertex` over roads not in `used`."""
+    best = 0
+    for edge, next_vertex in adjacent[vertex]:
+        if edge in used:
+            continue
+        onward = (
+            0
+            if next_vertex in blocked
+            else trail_length(next_vertex, adjacent, blocked, used | {edge})
+        )
+        best = max(best, 1 + onward)
     return best
 
 

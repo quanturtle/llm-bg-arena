@@ -1,8 +1,8 @@
 # Boardgames
 
-Seat language models, scripted bots and humans at the same board game table, and keep a replayable record of every move.
+Seat language models and random bots at the same board game table, and keep a replayable record of every move.
 
-Each game's rules are written once in Python. Any kind of player can then take a seat: a random bot, or a language model from Anthropic, OpenAI, OpenRouter or any other provider LiteLLM supports. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
+Each game's rules are written once in Python. Two kinds of player can then take a seat: a random bot, or any language model available through OpenRouter. Every match writes a log with each move, what each player could see, and each model's reasoning, notes, retries, tokens and cost. A replay command rebuilds the match from its seed and checks the log move by move.
 
 ## Status
 
@@ -26,36 +26,46 @@ uv sync
 
 ## Play
 
-Two random bots at tic-tac-toe:
+A match is described by a YAML file: the game, its config, and who sits at each seat. Two random bots at tic-tac-toe:
 
 ```sh
-uv run arena play k_in_a_row --seed 7
+uv run arena play examples/tic_tac_toe.yaml
 ```
 
-A language model against a random bot. First create a file named `.env` in the project folder with one line, `ANTHROPIC_API_KEY=<your-key>` (or `OPENAI_API_KEY`, `OPENROUTER_API_KEY`). Then:
+Language models need an OpenRouter key. Create a file named `.env` in the project folder with one line, `OPENROUTER_API_KEY=<your-key>`, then seat them in the file:
+
+```yaml
+game: sealed_auction
+config: {num_players: 3}
+llm:                       # defaults for every llm seat
+  temperature: 0.2
+  cache: true
+seats:
+  - agent: llm
+    model: anthropic/claude-haiku-5-5
+    reasoning_effort: high
+  - agent: llm
+    model: openai/gpt-5-mini
+    extra: {provider: {order: [openai]}}
+  - agent: random
+```
 
 ```sh
-uv run arena play k_in_a_row --agent llm:anthropic/claude-haiku-5-5 --agent random
+uv run arena play examples/auction_llms.yaml
 ```
 
-Any LiteLLM model id works after `llm:`. Four-in-a-row, a four-player auction, and a short three-player Catan game:
+The example file is this config plus a fixed seed, `output_mode: tools`, seat labels, a `thinking_budget_tokens` for the second model, and some built-in defaults written out.
 
-```sh
-uv run arena play k_in_a_row --config '{"rows": 6, "cols": 7, "k": 4, "gravity": true}'
-uv run arena play sealed_auction --config '{"num_players": 4}'
-uv run arena play catan --config '{"num_players": 3, "victory_points": 6}'
-```
+Any OpenRouter model id works. Under `llm` or per seat you can set `temperature`, `top_p`, `max_tokens`, `reasoning_effort` or `thinking_budget_tokens`, `timeout_seconds`, `persona`, retries after an illegal move (`max_illegal_retries`), what to do when retries run out (`fallback`), an `extractor` model that rescues malformed replies, and `extra`, options passed to OpenRouter as they are. `output_mode: tools` lets the model inspect the game through tools (state, rules, legal actions, a legality check) before it acts, with `max_tool_calls` per decision; the default mode shows it the legal actions and asks for one answer. Leave `seats` out to seat random bots everywhere. `--seed` and `--log` override the file. The files in `examples/` cover four-in-a-row, the auction and a short three-player Catan game.
 
 Catan uses the standard board and costs. Player-to-player trades are one card for one card, development cards are played after the roll, and offers are capped per turn to keep games moving; the full notation and rules are in the game's `rules.md`.
-
-`uv run arena play --help` lists the model options: temperature, retries after an illegal move, what to do when retries run out, response caching.
 
 ## Check a match
 
 Every match writes a log to `runs/`. Replaying it rebuilds the game from the seed and compares every move, observation and event:
 
 ```console
-$ uv run arena play k_in_a_row --seed 7 --log runs/demo.jsonl
+$ uv run arena play examples/tic_tac_toe.yaml --log runs/demo.jsonl
 k_in_a_row (seed 7): P1 random, P2 random
     New game: 3 in a row on 3x3.
 [1] P1 random: a2

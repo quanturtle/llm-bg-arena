@@ -1,12 +1,12 @@
 """The chat model interface the LLM agent talks to, independent of any provider."""
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
-from boardgames.core import ArenaError, JsonObject, JsonValue
+from boardgames.core import ArenaError, ConfigError, JsonObject, JsonValue
 
-type Role = Literal["system", "user", "assistant"]
+type Role = Literal["system", "user", "assistant", "tool"]
 type ReasoningEffort = Literal["low", "medium", "high"]
 
 
@@ -23,14 +23,27 @@ class ModelRequestError(ArenaError):
 
 
 @dataclass(frozen=True)
+class ToolCall:
+    """One call the model made; `arguments` is the raw JSON text it produced."""
+
+    id: str
+    name: str
+    arguments: str
+
+
+@dataclass(frozen=True)
 class Message:
+    """A turn; assistant turns may carry tool calls, tool turns answer one by id."""
+
     role: Role
     content: str
+    tool_calls: tuple[ToolCall, ...] = ()
+    tool_call_id: str | None = None
 
 
 @dataclass(frozen=True)
 class ToolSpec:
-    """A function the model is forced to call; its arguments carry the answer."""
+    """A function the model may call; its arguments follow `parameters`."""
 
     name: str
     description: str
@@ -38,42 +51,55 @@ class ToolSpec:
 
 
 @dataclass(frozen=True)
-class TokenPrices:
-    input_per_million: float
-    output_per_million: float
+class ForcedTool:
+    """The model must call this one tool."""
+
+    name: str
+
+
+type ToolChoice = Literal["auto", "required"] | ForcedTool
 
 
 @dataclass(frozen=True)
 class ModelSettings:
-    """Per-model call settings; `model` is a LiteLLM id ("anthropic/claude-haiku-5-5").
+    """Per-model call settings; `model` is an OpenRouter id ("openai/gpt-5-mini").
 
-    `prices` overrides the provider price table for cost accounting.
+    Reasoning is asked for by effort or by a token budget, not both. `extra` is
+    merged into the request body as is, for provider routing and other options.
     """
 
     model: str
     temperature: float | None = None
+    top_p: float | None = None
     max_tokens: int = 1024
     timeout_seconds: float = 120.0
     reasoning_effort: ReasoningEffort | None = None
+    thinking_budget_tokens: int | None = None
     seed: int | None = None
-    prices: TokenPrices | None = None
+    extra: JsonObject = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if (
+            self.reasoning_effort is not None
+            and self.thinking_budget_tokens is not None
+        ):
+            raise ConfigError(
+                f"{self.model}: reasoning_effort and thinking_budget_tokens, not both"
+            )
+        return
 
     def to_json(self) -> dict[str, JsonValue]:
         """Machine form for logs and cache keys."""
-        prices: JsonValue = None
-        if self.prices is not None:
-            prices = {
-                "input_per_million": self.prices.input_per_million,
-                "output_per_million": self.prices.output_per_million,
-            }
         return {
             "model": self.model,
             "temperature": self.temperature,
+            "top_p": self.top_p,
             "max_tokens": self.max_tokens,
             "timeout_seconds": self.timeout_seconds,
             "reasoning_effort": self.reasoning_effort,
+            "thinking_budget_tokens": self.thinking_budget_tokens,
             "seed": self.seed,
-            "prices": prices,
+            "extra": dict(self.extra),
         }
 
 
@@ -85,17 +111,23 @@ class Usage:
 
 @dataclass(frozen=True)
 class Completion:
-    """A model reply: its text and, when a tool was forced, the raw argument JSON.
+    """A model reply: its text and the tool calls it made.
 
-    `cost_usd` is None when the price is unknown, and 0 for a cached reply.
+    `cost_usd` is None when the provider reported no cost, and 0 for a cached reply.
     """
 
     text: str
-    tool_arguments: str | None
+    tool_calls: tuple[ToolCall, ...]
     usage: Usage
     cost_usd: float | None
     api_retries: int = 0
     is_cached: bool = False
+    reasoning: str | None = None
+
+    @property
+    def tool_arguments(self) -> str | None:
+        """Arguments of the first tool call, the reply when one tool was forced."""
+        return self.tool_calls[0].arguments if self.tool_calls else None
 
 
 class ChatModel(Protocol):
@@ -103,22 +135,54 @@ class ChatModel(Protocol):
         self,
         messages: Sequence[Message],
         settings: ModelSettings,
-        tool: ToolSpec | None,
+        tools: Sequence[ToolSpec],
+        tool_choice: ToolChoice,
     ) -> Completion:
         """One reply; retryable failures raise TransientModelError."""
         ...
 
 
-def cost_usd(usage: Usage, prices: TokenPrices | None) -> float | None:
-    """Dollar cost of a call, or None when prices are unknown."""
-    if prices is None:
-        return None
-    return (
-        usage.prompt_tokens * prices.input_per_million
-        + usage.completion_tokens * prices.output_per_million
-    ) / 1_000_000
-
-
 def messages_json(messages: Sequence[Message]) -> list[JsonValue]:
-    """Messages as JSON, for logs and cache keys."""
-    return [{"role": message.role, "content": message.content} for message in messages]
+    """Messages as JSON for requests, logs and cache keys; tool fields only when set."""
+    return [message_json(message) for message in messages]
+
+
+def message_json(message: Message) -> dict[str, JsonValue]:
+    """One message in the chat completions shape."""
+    data: dict[str, JsonValue] = {"role": message.role, "content": message.content}
+    if message.tool_calls:
+        data["tool_calls"] = [tool_call_json(call) for call in message.tool_calls]
+    if message.tool_call_id is not None:
+        data["tool_call_id"] = message.tool_call_id
+    return data
+
+
+def tool_call_json(call: ToolCall) -> dict[str, JsonValue]:
+    """A tool call in the chat completions shape."""
+    return {
+        "id": call.id,
+        "type": "function",
+        "function": {"name": call.name, "arguments": call.arguments},
+    }
+
+
+def tools_json(tools: Sequence[ToolSpec]) -> list[JsonValue]:
+    """Tools in the chat completions function-tool shape."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.parameters,
+            },
+        }
+        for tool in tools
+    ]
+
+
+def tool_choice_json(choice: ToolChoice) -> JsonValue:
+    """A tool choice in the chat completions shape."""
+    if isinstance(choice, ForcedTool):
+        return {"type": "function", "function": {"name": choice.name}}
+    return choice

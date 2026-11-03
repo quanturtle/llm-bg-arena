@@ -1,0 +1,27 @@
+# A three-player sealed auction: two language models and a random bot.
+# Needs OPENROUTER_API_KEY in the environment or in a .env file.
+game: sealed_auction
+config: {num_players: 3}
+seed: 7
+
+# defaults for every llm seat; a seat's own values override them
+llm:
+  temperature: 0.2
+  max_tokens: 1024
+  output_mode: tools      # inspect the game through tools, then take_action
+  max_tool_calls: 12
+  max_illegal_retries: 3
+  fallback: random
+  cache: true
+
+seats:
+  - agent: llm
+    model: anthropic/claude-haiku-5-5
+    label: haiku
+    reasoning_effort: high
+  - agent: llm
+    model: openai/gpt-5-mini
+    label: gpt-5-mini
+    thinking_budget_tokens: 2048
+    extra: {provider: {order: [openai]}}
+  - agent: random

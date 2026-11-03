@@ -7,16 +7,21 @@ from boardgames.llm.model import (
     Completion,
     Message,
     ModelSettings,
+    ToolCall,
+    ToolChoice,
     ToolSpec,
     Usage,
 )
+
+SUBMIT_TOOL = "submit_action"
 
 
 @dataclass(frozen=True)
 class Call:
     messages: tuple[Message, ...]
     settings: ModelSettings
-    tool: ToolSpec | None
+    tools: tuple[ToolSpec, ...]
+    tool_choice: ToolChoice
 
 
 class QueuedChatModel:
@@ -31,9 +36,10 @@ class QueuedChatModel:
         self,
         messages: Sequence[Message],
         settings: ModelSettings,
-        tool: ToolSpec | None,
+        tools: Sequence[ToolSpec],
+        tool_choice: ToolChoice,
     ) -> Completion:
-        self.calls.append(Call(tuple(messages), settings, tool))
+        self.calls.append(Call(tuple(messages), settings, tuple(tools), tool_choice))
         outcome = self._outcomes.pop(0)
         if isinstance(outcome, Exception):
             raise outcome
@@ -41,11 +47,31 @@ class QueuedChatModel:
 
 
 def reply(
-    text: str = "", tool_arguments: str | None = None, cost: float | None = 0.001
+    text: str = "",
+    tool_arguments: str | None = None,
+    cost: float | None = 0.001,
+    reasoning: str | None = None,
 ) -> Completion:
+    """A reply with text, or with one submit_action call when given arguments."""
+    calls = (
+        ()
+        if tool_arguments is None
+        else (ToolCall("call_1", SUBMIT_TOOL, tool_arguments),)
+    )
+    return tool_calls_reply(calls, text=text, cost=cost, reasoning=reasoning)
+
+
+def tool_calls_reply(
+    calls: Sequence[ToolCall],
+    text: str = "",
+    cost: float | None = 0.001,
+    reasoning: str | None = None,
+) -> Completion:
+    """A reply that makes the given tool calls."""
     return Completion(
         text=text,
-        tool_arguments=tool_arguments,
+        tool_calls=tuple(calls),
         usage=Usage(prompt_tokens=100, completion_tokens=20),
         cost_usd=cost,
+        reasoning=reasoning,
     )

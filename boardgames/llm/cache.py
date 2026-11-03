@@ -5,6 +5,7 @@ so any prompt change misses. Cached replies cost nothing and are marked cached.
 """
 
 import json
+import os
 from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
@@ -16,9 +17,13 @@ from boardgames.llm.model import (
     Completion,
     Message,
     ModelSettings,
+    ToolCall,
+    ToolChoice,
     ToolSpec,
     Usage,
     messages_json,
+    tool_choice_json,
+    tools_json,
 )
 
 
@@ -40,16 +45,21 @@ class DirectoryResponseStore:
         return
 
     def get(self, key: str) -> JsonObject | None:
+        """The stored object, or None when the file is missing or not a JSON object."""
         path = self._path(key)
-        if not path.exists():
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
             return None
-        value: JsonObject = json.loads(path.read_text(encoding="utf-8"))
-        return value
+        return value if isinstance(value, dict) else None
 
     def put(self, key: str, value: JsonObject) -> None:
+        """Write through a temporary name, so a cut-off write leaves no file behind."""
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(value), encoding="utf-8")
+        temporary = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        temporary.write_text(json.dumps(value), encoding="utf-8")
+        os.replace(temporary, path)
         return
 
     def _path(self, key: str) -> Path:
@@ -66,33 +76,32 @@ class CachedChatModel:
         self,
         messages: Sequence[Message],
         settings: ModelSettings,
-        tool: ToolSpec | None,
+        tools: Sequence[ToolSpec],
+        tool_choice: ToolChoice,
     ) -> Completion:
-        key = cache_key(messages, settings, tool)
+        key = cache_key(messages, settings, tools, tool_choice)
         stored = self._store.get(key)
-        if stored is not None:
-            return replace(completion_from_json(stored), cost_usd=0.0, is_cached=True)
-        completion = await self._inner.complete(messages, settings, tool)
+        cached = None if stored is None else completion_from_json(stored)
+        if cached is not None:
+            return replace(cached, cost_usd=0.0, is_cached=True)
+        completion = await self._inner.complete(messages, settings, tools, tool_choice)
         self._store.put(key, completion_json(completion))
         return completion
 
 
 def cache_key(
-    messages: Sequence[Message], settings: ModelSettings, tool: ToolSpec | None
+    messages: Sequence[Message],
+    settings: ModelSettings,
+    tools: Sequence[ToolSpec],
+    tool_choice: ToolChoice,
 ) -> str:
     """Digest of everything that shapes the reply."""
-    tool_json: JsonValue = None
-    if tool is not None:
-        tool_json = {
-            "name": tool.name,
-            "description": tool.description,
-            "parameters": tool.parameters,
-        }
     return json_digest(
         {
             "settings": settings.to_json(),
             "messages": messages_json(messages),
-            "tool": tool_json,
+            "tools": tools_json(tools),
+            "tool_choice": tool_choice_json(tool_choice) if tools else None,
         }
     )
 
@@ -101,29 +110,55 @@ def completion_json(completion: Completion) -> dict[str, JsonValue]:
     """Stored form of a completion."""
     return {
         "text": completion.text,
-        "tool_arguments": completion.tool_arguments,
+        "tool_calls": [
+            {"id": call.id, "name": call.name, "arguments": call.arguments}
+            for call in completion.tool_calls
+        ],
         "prompt_tokens": completion.usage.prompt_tokens,
         "completion_tokens": completion.usage.completion_tokens,
         "cost_usd": completion.cost_usd,
+        "reasoning": completion.reasoning,
     }
 
 
-def completion_from_json(stored: JsonObject) -> Completion:
-    """Completion from its stored form."""
-    text = stored["text"]
-    tool_arguments = stored["tool_arguments"]
-    prompt_tokens = stored["prompt_tokens"]
-    completion_tokens = stored["completion_tokens"]
+def completion_from_json(stored: JsonObject) -> Completion | None:
+    """Completion from its stored form; a malformed entry gives None, a cache miss."""
+    text = stored.get("text")
+    calls = stored.get("tool_calls")
+    prompt_tokens = stored.get("prompt_tokens")
+    completion_tokens = stored.get("completion_tokens")
+    reasoning = stored.get("reasoning")
     if not (
         isinstance(text, str)
-        and (tool_arguments is None or isinstance(tool_arguments, str))
+        and isinstance(calls, list)
         and isinstance(prompt_tokens, int)
         and isinstance(completion_tokens, int)
+        and (reasoning is None or isinstance(reasoning, str))
     ):
-        raise TypeError(f"malformed cached completion: {stored!r}")
+        return None
+    tool_calls = [tool_call_from_json(call) for call in calls]
+    if any(call is None for call in tool_calls):
+        return None
     return Completion(
         text=text,
-        tool_arguments=tool_arguments,
+        tool_calls=tuple(call for call in tool_calls if call is not None),
         usage=Usage(prompt_tokens, completion_tokens),
         cost_usd=None,
+        reasoning=reasoning,
     )
+
+
+def tool_call_from_json(stored: JsonValue) -> ToolCall | None:
+    """A tool call from its stored form, or None when malformed."""
+    if not isinstance(stored, dict):
+        return None
+    call_id = stored.get("id")
+    name = stored.get("name")
+    arguments = stored.get("arguments")
+    if not (
+        isinstance(call_id, str)
+        and isinstance(name, str)
+        and isinstance(arguments, str)
+    ):
+        return None
+    return ToolCall(call_id, name, arguments)

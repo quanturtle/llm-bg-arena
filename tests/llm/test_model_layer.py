@@ -1,34 +1,29 @@
 import asyncio
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
-from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
-from boardgames.llm.litellm_model import (
-    completion_from,
-    request_arguments,
-    table_prices,
-)
+from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore, cache_key
 from boardgames.llm.model import (
     ChatModel,
     Completion,
+    ForcedTool,
     Message,
     ModelRequestError,
     ModelSettings,
     ModelUnavailableError,
-    TokenPrices,
+    ToolCall,
     ToolSpec,
     TransientModelError,
-    Usage,
-    cost_usd,
+    messages_json,
 )
 from boardgames.llm.retry import RetryingChatModel
-from tests.llm.fakes import QueuedChatModel, reply
+from tests.llm.fakes import QueuedChatModel, reply, tool_calls_reply
 
 SETTINGS = ModelSettings(model="anthropic/claude-haiku-5-5")
 MESSAGES = (Message("system", "rules"), Message("user", "your move"))
 TOOL = ToolSpec("submit_action", "Submit your action.", {"type": "object"})
+LOOKUP = ToolSpec("get_state", "Read the state.", {"type": "object"})
 
 
 class RecordedSleep:
@@ -44,66 +39,35 @@ class RecordedSleep:
 
 
 def complete(model: ChatModel, settings: ModelSettings = SETTINGS) -> Completion:
-    return asyncio.run(model.complete(MESSAGES, settings, TOOL))
-
-
-def test_cost_uses_per_million_prices() -> None:
-    usage = Usage(prompt_tokens=2_000, completion_tokens=500)
-    assert cost_usd(usage, TokenPrices(1.0, 5.0)) == pytest.approx(0.0045)
-    assert cost_usd(usage, None) is None
-    return
-
-
-def test_table_prices_strip_provider_prefixes() -> None:
-    table = {
-        "claude-haiku-5-5": {
-            "input_cost_per_token": 1e-6,
-            "output_cost_per_token": 5e-6,
-        }
-    }
-    assert table_prices("openrouter/anthropic/claude-haiku-5-5", table) == TokenPrices(
-        1.0, 5.0
+    return asyncio.run(
+        model.complete(MESSAGES, settings, (TOOL,), ForcedTool(TOOL.name))
     )
-    assert table_prices("unknown/model", table) is None
-    return
 
 
-def test_request_arguments_force_the_tool_and_skip_unset_options() -> None:
-    arguments = request_arguments(MESSAGES, SETTINGS, TOOL)
-    assert arguments["tool_choice"] == {
-        "type": "function",
-        "function": {"name": "submit_action"},
-    }
-    assert arguments["messages"][1] == {"role": "user", "content": "your move"}
-    assert "temperature" not in arguments
-    assert "reasoning_effort" not in arguments
-    assert arguments["drop_params"] is True
-    return
-
-
-def test_request_arguments_pass_set_options() -> None:
-    settings = ModelSettings(
-        model="openai/gpt-x", temperature=0.2, reasoning_effort="low", seed=4
+def test_messages_json_carries_tool_fields_only_when_set() -> None:
+    call = ToolCall("call_1", "get_state", "{}")
+    messages = (
+        Message("assistant", "", tool_calls=(call,)),
+        Message("tool", "board", tool_call_id="call_1"),
     )
-    arguments = request_arguments(MESSAGES, settings, None)
-    assert (arguments["temperature"], arguments["reasoning_effort"]) == (0.2, "low")
-    assert arguments["seed"] == 4
-    assert "tools" not in arguments
-    return
-
-
-def test_completion_from_reads_tool_arguments_and_usage() -> None:
-    call = SimpleNamespace(function=SimpleNamespace(arguments='{"action": "b2"}'))
-    response = SimpleNamespace(
-        choices=[
-            SimpleNamespace(message=SimpleNamespace(content=None, tool_calls=[call]))
-        ],
-        usage=SimpleNamespace(prompt_tokens=1_000, completion_tokens=100),
-    )
-    completion = completion_from(response, TokenPrices(1.0, 5.0))
-    assert completion.text == ""
-    assert completion.tool_arguments == '{"action": "b2"}'
-    assert completion.cost_usd == pytest.approx(0.0015)
+    assert messages_json(MESSAGES) == [
+        {"role": "system", "content": "rules"},
+        {"role": "user", "content": "your move"},
+    ]
+    assert messages_json(messages) == [
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {"name": "get_state", "arguments": "{}"},
+                }
+            ],
+        },
+        {"role": "tool", "content": "board", "tool_call_id": "call_1"},
+    ]
     return
 
 
@@ -136,12 +100,13 @@ def test_retry_does_not_retry_rejected_requests() -> None:
 
 
 def test_cache_returns_stored_reply_without_calling_the_model(tmp_path: Path) -> None:
-    inner = QueuedChatModel([reply("first", '{"action": "a1"}')])
+    inner = QueuedChatModel([reply("first", '{"action": "a1"}', reasoning="why")])
     model = CachedChatModel(inner, DirectoryResponseStore(tmp_path))
     first = complete(model)
     second = complete(model)
     assert len(inner.calls) == 1
     assert (second.text, second.tool_arguments) == ("first", '{"action": "a1"}')
+    assert second.reasoning == "why"
     assert (second.cost_usd, second.is_cached) == (0.0, True)
     assert first.is_cached is False
     return
@@ -152,4 +117,35 @@ def test_cache_misses_when_the_seed_changes(tmp_path: Path) -> None:
     model = CachedChatModel(inner, DirectoryResponseStore(tmp_path))
     complete(model, ModelSettings(model="m", seed=1))
     assert complete(model, ModelSettings(model="m", seed=2)).text == "b"
+    return
+
+
+def test_cache_key_changes_with_the_tools_and_the_choice() -> None:
+    forced = cache_key(MESSAGES, SETTINGS, (TOOL,), ForcedTool(TOOL.name))
+    assert cache_key(MESSAGES, SETTINGS, (TOOL, LOOKUP), "auto") != forced
+    assert cache_key(MESSAGES, SETTINGS, (TOOL,), "auto") != forced
+    assert cache_key(MESSAGES, SETTINGS, (), "auto") == cache_key(
+        MESSAGES, SETTINGS, (), "required"
+    )
+    return
+
+
+def test_cache_round_trips_several_tool_calls(tmp_path: Path) -> None:
+    calls = (ToolCall("c1", "get_state", "{}"), ToolCall("c2", "check_action", "{}"))
+    inner = QueuedChatModel([tool_calls_reply(calls)])
+    model = CachedChatModel(inner, DirectoryResponseStore(tmp_path))
+    complete(model)
+    assert complete(model).tool_calls == calls
+    return
+
+
+def test_a_corrupt_cache_entry_is_a_miss(tmp_path: Path) -> None:
+    store = DirectoryResponseStore(tmp_path)
+    key = cache_key(MESSAGES, SETTINGS, (TOOL,), ForcedTool(TOOL.name))
+    store.put(key, {"text": "x"})
+    (tmp_path / "zz").mkdir()
+    (tmp_path / "zz" / "zz.json").write_text("{not json", encoding="utf-8")
+    inner = QueuedChatModel([reply("fresh")])
+    assert complete(CachedChatModel(inner, store)).text == "fresh"
+    assert store.get("zz") is None
     return

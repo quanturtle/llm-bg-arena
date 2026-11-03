@@ -19,6 +19,7 @@ from boardgames.logs.replay import (
 from boardgames.logs.schema import (
     DecisionRecord,
     EventRecord,
+    ForfeitRecord,
     LogRecord,
     MatchFinished,
     MatchStarted,
@@ -107,6 +108,53 @@ def test_changed_observation_is_detected() -> None:
     return
 
 
+def test_changed_observation_data_is_detected() -> None:
+    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    first = next(record for record in records if isinstance(record, DecisionRecord))
+    observation = dict(first.observation, coins=[99, 99, 99])
+    tampered = replace_first(records, DecisionRecord, {"observation": observation})
+    with pytest.raises(ReplayMismatchError, match="P1 logged observation data"):
+        replay_match(tampered)
+    return
+
+
+def test_event_at_a_step_without_a_decision_is_detected() -> None:
+    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    orphan = EventRecord(step=40, kind="won", text="P1 wins", data={}, audience=[0])
+    tampered = [*records[:-1], orphan, records[-1]]
+    with pytest.raises(ReplayMismatchError, match="events at step 40 follow no"):
+        replay_match(tampered)
+    return
+
+
+def test_observed_step_the_replay_has_not_reached_is_detected() -> None:
+    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    tampered = replace_first(records, DecisionRecord, {"observed_at_step": 99})
+    with pytest.raises(ReplayMismatchError, match="observed_at_step 99 is not"):
+        replay_match(tampered)
+    return
+
+
+@pytest.mark.parametrize("update", [{"kind": "move"}, {"prompt": "Pick one."}])
+def test_changed_decision_kind_or_prompt_is_detected(
+    update: dict[str, object],
+) -> None:
+    records = record_match(SealedAuction(), AUCTION, random_agents(3))
+    with pytest.raises(ReplayMismatchError, match="step 1: P1 decision: log has"):
+        replay_match(replace_first(records, DecisionRecord, update))
+    return
+
+
+def test_changed_forfeit_step_is_detected() -> None:
+    records = record_match(
+        KInARow(), TIC_TAC_TOE, [ScriptedAgent(["b2", "a1"]), ForfeitingAgent()]
+    )
+    tampered = replace_first(records, ForfeitRecord, {"step": 5})
+    with pytest.raises(ReplayMismatchError, match="forfeit at step 5 follows step 1"):
+        replay_match(tampered)
+    return
+
+
 def test_forfeited_match_replays() -> None:
     records = record_match(
         KInARow(), TIC_TAC_TOE, [ScriptedAgent(["b2", "a1"]), ForfeitingAgent()]
@@ -144,7 +192,9 @@ def test_cli_replay_reports_a_match(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     log = tmp_path / "match.jsonl"
-    cli.run_command(cli.parse_arguments(["play", "sealed_auction", "--log", str(log)]))
+    config = tmp_path / "match.yaml"
+    config.write_text("game: sealed_auction\n", encoding="utf-8")
+    cli.run_command(cli.parse_arguments(["play", str(config), "--log", str(log)]))
     cli.run_command(cli.parse_arguments(["replay", str(log)]))
     assert "Replay matches the log: sealed_auction, 18 steps" in capsys.readouterr().out
     return

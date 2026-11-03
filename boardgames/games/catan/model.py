@@ -86,6 +86,8 @@ NUMBER_TOKENS: tuple[int, ...] = (
     11,
     12,
 )
+# The most frequent rolls; their tokens are printed red and never touch.
+RED_NUMBERS: tuple[int, ...] = (6, 8)
 
 ROAD_COST: Hand = (1, 1, 0, 0, 0)
 SETTLEMENT_COST: Hand = (1, 1, 1, 1, 0)
@@ -214,9 +216,10 @@ class PlayYearOfPlenty:
 
     def __post_init__(self) -> None:
         """Keep the pair in resource order so equal choices share one notation."""
-        if RESOURCE_INDEX[self.first] > RESOURCE_INDEX[self.second]:
-            object.__setattr__(self, "first", self.second)
-            object.__setattr__(self, "second", self.first)
+        first, second = self.first, self.second
+        if RESOURCE_INDEX[first] > RESOURCE_INDEX[second]:
+            object.__setattr__(self, "first", second)
+            object.__setattr__(self, "second", first)
 
 
 @dataclass(frozen=True)

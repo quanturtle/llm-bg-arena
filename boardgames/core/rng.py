@@ -31,9 +31,9 @@ class Rng:
         return mixed ^ (mixed >> 31), Rng(state)
 
     def below(self, bound: int) -> tuple[int, "Rng"]:
-        """Uniform integer in [0, bound), without modulo bias."""
-        if bound <= 0:
-            raise ValueError(f"bound must be positive, got {bound}")
+        """Uniform integer in [0, bound), without modulo bias; `bound` is 1 to 2**64."""
+        if not 1 <= bound <= 1 << 64:
+            raise ValueError(f"bound must be from 1 to 2**64, got {bound}")
         accepted_below = (1 << 64) - (1 << 64) % bound
         value, rng = self.next_u64()
         while value >= accepted_below:

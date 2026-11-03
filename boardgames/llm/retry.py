@@ -13,6 +13,7 @@ from boardgames.llm.model import (
     Message,
     ModelSettings,
     ModelUnavailableError,
+    ToolChoice,
     ToolSpec,
     TransientModelError,
 )
@@ -41,12 +42,15 @@ class RetryingChatModel:
         self,
         messages: Sequence[Message],
         settings: ModelSettings,
-        tool: ToolSpec | None,
+        tools: Sequence[ToolSpec],
+        tool_choice: ToolChoice,
     ) -> Completion:
         failures: list[str] = []
         for attempt in range(self._max_attempts):
             try:
-                completion = await self._inner.complete(messages, settings, tool)
+                completion = await self._inner.complete(
+                    messages, settings, tools, tool_choice
+                )
             except TransientModelError as error:
                 failures.append(str(error))
                 if attempt + 1 < self._max_attempts:

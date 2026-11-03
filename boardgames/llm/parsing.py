@@ -21,8 +21,10 @@ from boardgames.llm.model import ChatModel, Completion, Message, ModelSettings
 type ResolveMethod = Literal["strict", "soft", "number", "extractor"]
 type RejectionKind = Literal["format", "illegal", "unmatched"]
 
-FINAL_ANSWER = re.compile(r"final answer\s*:\s*(.+)", re.IGNORECASE)
-MEMORY_LINE = re.compile(r"^\s*memory\s*:\s*(.*)$", re.IGNORECASE | re.MULTILINE)
+FINAL_ANSWER = re.compile(r"final answer[*_` \t]*:[ \t]*(.*)", re.IGNORECASE)
+MEMORY_LINE = re.compile(
+    r"^[*_` \t]*memory[*_` \t]*:[ \t]*(.*)$", re.IGNORECASE | re.MULTILINE
+)
 CURLY_QUOTES = "".join(chr(code) for code in (0x2018, 0x2019, 0x201C, 0x201D))
 DECORATION = re.compile(f"[`*\"'{CURLY_QUOTES}]")
 EDGE_PUNCTUATION = ".,;:!?()[]{}<>"
@@ -82,17 +84,21 @@ def optional_text(value: object) -> str | None:
 
 
 def parse_text(text: str) -> ParsedReply | Rejected:
-    """The last "Final Answer:" line, any "Memory:" line, and the text before them."""
+    """The last "Final Answer:" line, the last "Memory:" line, and the text before."""
     answers = FINAL_ANSWER.findall(text)
-    memory = MEMORY_LINE.search(text)
+    memories = list(MEMORY_LINE.finditer(text))
+    memory = memories[-1] if memories else None
     if answers:
+        answer = clean_answer(answers[-1])
+        if not answer:
+            return Rejected("format", 'Write the action after "Final Answer:".')
         cut = min(
             position
             for position in (text.lower().rfind("final answer"), memory_start(memory))
             if position >= 0
         )
         return ParsedReply(
-            answer=clean_answer(answers[-1]),
+            answer=answer,
             reasoning=text[:cut].strip() or None,
             memory=memory.group(1).strip() if memory else None,
         )
@@ -184,10 +190,11 @@ def numbered_choice[A](
     candidates: Sequence[A],
     request: DecisionRequest[A],
 ) -> A | None:
-    """The listed action at a 1-based number, if no notation uses that number itself."""
-    if numbered is None or not answer.isdigit():
+    """The listed action at a 1-based number, if no notation has a numeric token."""
+    if numbered is None or not (answer.isascii() and answer.isdigit()):
         return None
-    if any(answer in request.actions.notation(a).split() for a in candidates):
+    tokens = (t for a in candidates for t in request.actions.notation(a).split())
+    if any(t.isascii() and t.isdigit() for t in tokens):
         return None
     index = int(answer)
     return numbered[index - 1] if 1 <= index <= len(numbered) else None
@@ -232,7 +239,7 @@ class ActionExtractor:
             f"Legal actions: {', '.join(notations)}\n\nReply:\n{reply}"
         )
         completion = await self._model.complete(
-            [Message("user", prompt)], self._settings, None
+            [Message("user", prompt)], self._settings, (), "auto"
         )
         answer = clean_answer(completion.text)
         if answer in notations:

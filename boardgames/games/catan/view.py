@@ -53,6 +53,7 @@ from boardgames.games.catan.model import (
     point_breakdown,
     total_points,
 )
+from boardgames.games.catan.notation import DEV_CARD_NOTATION
 from boardgames.games.catan.rules import (
     longest_road_lengths,
     trade_rates,
@@ -87,6 +88,7 @@ def observe(state: CatanState, viewer: PlayerId | None) -> Observation:
         "roads": list(state.roads),
         "hand_sizes": [hand_total(hand) for hand in state.hands],
         "dev_counts": [hand_total(hand) for hand in state.dev_hands],
+        "dev_deck_size": len(state.dev_deck),
         "knights": list(state.knights_played),
         "public_points": [
             total_points(state, player, include_hidden=False) for player in players
@@ -165,7 +167,12 @@ def offer_data(state: CatanState) -> dict[str, JsonValue] | None:
 def render_text(observation: Observation) -> str:
     """Compact board, players and private view for prompts and the CLI."""
     data = observation.data
-    lines = [status_line(data), *player_lines(data), road_lengths_line(data)]
+    lines = [
+        status_line(data),
+        *player_lines(data),
+        road_lengths_line(data),
+        dev_deck_line(data),
+    ]
     if observation.viewer is not None:
         lines.append(f"You are {seat_label(observation.viewer)}.")
     lines.extend(["", "Board:"])
@@ -229,11 +236,10 @@ def status_line(data: JsonObject) -> str:
 
 def player_lines(data: JsonObject) -> list[str]:
     """One public line per player: points, visible pieces, hand and cards."""
-    points = number_list(data, "public_points")
+    points, breakdowns = shown_points(data)
     hand_sizes = json_list_of(data, "hand_sizes", int)
     dev_counts = json_list_of(data, "dev_counts", int)
     knights = json_list_of(data, "knights", int)
-    breakdowns = object_list(data, "public_breakdown")
     lines = ["Players:"]
     for player, (vp, hand, dev, played, breakdown) in enumerate(
         zip(points, hand_sizes, dev_counts, knights, breakdowns, strict=True)
@@ -246,6 +252,17 @@ def player_lines(data: JsonObject) -> list[str]:
     return lines
 
 
+def shown_points(data: JsonObject) -> tuple[list[float], list[JsonObject]]:
+    """Points and breakdowns per player: final ones once the game is over."""
+    if not json_bool(data, "game_over") or data["final_scores"] is None:
+        return number_list(data, "public_points"), object_list(data, "public_breakdown")
+    scores = object_list(data, "final_scores")
+    return (
+        [json_number(score, "points") for score in scores],
+        [json_object(score, "breakdown") for score in scores],
+    )
+
+
 def road_lengths_line(data: JsonObject) -> str:
     """Longest road length per player, and who holds the award."""
     lengths = json_list_of(data, "longest_road_lengths", int)
@@ -256,6 +273,11 @@ def road_lengths_line(data: JsonObject) -> str:
     holder = json_optional_int(data, "longest_road")
     award = "none" if holder is None else seat_label(PlayerId(holder))
     return f"Road lengths: {parts}. Longest road award: {award}."
+
+
+def dev_deck_line(data: JsonObject) -> str:
+    """Development cards left to buy."""
+    return f"Development deck: {json_int(data, 'dev_deck_size')} cards left."
 
 
 def breakdown_text(breakdown: JsonObject) -> str:
@@ -423,7 +445,7 @@ def private_lines(data: JsonObject, viewer: PlayerId | None) -> list[str]:
 
 
 def final_lines(data: JsonObject) -> list[str]:
-    """Final scores once the game is over."""
+    """Final scores and revealed cards once the game is over."""
     if not json_bool(data, "game_over") or data["final_scores"] is None:
         return []
     lines = ["Final scores:"]
@@ -432,8 +454,23 @@ def final_lines(data: JsonObject) -> list[str]:
         points = json_number(score, "points")
         breakdown = json_object(score, "breakdown")
         lines.append(
-            f"  {seat_label(player)}: {points:g} points "
-            f"({breakdown_text(breakdown)})."
+            f"  {seat_label(player)}: {points:g} points ({breakdown_text(breakdown)})."
+        )
+    lines.extend(revealed_lines(data))
+    return lines
+
+
+def revealed_lines(data: JsonObject) -> list[str]:
+    """Every player's hand and development cards, when the observation reveals them."""
+    if data["revealed_hands"] is None or data["revealed_dev"] is None:
+        return []
+    hands = object_list(data, "revealed_hands")
+    devs = object_list(data, "revealed_dev")
+    lines = ["Revealed hands:"]
+    for player, (hand, dev) in enumerate(zip(hands, devs, strict=True)):
+        lines.append(
+            f"  {seat_label(PlayerId(player))}: {hand_text(hand)}; "
+            f"development cards: {dev_text(dev)}."
         )
     return lines
 
@@ -454,8 +491,10 @@ def hand_text(hand: JsonObject) -> str:
 
 
 def dev_text(hand: JsonObject) -> str:
-    """ "knight 1, victory point 0, ..." for one development-card hand."""
-    return ", ".join(f"{card} {json_int(hand, card)}" for card in DEV_CARDS)
+    """ "knight 1, roadbuilding 0, ..." for one development-card hand."""
+    return ", ".join(
+        f"{DEV_CARD_NOTATION[card]} {json_int(hand, card)}" for card in DEV_CARDS
+    )
 
 
 def total(outer: JsonObject, key: str) -> int:
@@ -498,11 +537,11 @@ def describe_action(observation: Observation, action: Action) -> str:
         case DeclineOffer():
             return "Decline the open trade offer"
         case PlayRoadBuilding():
-            return "Play Road Building and place two free roads"
+            return "Play roadbuilding: place two free roads"
         case PlayYearOfPlenty(first=first, second=second):
-            return f"Play Year of Plenty: take 1 {first} and 1 {second}"
+            return f"Play yearofplenty: take 1 {first} and 1 {second}"
         case PlayMonopoly(resource=resource):
-            return f"Play Monopoly: take all {resource} from the other players"
+            return f"Play monopoly: take all {resource} from the other players"
     raise TypeError(f"unknown Catan action {action!r}")
 
 

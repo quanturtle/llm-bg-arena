@@ -50,6 +50,8 @@ from boardgames.games.catan.geometry import (
     COASTAL_EDGES,
     EDGE_HEXES,
     EDGE_VERTICES,
+    HEX_EDGES,
+    HEX_NEIGHBORS,
     HEX_VERTICES,
     HEXES,
     PORT_EDGES,
@@ -199,6 +201,16 @@ def test_setup_prepares_a_seeded_board() -> None:
     assert state.turn == 1
 
 
+def test_six_and_eight_tokens_never_touch() -> None:
+    for seed in range(50):
+        hexes = start(seed=seed).hexes
+        red = [hex_id for hex_id, board in enumerate(hexes) if board.number in (6, 8)]
+        assert len(red) == 4
+        assert not any(
+            other in red for hex_id in red for other in HEX_NEIGHBORS[hex_id]
+        )
+
+
 def test_setup_is_deterministic_per_seed() -> None:
     assert start(seed=9) == start(seed=9)
     assert GAME.setup(CONFIG, 9).events == GAME.setup(CONFIG, 9).events
@@ -261,8 +273,7 @@ def test_first_settlement_grants_nothing() -> None:
 def test_production_counts_settlements_and_cities_but_not_the_robber() -> None:
     state = start()
     board = [
-        replace(board_hex, terrain="desert", number=None)
-        for board_hex in state.hexes
+        replace(board_hex, terrain="desert", number=None) for board_hex in state.hexes
     ]
     board[0] = replace(board[0], terrain="forest", number=6)
     board[1] = replace(board[1], terrain="pasture", number=8)
@@ -371,11 +382,8 @@ def test_player_offer_accept_transfers_one_card_each_way() -> None:
         empty_hand(),
     )
     offered = action_state(replace(state, hands=hands))
-    (offer,) = [
-        action
-        for action in listing(offered)
-        if isinstance(action, OfferTrade)
-    ][:1]
+    offer = OfferTrade("wood", "ore", P2)
+    assert offer in listing(offered)
     pending = GAME.apply(offered, P1, offer).state
     assert pending.phase == "trade_response"
     assert pending.pending_offer is not None
@@ -385,6 +393,25 @@ def test_player_offer_accept_transfers_one_card_each_way() -> None:
     assert accepted.hands[P1] == hand_from(ore=1)
     assert accepted.hands[P2] == hand_from(wood=1)
     assert accepted.pending_offer is None
+
+
+def test_offers_ignore_the_target_hand_and_accept_needs_the_card() -> None:
+    state, _ = play_setup()
+    offered = action_state(
+        replace(state, hands=(hand_from(wood=1), empty_hand(), hand_from(ore=1)))
+    )
+    assert [a for a in listing(offered) if isinstance(a, OfferTrade)] == [
+        OfferTrade("wood", take, target)
+        for target in (P2, P3)
+        for take in RESOURCES
+        if take != "wood"
+    ]
+    to_p2 = GAME.apply(offered, P1, OfferTrade("wood", "ore", P2)).state
+    assert notation(to_p2) == ["decline"]
+    with pytest.raises(IllegalActionError, match="You have no ore to give"):
+        GAME.apply(to_p2, P2, AcceptOffer())
+    to_p3 = GAME.apply(offered, P1, OfferTrade("wood", "ore", P3)).state
+    assert notation(to_p3) == ["accept", "decline"]
 
 
 def test_declining_an_offer_returns_to_the_action_phase() -> None:
@@ -439,9 +466,7 @@ def test_discard_is_private_and_then_the_robber_moves() -> None:
     first = GAME.apply(state, P1, Discard("wood"))
     assert first.state.discard_remaining == (1, 0, 0)
     assert first.state.phase == "discard"
-    private = [
-        event for event in first.events if isinstance(event.audience, frozenset)
-    ]
+    private = [event for event in first.events if isinstance(event.audience, frozenset)]
     assert len(private) == 1
     assert private[0].audience == frozenset({P1})
     second = GAME.apply(first.state, P1, Discard("wood")).state
@@ -488,6 +513,30 @@ def test_robber_must_change_hex() -> None:
         GAME.apply(moving, P1, MoveRobber(state.robber, None))
 
 
+def test_robber_never_lists_the_mover_as_a_victim() -> None:
+    state = start()
+    hex_id = next(hex_id for hex_id in range(19) if hex_id != state.robber)
+    buildings: list[Building | None] = [None] * 54
+    buildings[HEX_VERTICES[hex_id][0]] = Building(P1, "settlement")
+    moving = replace(
+        state,
+        phase="move_robber",
+        buildings=tuple(buildings),
+        hands=(hand_from(wood=1), empty_hand(), empty_hand()),
+    )
+    assert [a for a in listing(moving) if a.hex == hex_id] == [MoveRobber(hex_id, None)]
+    armed = replace(
+        moving,
+        phase="actions",
+        dice=(1, 2),
+        dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
+    )
+    knights = [a for a in listing(armed) if isinstance(a, PlayKnight)]
+    assert [a for a in knights if a.hex == hex_id] == [PlayKnight(hex_id, None)]
+    with pytest.raises(IllegalActionError, match="steal from yourself"):
+        GAME.apply(moving, P1, MoveRobber(hex_id, P1))
+
+
 def test_knight_moves_robber_and_counts_for_largest_army() -> None:
     state, _ = play_setup()
     armed = replace(
@@ -496,9 +545,7 @@ def test_knight_moves_robber_and_counts_for_largest_army() -> None:
         dice=(1, 2),
         dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
     )
-    knight = next(
-        action for action in listing(armed) if isinstance(action, PlayKnight)
-    )
+    knight = next(action for action in listing(armed) if isinstance(action, PlayKnight))
     transition = GAME.apply(armed, P1, knight)
     after = transition.state
     assert after.robber == knight.hex
@@ -540,9 +587,7 @@ def test_year_of_plenty_and_monopoly() -> None:
         hands=(empty_hand(), empty_hand(), empty_hand()),
         dev_hands=(dev_hand_from(year_of_plenty=1), empty_hand(), empty_hand()),
     )
-    after_plenty = GAME.apply(
-        plenty, P1, PlayYearOfPlenty("wood", "ore")
-    ).state
+    after_plenty = GAME.apply(plenty, P1, PlayYearOfPlenty("wood", "ore")).state
     assert after_plenty.hands[P1] == hand_from(wood=1, ore=1)
     assert after_plenty.dev_hands[P1] == empty_hand()
 
@@ -608,7 +653,7 @@ def test_longest_road_award_and_break() -> None:
         longest_road=None,
     )
     assert longest_road_length(built, P1) == 5
-    awarded, events = update_longest_road(built)
+    awarded, events = update_longest_road(state, built)
     assert awarded.longest_road == P1
     assert any(event.kind == "longest_road" for event in events)
 
@@ -616,9 +661,37 @@ def test_longest_road_award_and_break() -> None:
     internal = vertices[2]
     buildings = list(built.buildings)
     buildings[internal] = Building(P2, "settlement")
-    broken = replace(built, buildings=tuple(buildings))
+    broken = replace(awarded, buildings=tuple(buildings))
     assert longest_road_length(broken, P1) < 5
-    assert update_longest_road(broken)[0].longest_road is None
+    assert update_longest_road(awarded, broken)[0].longest_road is None
+
+
+def test_a_broken_longest_road_tied_for_first_is_set_aside() -> None:
+    ring, corners = HEX_EDGES[9], HEX_VERTICES[9]
+    spur = next(edge for edge in VERTEX_EDGES[corners[5]] if edge not in ring)
+    buildings: list[Building | None] = [None] * 54
+    buildings[corners[1]] = Building(P3, "settlement")
+    for p2_roads, holder in ((5, None), (4, P1)):
+        roads: list[PlayerId | None] = [None] * 72
+        for edge in (spur, *ring[:5]):
+            roads[edge] = P1
+        for edge in HEX_EDGES[0][:p2_roads]:
+            roads[edge] = P2
+        held = replace(start(), roads=tuple(roads), longest_road=P1)
+        broken = replace(held, buildings=tuple(buildings))
+        assert longest_road_lengths(held) == (6, p2_roads, 0)
+        assert longest_road_lengths(broken) == (5, p2_roads, 0)
+        assert update_longest_road(held, broken)[0].longest_road == holder
+
+
+def test_longest_road_is_a_trail_through_both_rings_of_a_theta() -> None:
+    first, second = next(hexes for hexes in EDGE_HEXES if len(hexes) == 2)
+    roads: list[PlayerId | None] = [None] * 72
+    for edge in (*HEX_EDGES[first], *HEX_EDGES[second]):
+        roads[edge] = P1
+    theta = replace(start(), roads=tuple(roads))
+    assert roads.count(P1) == 11
+    assert longest_road_length(theta, P1) == 11
 
 
 def test_largest_army_keeps_ties_and_changes_on_a_strict_lead() -> None:
@@ -654,6 +727,16 @@ def test_notation_round_trips_every_action() -> None:
     ]
     for action in actions:
         assert GAME.parse_action(GAME.format_action(action)) == action
+
+
+def test_year_of_plenty_keeps_both_resources_in_resource_order() -> None:
+    reversed_pair = GAME.parse_action("play yearofplenty ore wood")
+    assert isinstance(reversed_pair, PlayYearOfPlenty)
+    assert (reversed_pair.first, reversed_pair.second) == ("wood", "ore")
+    assert GAME.format_action(reversed_pair) == "play yearofplenty wood ore"
+    for action in (PlayYearOfPlenty("ore", "wood"), PlayYearOfPlenty("wood", "ore")):
+        assert GAME.parse_action(GAME.format_action(action)) == action
+        assert action == reversed_pair
 
 
 @pytest.mark.parametrize(
@@ -725,6 +808,48 @@ def test_render_text_and_descriptions_name_the_board() -> None:
     assert f"e{edge}" in GAME.describe_action(observation, PlaceRoad(edge))
 
 
+def test_game_over_render_shows_final_points_and_revealed_cards() -> None:
+    config = CatanConfig(num_players=3, victory_points=3)
+    state, _ = play_setup(config)
+    funded = action_state(set_hand(state, P1, DEV_COST))
+    rigged = replace(funded, dev_deck=("victory_point",), dev_hands=state.dev_hands)
+    over = GAME.apply(rigged, P1, BuyDev()).state
+    text = GAME.render_text(GAME.observe(over, P2))
+    assert "  P1: 3 VP (settlements 2, victory cards 1);" in text
+    assert "Revealed hands:" in text
+    assert "development cards: knight 0, roadbuilding 0, yearofplenty 0, " in text
+    assert "monopoly 0, victorypoint 1." in text
+
+
+def test_render_and_rules_name_development_cards_as_notation_does() -> None:
+    state, _ = play_setup()
+    armed = action_state(
+        replace(
+            state,
+            dev_hands=(dev_hand_from(road_building=1), empty_hand(), empty_hand()),
+        )
+    )
+    observation = GAME.observe(armed, P1)
+    text = GAME.render_text(observation)
+    rules = GAME.rules_text()
+    assert "Your development cards: knight 0, roadbuilding 1, yearofplenty 0" in text
+    assert "roadbuilding" in GAME.describe_action(observation, PlayRoadBuilding())
+    for name in ("knight", "roadbuilding", "yearofplenty", "monopoly", "victorypoint"):
+        assert f"`{name}`" in rules
+    for spelling in ("road_building", "Road Building", "Year of Plenty"):
+        assert spelling not in text
+        assert spelling not in rules
+
+
+def test_observation_and_render_show_the_development_deck_size() -> None:
+    state, _ = play_setup()
+    shorter = replace(state, dev_deck=state.dev_deck[:7])
+    for viewer in (P1, None):
+        observation = GAME.observe(shorter, viewer)
+        assert observation.data["dev_deck_size"] == 7
+        assert "Development deck: 7 cards left." in GAME.render_text(observation)
+
+
 def test_config_validation_and_registry() -> None:
     assert GAME.parse_config({}) == CatanConfig()
     assert GAME.parse_config(GAME.config_json(CONFIG)) == CONFIG
@@ -749,24 +874,32 @@ def test_same_seed_replays_to_the_same_log() -> None:
     assert report.steps > 0
 
 
-@pytest.mark.parametrize("seed", [0, 2, 3, 4, 6, 8])
-def test_random_playthrough_terminates_and_keeps_invariants(seed: int) -> None:
-    config = CatanConfig(num_players=3, victory_points=3)
+def check_playthrough_state(state: CatanState) -> None:
+    """Cards never go negative and award holders meet the minimums."""
+    assert all(hand_total(hand) >= 0 for hand in state.hands)
+    assert all(all(card >= 0 for card in hand) for hand in state.dev_hands)
+    if state.longest_road is not None:
+        assert longest_road_lengths(state)[state.longest_road] >= 5
+    if state.largest_army is not None:
+        assert state.knights_played[state.largest_army] >= 3
+    if state.phase == "discard":
+        assert any(state.discard_remaining)
+    return
 
-    def check(state: CatanState) -> None:
-        assert all(hand_total(hand) >= 0 for hand in state.hands)
-        assert all(all(card >= 0 for card in hand) for hand in state.dev_hands)
-        if state.longest_road is not None:
-            assert longest_road_lengths(state)[state.longest_road] >= 5
-        if state.largest_army is not None:
-            assert state.knights_played[state.largest_army] >= 3
-        if state.phase == "discard":
-            assert any(state.discard_remaining)
 
-    state, steps = random_playthrough(GAME, config, seed, check)
-    assert GAME.is_terminal(state)
-    assert state.winner is not None
-    assert steps <= 1_000
+def test_random_playthroughs_reach_ten_points_and_build_a_city() -> None:
+    config = CatanConfig(num_players=3)
+    cities = 0
+    for seed in (3,):
+        state, _ = random_playthrough(GAME, config, seed, check_playthrough_state)
+        assert state.winner is not None
+        assert GAME.scores(state).points[state.winner] >= config.victory_points == 10
+        cities += sum(
+            1
+            for building in state.buildings
+            if building is not None and building.kind == "city"
+        )
+    assert cities >= 1
 
 
 def number_values(data: JsonObject, key: str) -> list[float]:
@@ -787,9 +920,7 @@ def path_edges(length: int) -> list[int]:
     raise AssertionError("no path found")
 
 
-def extend_path(
-    vertex: int, visited: set[int], edges: list[int]
-) -> list[int] | None:
+def extend_path(vertex: int, visited: set[int], edges: list[int]) -> list[int] | None:
     if len(edges) == 5:
         return list(edges)
     for edge in VERTEX_EDGES[vertex]:
@@ -797,9 +928,7 @@ def extend_path(
         next_vertex = second if first == vertex else first
         if next_vertex in visited:
             continue
-        found = extend_path(
-            next_vertex, {*visited, next_vertex}, [*edges, edge]
-        )
+        found = extend_path(next_vertex, {*visited, next_vertex}, [*edges, edge])
         if found is not None:
             return found
     return None

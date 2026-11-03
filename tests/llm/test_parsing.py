@@ -11,6 +11,7 @@ from boardgames.llm.parsing import (
     Rejected,
     Resolved,
     parse_reply,
+    parse_text,
     resolve_answer,
 )
 from tests.agents.test_random_agent import UnlistableStepSpace, step_request
@@ -139,4 +140,24 @@ def test_extractor_maps_a_reply_to_a_listed_action() -> None:
     missing = asyncio.run(extractor.extract("no idea", request))
     assert missing.action is None
     assert missing.completion.usage.prompt_tokens == 100
+    return
+
+
+def test_non_ascii_digits_are_not_numbers() -> None:
+    assert isinstance(resolve_answer("²", tic_tac_toe_request([]), None), Rejected)
+    return
+
+
+def test_numbers_are_not_indexes_when_the_notation_has_numeric_tokens() -> None:
+    request = auction_request(coins=10)
+    numbered = request.actions.listing(60)
+    assert isinstance(resolve_answer("11", request, numbered), Rejected)
+    return
+
+
+def test_text_reply_takes_the_last_memory_line_and_decorated_answers() -> None:
+    parsed = parse_text("Memory: old\nthink\nMemory: new\n**Final Answer**: b2")
+    assert isinstance(parsed, ParsedReply)
+    assert (parsed.answer, parsed.memory) == ("b2", "new")
+    assert isinstance(parse_text("Final Answer:\nMemory: notes"), Rejected)
     return

@@ -36,6 +36,7 @@ from boardgames.core.records import (
 )
 from boardgames.games.catan.geometry import (
     EDGE_VERTICES,
+    HEX_NEIGHBORS,
     PORT_EDGES,
     VERTEX_EDGES,
     VERTEX_HEXES,
@@ -47,6 +48,7 @@ from boardgames.games.catan.model import (
     LARGEST_ARMY_MINIMUM,
     LONGEST_ROAD_MINIMUM,
     NUMBER_TOKENS,
+    RED_NUMBERS,
     RESOURCES,
     ROAD_COST,
     SETTLEMENT_COST,
@@ -98,6 +100,7 @@ from boardgames.games.catan.rules import (
     city_legal,
     distance_rule_ok,
     legal_free_road_edges,
+    longest_road_length,
     longest_road_lengths,
     production,
     road_legal,
@@ -135,14 +138,7 @@ class Catan:
     def setup(self, config: CatanConfig, seed: int) -> Transition[CatanState]:
         rng = Rng.seeded(seed)
         terrains, rng = rng.shuffled(TERRAIN_DECK)
-        board_hexes: list[Hex] = [Hex(terrain, None) for terrain in terrains]
-        numbers, rng = rng.shuffled(NUMBER_TOKENS)
-        number_index = 0
-        for hex_id, board_hex in enumerate(board_hexes):
-            if board_hex.terrain == "desert":
-                continue
-            board_hexes[hex_id] = replace(board_hex, number=numbers[number_index])
-            number_index += 1
+        board_hexes, rng = place_number_tokens(terrains, rng)
 
         port_kinds: tuple[Resource | None, ...] = (None, None, None, None, *RESOURCES)
         shuffled_ports, rng = rng.shuffled(port_kinds)
@@ -161,7 +157,7 @@ class Catan:
         state = CatanState(
             config=config,
             rng=rng,
-            hexes=tuple(board_hexes),
+            hexes=board_hexes,
             ports=ports,
             robber=robber,
             dev_deck=dev_deck,
@@ -204,8 +200,7 @@ class Catan:
                         for board_hex in board_hexes
                     ],
                     "ports": [
-                        {"edge": port.edge, "resource": port.resource}
-                        for port in ports
+                        {"edge": port.edge, "resource": port.resource} for port in ports
                     ],
                 },
             ),
@@ -539,7 +534,7 @@ class Catan:
             )
         ]
         built = replace(state, roads=roads, free_roads=free_roads)
-        built, award_events = update_longest_road(built)
+        built, award_events = update_longest_road(state, built)
         events.extend(award_events)
         finished = finish_if_won(built, tuple(events))
         if finished.state.phase == "game_over":
@@ -603,7 +598,7 @@ class Catan:
                 {"player": player, "edge": edge},
             )
         ]
-        built, award_events = update_longest_road(replace(paid, roads=roads))
+        built, award_events = update_longest_road(state, replace(paid, roads=roads))
         events.extend(award_events)
         return finish_if_won(built, tuple(events))
 
@@ -619,7 +614,9 @@ class Catan:
                 {"player": player, "vertex": vertex},
             )
         ]
-        built, award_events = update_longest_road(replace(paid, buildings=buildings))
+        built, award_events = update_longest_road(
+            state, replace(paid, buildings=buildings)
+        )
         events.extend(award_events)
         return finish_if_won(built, tuple(events))
 
@@ -959,6 +956,41 @@ def check_config(config: CatanConfig) -> None:
     return
 
 
+def place_number_tokens(
+    terrains: tuple[str, ...], rng: Rng
+) -> tuple[tuple[Hex, ...], Rng]:
+    """Deal number tokens onto the producing hexes, redrawing until no 6 or 8 touch.
+
+    Each rejected layout consumes the RNG, so the board stays a function of the seed.
+    """
+    while True:
+        numbers, rng = rng.shuffled(NUMBER_TOKENS)
+        board_hexes = number_hexes(terrains, numbers)
+        if not red_numbers_touch(board_hexes):
+            return board_hexes, rng
+
+
+def number_hexes(
+    terrains: tuple[str, ...], numbers: tuple[int, ...]
+) -> tuple[Hex, ...]:
+    """Hexes with tokens dealt in hex order, skipping the desert."""
+    tokens = iter(numbers)
+    return tuple(
+        Hex(terrain, None if terrain == "desert" else next(tokens))
+        for terrain in terrains
+    )
+
+
+def red_numbers_touch(board_hexes: tuple[Hex, ...]) -> bool:
+    """Whether two neighbouring hexes both carry a 6 or an 8."""
+    red = [
+        hex_id
+        for hex_id, board_hex in enumerate(board_hexes)
+        if board_hex.number in RED_NUMBERS
+    ]
+    return any(neighbor in red for hex_id in red for neighbor in HEX_NEIGHBORS[hex_id])
+
+
 def setup_order(config: CatanConfig) -> tuple[PlayerId, ...]:
     """Settlement order: clockwise, then back counter-clockwise."""
     forward = tuple(PlayerId(index) for index in range(config.num_players))
@@ -1040,7 +1072,6 @@ def legal_action_list(state: CatanState, player: PlayerId) -> list[Action]:
         if (
             offer is not None
             and offer.to_player == player
-            and hand_get(state.hands[offer.from_player], offer.give) > 0
             and hand_get(state.hands[player], offer.take) > 0
         ):
             actions.append(AcceptOffer())
@@ -1094,8 +1125,6 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
                 for take in RESOURCES:
                     if take == give:
                         continue
-                    if hand_get(state.hands[target], take) < 1:
-                        continue
                     actions.append(OfferTrade(give, take, target))
     if not state.dev_played_this_turn:
         playable = hand_minus(state.dev_hands[player], state.dev_bought) or empty_hand()
@@ -1122,7 +1151,7 @@ def robber_actions(
     for hex_id in range(len(state.hexes)):
         if hex_id == state.robber:
             continue
-        victims = robber_victims(state, hex_id)
+        victims = robber_victims(state, hex_id, player)
         if victims:
             for victim in victims:
                 actions.append(
@@ -1230,9 +1259,10 @@ def move_robber_and_steal(
         return moved, events
     index, rng = moved.rng.below(len(cards))
     resource = cards[index]
-    victim_hand = hand_with(moved.hands[victim], resource, -1)
-    thief_hand = hand_with(moved.hands[player], resource, 1)
-    hands = replace_at(replace_at(moved.hands, victim, victim_hand), player, thief_hand)
+    robbed = replace_at(
+        moved.hands, victim, hand_with(moved.hands[victim], resource, -1)
+    )
+    hands = replace_at(robbed, player, hand_with(robbed[player], resource, 1))
     events.extend(
         [
             Event(
@@ -1281,24 +1311,19 @@ def production_event(gains: tuple[Hand, ...], total: int) -> Event:
 
 
 def update_longest_road(
-    state: CatanState,
+    previous: CatanState, state: CatanState
 ) -> tuple[CatanState, list[Event]]:
-    """Recompute the longest road award after a road or building changes."""
+    """Recompute the longest road award after `previous` became `state`.
+
+    A tie keeps the holder only while the holder's own road is unbroken.
+    """
     lengths = longest_road_lengths(state)
     best = max(lengths)
     current = state.longest_road
-    if (
-        current is not None
-        and lengths[current] >= LONGEST_ROAD_MINIMUM
-        and lengths[current] == best
-    ):
-        holder = current
-    elif best >= LONGEST_ROAD_MINIMUM:
-        holder = PlayerId(
-            min(player for player, length in enumerate(lengths) if length == best)
-        )
-    else:
-        holder = None
+    is_broken = current is not None and lengths[current] < longest_road_length(
+        previous, current
+    )
+    holder = longest_road_holder(lengths, current, is_broken=is_broken)
     if holder == current:
         return state, []
     events: list[Event] = []
@@ -1319,6 +1344,24 @@ def update_longest_road(
             )
         )
     return replace(state, longest_road=holder), events
+
+
+def longest_road_holder(
+    lengths: tuple[int, ...], current: PlayerId | None, *, is_broken: bool
+) -> PlayerId | None:
+    """Who holds the award: the sole longest road of at least 5, else nobody.
+
+    An unbroken holder tied for the longest keeps the card.
+    """
+    best = max(lengths)
+    if best < LONGEST_ROAD_MINIMUM:
+        return None
+    leaders = [
+        PlayerId(player) for player, length in enumerate(lengths) if length == best
+    ]
+    if current in leaders and not is_broken:
+        return current
+    return leaders[0] if len(leaders) == 1 else None
 
 
 def update_largest_army(
@@ -1471,13 +1514,16 @@ def explain_illegal_inner(state: CatanState, player: PlayerId, action: Action) -
                 return f"There is no {seat_label(target)}."
             if hand_get(hand, give) < 1:
                 return f"You have no {give} to offer."
-            if hand_get(state.hands[target], take) < 1:
-                return f"{seat_label(target)} has no {take} to trade."
             return "You cannot offer that trade now."
         case AcceptOffer():
-            if state.pending_offer is None:
+            offer = state.pending_offer
+            if offer is None:
                 return "There is no open offer to accept."
-            return "That offer is not yours to accept."
+            if offer.to_player != player:
+                return "That offer is not yours to accept."
+            if hand_get(hand, offer.take) < 1:
+                return f"You have no {offer.take} to give for this offer."
+            return "You cannot accept that offer now."
         case DeclineOffer():
             if state.pending_offer is None:
                 return "There is no open offer to decline."
@@ -1608,7 +1654,9 @@ def explain_robber(
         return f"h{hex_id} is not on the board."
     if hex_id == state.robber:
         return "The robber is already on that hex; choose a different hex."
-    victims = robber_victims(state, hex_id)
+    if victim == player:
+        return "You cannot steal from yourself."
+    victims = robber_victims(state, hex_id, player)
     if victims and victim is None:
         return "You must steal from an eligible player on that hex."
     if victim is not None and victim not in victims:

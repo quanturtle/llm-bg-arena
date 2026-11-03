@@ -35,7 +35,7 @@ def point_key(x: float, y: float) -> tuple[float, float]:
 
 def build_geometry() -> None:
     """Populate the module-level board tables."""
-    global HEXES, HEX_ROWS, HEX_VERTICES, HEX_EDGES
+    global HEXES, HEX_ROWS, HEX_VERTICES, HEX_EDGES, HEX_NEIGHBORS
     global VERTICES, VERTEX_HEXES, VERTEX_EDGES, VERTEX_NEIGHBORS
     global EDGES, EDGE_VERTICES, EDGE_HEXES
     global COASTAL_EDGES, COASTAL_EDGE_CYCLE, PORT_EDGES
@@ -115,6 +115,15 @@ def build_geometry() -> None:
             edge_hexes[edge].append(hex_id)
     EDGE_HEXES = tuple(tuple(hexes) for hexes in edge_hexes.values())
 
+    # Two hexes are neighbours when they share a side.
+    hex_neighbors: list[list[int]] = [[] for _ in HEXES]
+    for hexes in EDGE_HEXES:
+        if len(hexes) == 2:
+            first_hex, second_hex = hexes
+            hex_neighbors[first_hex].append(second_hex)
+            hex_neighbors[second_hex].append(first_hex)
+    HEX_NEIGHBORS = tuple(tuple(sorted(items)) for items in hex_neighbors)
+
     vertex_edges: list[list[int]] = [[] for _ in VERTICES]
     for edge, (first, second) in enumerate(EDGE_VERTICES):
         vertex_edges[first].append(edge)
@@ -177,6 +186,7 @@ HEXES: tuple[tuple[int, int], ...] = ()
 HEX_ROWS: tuple[tuple[int, ...], ...] = ()
 HEX_VERTICES: tuple[tuple[int, ...], ...] = ()
 HEX_EDGES: tuple[tuple[int, ...], ...] = ()
+HEX_NEIGHBORS: tuple[tuple[int, ...], ...] = ()
 VERTICES: tuple[tuple[float, float], ...] = ()
 VERTEX_HEXES: tuple[tuple[int, ...], ...] = ()
 VERTEX_EDGES: tuple[tuple[int, ...], ...] = ()
