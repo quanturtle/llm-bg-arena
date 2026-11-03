@@ -39,6 +39,7 @@ from boardgames.llm.parsing import (
     parse_reply,
     resolve_answer,
 )
+from boardgames.llm.prompt_version import PROMPT_VERSION, prompt_fingerprint
 from boardgames.llm.prompting import (
     TOOL_NAME,
     PromptSettings,
@@ -121,6 +122,8 @@ class LlmAgent:
         return {
             "kind": "llm",
             "model": self._settings.model.to_json(),
+            "prompt_version": PROMPT_VERSION,
+            "prompt_fingerprint": prompt_fingerprint(),
             "output_mode": prompt.output_mode,
             "listing_limit": prompt.listing_limit,
             "memory_limit": prompt.memory_limit,
