@@ -282,19 +282,21 @@ def agent_detail(matches: Sequence[MatchSummary], agent: str) -> AgentDetail:
     """The agent's overall row, one row per game it played, and head-to-head records."""
     played = [m for m in matches if any(seat.agent == agent for seat in m.seats)]
     game_ids = sorted({m.game_id for m in played})
+    # Ratings need every match at the game, not only the agent's own, or they
+    # disagree with the leaderboard built over the whole store.
     games = [
         row
         for game_id in game_ids
-        for row in leaderboard(played, game_id).rows
+        for row in leaderboard(matches, game_id).rows
         if row.agent == agent
     ]
     overall = next(
-        (row for row in leaderboard(played, None).rows if row.agent == agent), None
+        (row for row in leaderboard(matches, None).rows if row.agent == agent), None
     )
     prompts = [
         row
         for version in sorted({m.prompt_version for m in played})
-        for row in leaderboard(played, None, version).rows
+        for row in leaderboard(matches, None, version).rows
         if row.agent == agent
     ]
     kind = (

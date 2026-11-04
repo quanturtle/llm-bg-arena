@@ -56,6 +56,25 @@ def test_bots_get_no_leaderboard_row() -> None:
     return
 
 
+def named_match(
+    match_id: str, first: str, second: str, moves: tuple[list[str], list[str]]
+) -> MatchSummary:
+    agents: list[Agent] = [
+        CostlyAgent(ScriptedAgent(moves[0]), first, 0.0),
+        CostlyAgent(ScriptedAgent(moves[1]), second, 0.0),
+    ]
+    return summarize(play_records(TicTacToe(), TicTacToeConfig(), agents, 0, match_id))
+
+
+def test_agent_page_elo_matches_the_leaderboard() -> None:
+    matches = [named_match(f"b{index}", "B", "C", X_WINS) for index in range(5)]
+    matches.append(named_match("a", "A", "B", X_WINS))
+    board = leaderboard(matches, "tic_tac_toe")
+    expected = next(row.elo for row in board.rows if row.agent == "A")
+    assert agent_detail(matches, "A").games[0].elo == expected
+    return
+
+
 def test_agent_detail_has_per_game_rows_and_head_to_head() -> None:
     detail = agent_detail([scripted_match("w", *X_WINS)], "x-model")
     assert [row.game_id for row in detail.games] == ["tic_tac_toe"]
