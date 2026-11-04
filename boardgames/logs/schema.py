@@ -7,13 +7,14 @@ record of a player who gave up.
 """
 
 import json
+from collections.abc import Mapping
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from pydantic import JsonValue as PlainJson
 
 from boardgames.agents import AttemptRecord, DecisionTrace, FallbackPolicy
-from boardgames.core import Event, JsonObject, JsonValue
+from boardgames.core import Event, JsonObject, JsonValue, PlayerId, Scores
 
 LOG_VERSION = 1
 
@@ -173,3 +174,16 @@ def event_json(event: Event) -> dict[str, PlainJson]:
 def trace_record(trace: DecisionTrace) -> TraceRecord:
     """Log form of an agent's decision trace."""
     return TraceRecord.model_validate(plain_json(trace.to_json()))
+
+
+def score_records(scores: Scores, ranks: Mapping[PlayerId, int]) -> list[ScoreRecord]:
+    """Log form of final points and ranks, in seat order."""
+    return [
+        ScoreRecord(
+            player=player,
+            points=scores.points[player],
+            rank=ranks[player],
+            breakdown=dict(scores.breakdown.get(player, {})),
+        )
+        for player in sorted(scores.points)
+    ]

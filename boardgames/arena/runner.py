@@ -37,11 +37,11 @@ from boardgames.logs.schema import (
     MatchFinished,
     MatchStarted,
     MatchStopped,
-    ScoreRecord,
     SeatRecord,
     UnfinishedDecisionRecord,
     event_record,
     plain_object,
+    score_records,
     trace_record,
 )
 from boardgames.logs.sink import RecordSink
@@ -478,14 +478,6 @@ def finish_record(result: MatchResult, clock: Clock) -> MatchFinished:
     return MatchFinished(
         steps=result.steps,
         forfeited=list(result.forfeited),
-        scores=[
-            ScoreRecord(
-                player=player,
-                points=result.scores.points[player],
-                rank=result.ranks[player],
-                breakdown=dict(result.scores.breakdown.get(player, {})),
-            )
-            for player in sorted(result.scores.points)
-        ],
+        scores=score_records(result.scores, result.ranks),
         finished_at=clock.now_iso(),
     )
