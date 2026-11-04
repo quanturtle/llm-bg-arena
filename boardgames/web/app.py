@@ -38,9 +38,9 @@ from boardgames.web.launcher import (
 from boardgames.web.layouts import game_layout
 from boardgames.web.stats import AgentDetail, Leaderboard, agent_detail, leaderboard
 from boardgames.web.store import (
+    AnyMatch,
     Catalog,
     MatchStore,
-    MatchSummary,
     ReadOnlyLogError,
     UnknownMatchError,
 )
@@ -136,7 +136,7 @@ class TimelineCache:
         ] = OrderedDict()
         return
 
-    def timeline(self, store: MatchStore, summary: MatchSummary) -> Timeline:
+    def timeline(self, store: MatchStore, summary: AnyMatch) -> Timeline:
         key = (summary.steps, summary.status, store.stamp(summary.match_id))
         cached = self._entries.get(summary.match_id)
         if cached is not None and cached[0] == key:
@@ -339,7 +339,7 @@ def list_matches(
 
 
 @api.get("/matches/{match_id}")
-def match_summary(request: Request, match_id: str) -> MatchSummary:
+def match_summary(request: Request, match_id: str) -> AnyMatch:
     return store_of(request).match(match_id)
 
 

@@ -3,7 +3,7 @@ import pytest
 from boardgames.agents import Agent
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.web.stats import agent_detail, leaderboard
-from boardgames.web.store import MatchSummary, summarize
+from boardgames.web.store import AnyMatch, summarize
 from tests.arena.support import ScriptedAgent
 from tests.web.support import CostlyAgent, play_records
 
@@ -13,7 +13,7 @@ DRAW = (["b2", "c1", "a2", "b1", "c3"], ["a1", "a3", "c2", "b3"])
 
 def scripted_match(
     match_id: str, x_moves: list[str], o_moves: list[str], o_is_bot: bool = False
-) -> MatchSummary:
+) -> AnyMatch:
     o_player: Agent = ScriptedAgent(o_moves)
     if not o_is_bot:
         o_player = CostlyAgent(o_player, "o-model", 0.0)
@@ -58,7 +58,7 @@ def test_bots_get_no_leaderboard_row() -> None:
 
 def named_match(
     match_id: str, first: str, second: str, moves: tuple[list[str], list[str]]
-) -> MatchSummary:
+) -> AnyMatch:
     agents: list[Agent] = [
         CostlyAgent(ScriptedAgent(moves[0]), first, 0.0),
         CostlyAgent(ScriptedAgent(moves[1]), second, 0.0),

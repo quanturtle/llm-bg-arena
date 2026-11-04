@@ -4,8 +4,11 @@ import pytest
 
 from boardgames.logs.schema import DecisionRecord, MatchFinished, MatchStarted
 from boardgames.web.store import (
+    FinishedMatch,
     MatchStore,
+    MatchSummary,
     ReadOnlyLogError,
+    RunningMatch,
     UnknownMatchError,
     summarize,
 )
@@ -41,6 +44,35 @@ def test_summary_reads_the_prompt_version_and_old_logs_are_version_0(
     ]
     versioned = [start.model_copy(update={"seats": seats}), *records[1:]]
     assert summarize(versioned).prompt_version == 1
+    return
+
+
+def test_summary_variants_carry_points_and_rank_only_when_finished(
+    tmp_path: Path,
+) -> None:
+    records = write_match(tmp_path, "m1", agents=costly_agents(2))
+    finished = summarize(records)
+    assert isinstance(finished, FinishedMatch)
+    assert finished.seats[0].points is not None
+    assert finished.seats[0].rank is not None
+    running = summarize(without_finish(records))
+    assert isinstance(running, RunningMatch)
+    assert running.seats[0].points is None
+    assert isinstance(
+        MatchSummary(
+            match_id="m",
+            game_id="tic_tac_toe",
+            config={},
+            seed=0,
+            started_at="t",
+            finished_at="t",
+            steps=0,
+            status="finished",
+            prompt_version=0,
+            seats=[],
+        ),
+        FinishedMatch,
+    )
     return
 
 

@@ -29,7 +29,7 @@ from boardgames.logs.schema import (
     TraceRecord,
     plain_object,
 )
-from boardgames.web.store import MatchSummary, summarize
+from boardgames.web.store import AnyMatch, summarize
 
 ERROR_TEXT_LIMIT = 240
 
@@ -88,7 +88,7 @@ class Timeline(View):
     """Frames up to the last step that replays; `replay_error` says why it stopped
     early when the log no longer matches the current game rules."""
 
-    match: MatchSummary
+    match: AnyMatch
     frames: list[Frame]
     replay_error: str | None = None
 
@@ -108,7 +108,7 @@ class MoveView(View):
 class Outline(View):
     """The light part of a timeline: every move, event and score, but no boards."""
 
-    match: MatchSummary
+    match: AnyMatch
     frame_count: int
     moves: list[MoveView]
     events: list[EventRecord]

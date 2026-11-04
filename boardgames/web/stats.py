@@ -12,7 +12,12 @@ from dataclasses import dataclass, field
 
 from pydantic import BaseModel, ConfigDict
 
-from boardgames.web.store import MatchSummary, SeatSummary, add_cost
+from boardgames.web.store import (
+    AnyMatch,
+    FinishedMatch,
+    FinishedSeatSummary,
+    add_cost,
+)
 
 ELO_START = 1000.0
 ELO_K = 32.0
@@ -99,7 +104,7 @@ class Tally:
     completion_tokens: int = 0
     cost_usd: float | None = 0.0
 
-    def add(self, seat: SeatSummary, won_outright: bool) -> None:
+    def add(self, seat: FinishedSeatSummary, won_outright: bool) -> None:
         self.kind = seat.kind
         self.matches += 1
         if seat.model is not None:
@@ -128,7 +133,7 @@ class Ratings:
     def rating(self, agent: str) -> float:
         return self.values.get(agent, ELO_START)
 
-    def update(self, match: MatchSummary) -> None:
+    def update(self, match: FinishedMatch) -> None:
         """Each pair of model seats plays one Elo game; a seat's change is the mean."""
         seats = model_seats(match)
         if len(seats) < 2:
@@ -147,22 +152,21 @@ class Ratings:
         return
 
 
-def score_against(seat: SeatSummary, other: SeatSummary) -> float:
+def score_against(seat: FinishedSeatSummary, other: FinishedSeatSummary) -> float:
     """1 when `seat` finished ahead of `other`, 0.5 level, 0 behind."""
-    assert seat.rank is not None and other.rank is not None
     if seat.rank < other.rank:
         return 1.0
     return 0.5 if seat.rank == other.rank else 0.0
 
 
-def model_seats(match: MatchSummary) -> list[SeatSummary]:
+def model_seats(match: FinishedMatch) -> list[FinishedSeatSummary]:
     """The language model seats of a match; bots are left out of statistics."""
     return [seat for seat in match.seats if seat.kind == "llm"]
 
 
-def finished_in_order(matches: Iterable[MatchSummary]) -> list[MatchSummary]:
+def finished_in_order(matches: Iterable[AnyMatch]) -> list[FinishedMatch]:
     """Finished matches, oldest first, the order ratings are built in."""
-    finished = [m for m in matches if m.is_finished]
+    finished = [m for m in matches if isinstance(m, FinishedMatch)]
     return sorted(finished, key=lambda m: (m.started_at, m.match_id))
 
 
@@ -206,7 +210,7 @@ def stats_row(
 
 
 def leaderboard(
-    matches: Sequence[MatchSummary],
+    matches: Sequence[AnyMatch],
     game_id: str | None,
     prompt_version: int | None = None,
 ) -> Leaderboard:
@@ -249,7 +253,7 @@ def leaderboard(
     )
 
 
-def head_to_head(matches: Sequence[MatchSummary], agent: str) -> list[HeadToHead]:
+def head_to_head(matches: Sequence[AnyMatch], agent: str) -> list[HeadToHead]:
     """Finished matches of `agent` against each other agent, most played first."""
     records: dict[str, dict[str, int]] = {}
     for match in finished_in_order(matches):
@@ -278,7 +282,7 @@ def head_to_head(matches: Sequence[MatchSummary], agent: str) -> list[HeadToHead
     return rows
 
 
-def agent_detail(matches: Sequence[MatchSummary], agent: str) -> AgentDetail:
+def agent_detail(matches: Sequence[AnyMatch], agent: str) -> AgentDetail:
     """The agent's overall row, one row per game it played, and head-to-head records."""
     played = [m for m in matches if any(seat.agent == agent for seat in m.seats)]
     game_ids = sorted({m.game_id for m in played})

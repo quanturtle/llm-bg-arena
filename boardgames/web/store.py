@@ -4,11 +4,12 @@ The store is the viewer's repository. It rereads a log only when its size or
 modification time changed, so a running match shows up as it is written.
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic import JsonValue as PlainJson
 
 from boardgames.core import ArenaError
@@ -63,7 +64,20 @@ class SeatSummary(Summary):
     cost_usd: float | None
 
 
+class FinishedSeatSummary(SeatSummary):
+    """A finished match's seat, whose points and rank are always known."""
+
+    points: float
+    rank: int
+
+
 class MatchSummary(Summary):
+    """The common fields of a match, and a factory for the right status variant.
+
+    Use `FinishedMatch` when points and ranks must be present; a running or
+    stopped match keeps them optional.
+    """
+
     match_id: str
     game_id: str
     config: dict[str, PlainJson]
@@ -74,7 +88,23 @@ class MatchSummary(Summary):
     status: MatchStatus
     # the prompt templates its model seats used; 0 for logs from before versioning
     prompt_version: int
-    seats: list[SeatSummary]
+    seats: Sequence[SeatSummary]
+
+    def __new__(cls, **data: Any) -> Any:
+        """Construct the variant that fits `status` when called as `MatchSummary`."""
+        if cls is MatchSummary:
+            status = data.get("status")
+            variants: dict[
+                str, type[FinishedMatch] | type[RunningMatch] | type[StoppedMatch]
+            ] = {
+                "finished": FinishedMatch,
+                "running": RunningMatch,
+                "stopped": StoppedMatch,
+            }
+            variant = variants.get(status) if isinstance(status, str) else None
+            if variant is not None:
+                return object.__new__(variant)
+        return object.__new__(cls)
 
     @property
     def is_finished(self) -> bool:
@@ -85,6 +115,46 @@ class MatchSummary(Summary):
         return [seat.player for seat in self.seats if seat.rank == 1]
 
 
+class FinishedMatch(MatchSummary):
+    status: Literal["finished"] = "finished"
+    finished_at: str
+    seats: Sequence[FinishedSeatSummary]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _finished_seats(cls, data: Any) -> Any:
+        """Accept plain seats built by callers, as long as they have a result."""
+        if not isinstance(data, dict):
+            return data
+        seats = data.get("seats")
+        if not isinstance(seats, Sequence) or isinstance(seats, str):
+            return data
+        return {
+            **data,
+            "seats": [
+                seat.model_dump()
+                if isinstance(seat, SeatSummary)
+                and not isinstance(seat, FinishedSeatSummary)
+                else seat
+                for seat in seats
+            ],
+        }
+
+
+class RunningMatch(MatchSummary):
+    status: Literal["running"] = "running"
+    finished_at: None = None
+
+
+class StoppedMatch(MatchSummary):
+    status: Literal["stopped"] = "stopped"
+    finished_at: str
+
+
+type AnyMatch = FinishedMatch | RunningMatch | StoppedMatch
+MATCH_SUMMARIES = (FinishedMatch, RunningMatch, StoppedMatch)
+
+
 class UnreadableLog(Summary):
     path: str
     error: str
@@ -93,7 +163,7 @@ class UnreadableLog(Summary):
 class Catalog(Summary):
     """Every match in the store, newest first, and the logs that could not be read."""
 
-    matches: list[MatchSummary]
+    matches: list[AnyMatch]
     unreadable: list[UnreadableLog]
 
 
@@ -155,7 +225,19 @@ def seat_summary(
     )
 
 
-def summarize(records: list[LogRecord]) -> MatchSummary:
+def finished_seat_summary(
+    start: MatchStarted,
+    player: int,
+    answers: list[Answer],
+    finish: MatchFinished,
+) -> FinishedSeatSummary:
+    """A finished match's seat, with the points and rank its finish recorded."""
+    return FinishedSeatSummary(
+        **seat_summary(start, player, answers, finish).model_dump()
+    )
+
+
+def summarize(records: list[LogRecord]) -> AnyMatch:
     """Summary of one log; a log with neither match_finished nor match_stopped runs.
 
     A stopped match has no points or ranks and `finished_at` is when it stopped.
@@ -169,22 +251,33 @@ def summarize(records: list[LogRecord]) -> MatchSummary:
         if isinstance(record, DecisionRecord | ForfeitRecord):
             answers[record.player].append(record)
             steps = max(steps, record.step)
+    common: dict[str, Any] = {
+        "match_id": start.match_id,
+        "game_id": start.game_id,
+        "config": start.config,
+        "seed": start.seed,
+        "started_at": start.started_at,
+        "prompt_version": prompt_version_of(start),
+    }
+    players = sorted(answers)
+    if finish is not None:
+        return FinishedMatch(
+            **common,
+            finished_at=finish.finished_at,
+            steps=finish.steps,
+            seats=[
+                finished_seat_summary(start, player, answers[player], finish)
+                for player in players
+            ],
+        )
     seats = [
-        seat_summary(start, player, answers[player], finish)
-        for player in sorted(answers)
+        seat_summary(start, player, answers[player], None) for player in players
     ]
-    return MatchSummary(
-        match_id=start.match_id,
-        game_id=start.game_id,
-        config=start.config,
-        seed=start.seed,
-        started_at=start.started_at,
-        finished_at=ended_at(finish, stop),
-        steps=finish.steps if finish is not None else steps,
-        status=match_status(finish, stop),
-        prompt_version=prompt_version_of(start),
-        seats=seats,
-    )
+    if stop is not None:
+        return StoppedMatch(
+            **common, finished_at=stop.stopped_at, steps=steps, seats=seats
+        )
+    return RunningMatch(**common, steps=steps, seats=seats)
 
 
 def prompt_version_of(start: MatchStarted) -> int:
@@ -210,7 +303,7 @@ def match_status(
 
 
 type FileStamp = tuple[int, int]
-type Indexed = MatchSummary | UnreadableLog
+type Indexed = AnyMatch | UnreadableLog
 
 
 def index_log(path: Path) -> Indexed:
@@ -252,12 +345,12 @@ class MatchStore:
         """Every match, newest first, plus the logs that failed to parse.
 
         Two logs of one match list once, from the first path found."""
-        matches: list[MatchSummary] = []
+        matches: list[AnyMatch] = []
         unreadable: list[UnreadableLog] = []
         listed: set[str] = set()
         for path in self._log_paths():
             indexed = self._indexed(path)
-            if isinstance(indexed, MatchSummary):
+            if isinstance(indexed, MATCH_SUMMARIES):
                 if indexed.match_id in listed:
                     continue
                 listed.add(indexed.match_id)
@@ -268,10 +361,10 @@ class MatchStore:
         matches.sort(key=lambda m: (m.started_at, m.match_id), reverse=True)
         return Catalog(matches=matches, unreadable=unreadable)
 
-    def match(self, match_id: str) -> MatchSummary:
+    def match(self, match_id: str) -> AnyMatch:
         """Summary of one match; unknown ids raise UnknownMatchError."""
         indexed = self._indexed(self._path_of(match_id))
-        if not isinstance(indexed, MatchSummary):
+        if not isinstance(indexed, MATCH_SUMMARIES):
             raise UnknownMatchError(f"log of match {match_id!r}: {indexed.error}")
         return indexed
 
@@ -325,7 +418,7 @@ class MatchStore:
             )
         for copy in copies:
             indexed = self._indexed(copy)
-            if not isinstance(indexed, MatchSummary) or indexed.match_id != match_id:
+            if not isinstance(indexed, MATCH_SUMMARIES) or indexed.match_id != match_id:
                 continue
             copy.unlink(missing_ok=True)
             thoughts_path(copy).unlink(missing_ok=True)
