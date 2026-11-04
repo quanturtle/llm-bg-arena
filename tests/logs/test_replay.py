@@ -190,13 +190,14 @@ def test_read_log_rejects_a_malformed_line(tmp_path: Path) -> None:
 
 
 def test_cli_replay_reports_a_match(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(cli, "chat_model_from_environment", FirstListedMove)
+    offline = cli.AppConfig(api_key=None, model=FirstListedMove())
     log = tmp_path / "match.jsonl"
     config = tmp_path / "match.yaml"
     config.write_text("game: tic_tac_toe\n", encoding="utf-8")
-    cli.run_command(cli.parse_arguments(["play", str(config), "--log", str(log)]))
-    cli.run_command(cli.parse_arguments(["replay", str(log)]))
+    play = cli.parse_arguments(["play", str(config), "--log", str(log)])
+    cli.run_command(play, offline)
+    cli.run_command(cli.parse_arguments(["replay", str(log)]), offline)
     assert "Replay matches the log: tic_tac_toe, 7 steps" in capsys.readouterr().out
     return

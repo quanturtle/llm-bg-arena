@@ -18,7 +18,8 @@ import sys
 import threading
 import time
 import webbrowser
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -68,7 +69,7 @@ class ServerState(Protocol):
 class AppConfig:
     """Process settings read once at startup, instead of inside each handler."""
 
-    api_key: str | None
+    api_key: str | None = field(repr=False)
     model: ChatModel | None = None
 
     def chat_model(self) -> ChatModel | None:
@@ -82,6 +83,11 @@ def load_environment() -> None:
     """Load the OpenRouter key from ./.env into the environment, if the file exists."""
     load_dotenv(ENV_FILE)
     return
+
+
+def config_from_environment(environ: Mapping[str, str]) -> AppConfig:
+    """Process settings from `environ`, read once at startup."""
+    return AppConfig(environ.get(API_KEY_VARIABLE) or None)
 
 
 def add_games_command(commands: Commands) -> None:
@@ -165,34 +171,15 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def list_games(
-    args: argparse.Namespace, config: AppConfig | None = None
-) -> None:
+def list_games(args: argparse.Namespace, config: AppConfig) -> None:
     """Print one registered game id per line."""
     for game_id in game_ids():
         print(game_id)
     return
 
 
-def config_from_environment() -> AppConfig:
-    """Process settings from the environment, read once at startup."""
-    return AppConfig(os.environ.get(API_KEY_VARIABLE) or None)
-
-
-def config_for_command() -> AppConfig:
-    """Settings for a handler called without startup config, keeping tests able
-    to replace the model factory."""
-    return AppConfig(api_key=None, model=chat_model_from_environment())
-
-
-def chat_model_from_environment() -> ChatModel | None:
-    """OpenRouter with the key `main` loads from .env, or None without a key."""
-    return config_from_environment().chat_model()
-
-
-def play(args: argparse.Namespace, config: AppConfig | None = None) -> None:
+def play(args: argparse.Namespace, config: AppConfig) -> None:
     """Play the match a config file describes, print it unless --quiet, log it."""
-    config = config or config_for_command()
     match_config = load_match_config(args.match)
     prepared = prepare_match(
         match_config,
@@ -210,9 +197,7 @@ def play(args: argparse.Namespace, config: AppConfig | None = None) -> None:
     return
 
 
-def check_replay(
-    args: argparse.Namespace, config: AppConfig | None = None
-) -> None:
+def check_replay(args: argparse.Namespace, config: AppConfig) -> None:
     """Replay a log and report whether it matches."""
     report = replay_match(read_log(args.log))
     stopped = (
@@ -271,9 +256,8 @@ def open_when_started(
     return
 
 
-def serve(args: argparse.Namespace, config: AppConfig | None = None) -> None:
+def serve(args: argparse.Namespace, config: AppConfig) -> None:
     """Serve the web viewer until interrupted; matches started there run in-process."""
-    config = config or config_for_command()
     game_ids()
     viewer = current_viewer(args.viewer)
     opened = () if args.log is None else (args.log,)
@@ -287,12 +271,10 @@ def serve(args: argparse.Namespace, config: AppConfig | None = None) -> None:
     return
 
 
-def run_command(
-    args: argparse.Namespace, config: AppConfig | None = None
-) -> None:
+def run_command(args: argparse.Namespace, config: AppConfig) -> None:
     """Run the chosen command; arena errors print a message and exit with status 1."""
     try:
-        args.handler(args, config or config_for_command())
+        args.handler(args, config)
     except ArenaError as error:
         print(f"error: {error}", file=sys.stderr)
         sys.exit(1)
@@ -301,7 +283,7 @@ def run_command(
 
 def main() -> None:
     load_environment()
-    config = config_from_environment()
+    config = config_from_environment(os.environ)
     args = parse_arguments(sys.argv[1:])
     run_command(args, config)
     return

@@ -18,12 +18,13 @@ from boardgames.llm.cache import DirectoryResponseStore
 from tests.arena.support import FakeClock
 from tests.llm.fakes import FirstListedMove
 
+NO_KEY = cli.AppConfig(api_key=None)
+
 
 @pytest.fixture
-def offline(monkeypatch: pytest.MonkeyPatch) -> None:
+def offline() -> cli.AppConfig:
     """Every seat plays the first listed move, without a key or network."""
-    monkeypatch.setattr(cli, "chat_model_from_environment", FirstListedMove)
-    return
+    return cli.AppConfig(api_key=None, model=FirstListedMove())
 
 
 def write_config(tmp_path: Path, text: str) -> Path:
@@ -32,21 +33,25 @@ def write_config(tmp_path: Path, text: str) -> Path:
     return path
 
 
-def error_lines(argv: list[str], capsys: pytest.CaptureFixture[str]) -> list[str]:
+def error_lines(
+    argv: list[str],
+    capsys: pytest.CaptureFixture[str],
+    config: cli.AppConfig = NO_KEY,
+) -> list[str]:
     """Standard error of a command that must exit with status 1."""
     with pytest.raises(SystemExit) as exit_info:
-        cli.run_command(cli.parse_arguments(argv))
+        cli.run_command(cli.parse_arguments(argv), config)
     assert exit_info.value.code == 1
     return capsys.readouterr().err.splitlines()
 
 
 def test_existing_log_path_is_one_error_line(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: None
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: cli.AppConfig
 ) -> None:
     log = tmp_path / "match.jsonl"
     log.write_text("kept\n", encoding="utf-8")
     config = write_config(tmp_path, f"game: tic_tac_toe\nlog: {log}\n")
-    assert error_lines(["play", str(config)], capsys) == [
+    assert error_lines(["play", str(config)], capsys, offline) == [
         f"error: {log} already exists; logs are never overwritten"
     ]
     assert log.read_text(encoding="utf-8") == "kept\n"
@@ -74,11 +79,11 @@ def test_config_that_is_not_utf8_is_one_error_line(
 
 
 def test_play_runs_the_configured_match_and_writes_its_log(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: None
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: cli.AppConfig
 ) -> None:
     log = tmp_path / "match.jsonl"
     config = write_config(tmp_path, f"game: tic_tac_toe\nseed: 3\nlog: {log}\n")
-    cli.run_command(cli.parse_arguments(["play", str(config)]))
+    cli.run_command(cli.parse_arguments(["play", str(config)]), offline)
     output = capsys.readouterr().out
     model = "qwen/qwen3.7-flash"
     assert f"tic_tac_toe (seed 3): P1 {model} #1, P2 {model} #2" in output
@@ -88,12 +93,13 @@ def test_play_runs_the_configured_match_and_writes_its_log(
 
 
 def test_seed_and_log_flags_override_the_file(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: None
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], offline: cli.AppConfig
 ) -> None:
     config = write_config(tmp_path, "game: tic_tac_toe\nseed: 3\n")
     log = tmp_path / "override.jsonl"
     cli.run_command(
-        cli.parse_arguments(["play", str(config), "--seed", "5", "--log", str(log)])
+        cli.parse_arguments(["play", str(config), "--seed", "5", "--log", str(log)]),
+        offline,
     )
     assert "tic_tac_toe (seed 5)" in capsys.readouterr().out
     assert log.exists()
@@ -105,7 +111,7 @@ def test_unknown_game_exits_with_status_1(
 ) -> None:
     config = write_config(tmp_path, "game: alien\n")
     with pytest.raises(SystemExit) as exit_info:
-        cli.run_command(cli.parse_arguments(["play", str(config)]))
+        cli.run_command(cli.parse_arguments(["play", str(config)]), NO_KEY)
     assert exit_info.value.code == 1
     assert "unknown game 'alien'" in capsys.readouterr().err
     return
@@ -170,9 +176,8 @@ def test_seat_seed_sets_only_the_model_seed_modulo_2_31() -> None:
 
 
 def test_reasoning_conflict_is_reported_before_the_key_check(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.delenv(API_KEY_VARIABLE, raising=False)
     config = write_config(
         tmp_path,
         "game: tic_tac_toe\nseats:\n"
@@ -189,14 +194,13 @@ def test_reasoning_conflict_is_reported_before_the_key_check(
 def test_llm_seat_without_a_key_exits_with_status_1(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.delenv(API_KEY_VARIABLE, raising=False)
     monkeypatch.chdir(tmp_path)
     config = write_config(
         tmp_path,
         "game: tic_tac_toe\nseats:\n  - {model: openai/gpt-x}\n  - {}\n",
     )
     with pytest.raises(SystemExit) as exit_info:
-        cli.run_command(cli.parse_arguments(["play", str(config)]))
+        cli.run_command(cli.parse_arguments(["play", str(config)]), NO_KEY)
     assert exit_info.value.code == 1
     assert "set OPENROUTER_API_KEY" in capsys.readouterr().err
     assert not (tmp_path / cli.DEFAULT_LOG_DIR).exists()
@@ -218,19 +222,16 @@ def test_browser_waits_for_our_server_not_any_listener(
     return
 
 
-def test_the_api_key_is_read_once_into_a_typed_config(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv(API_KEY_VARIABLE, "secret")
-    config = cli.config_from_environment()
-    monkeypatch.delenv(API_KEY_VARIABLE)
+def test_the_api_key_is_read_once_into_a_config_that_hides_it() -> None:
+    config = cli.config_from_environment({API_KEY_VARIABLE: "secret"})
     assert config.api_key == "secret"
     assert config.chat_model() is not None
+    assert "secret" not in repr(config)
     return
 
 
 def test_games_lists_registered_ids(capsys: pytest.CaptureFixture[str]) -> None:
-    cli.run_command(cli.parse_arguments(["games"]))
+    cli.run_command(cli.parse_arguments(["games"]), NO_KEY)
     assert capsys.readouterr().out.split() == [
         "catan",
         "puerto_rico",
