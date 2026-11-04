@@ -1,6 +1,7 @@
 """Text notation for Catan actions: one canonical form, strict parsing."""
 
 import re
+from typing import cast
 
 from boardgames.core import NotationError, PlayerId, seat_label
 from boardgames.games.catan.model import (
@@ -21,6 +22,7 @@ from boardgames.games.catan.model import (
     PlayMonopoly,
     PlayRoadBuilding,
     PlayYearOfPlenty,
+    Resource,
     Roll,
 )
 
@@ -120,11 +122,15 @@ def parse_action(text: str) -> Action:
     if match := CITY_PATTERN.fullmatch(text):
         return BuildCity(int(match.group(1)))
     if match := BANK_PATTERN.fullmatch(text):
-        return BankTrade(match.group(2), int(match.group(1)), match.group(3))  # type: ignore[arg-type]
+        return BankTrade(
+            cast(Resource, match.group(2)),
+            int(match.group(1)),
+            cast(Resource, match.group(3)),
+        )
     if match := OFFER_PATTERN.fullmatch(text):
         return OfferTrade(
-            match.group(1),  # type: ignore[arg-type]
-            match.group(2),  # type: ignore[arg-type]
+            cast(Resource, match.group(1)),
+            cast(Resource, match.group(2)),
             PlayerId(int(match.group(3)) - 1),
         )
     if match := ROBBER_PATTERN.fullmatch(text):
@@ -133,13 +139,13 @@ def parse_action(text: str) -> Action:
         return PlayKnight(int(match.group(1)), player_or_none(match.group(2)))
     if match := YEAR_PATTERN.fullmatch(text):
         return PlayYearOfPlenty(
-            match.group(1),  # type: ignore[arg-type]
-            match.group(2),  # type: ignore[arg-type]
+            cast(Resource, match.group(1)),
+            cast(Resource, match.group(2)),
         )
     if match := MONOPOLY_PATTERN.fullmatch(text):
-        return PlayMonopoly(match.group(1))  # type: ignore[arg-type]
+        return PlayMonopoly(cast(Resource, match.group(1)))
     if match := DISCARD_PATTERN.fullmatch(text):
-        return Discard(match.group(1))  # type: ignore[arg-type]
+        return Discard(cast(Resource, match.group(1)))
     raise NotationError(f"{text!r} is not a Catan action")
 
 
