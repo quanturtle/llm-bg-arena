@@ -6,6 +6,7 @@ from typing import Literal, NewType, cast
 from boardgames.core import PlayerId, Rng
 
 type Resource = Literal["wood", "brick", "sheep", "wheat", "ore"]
+type Terrain = Literal["forest", "pasture", "fields", "hills", "mountains", "desert"]
 type DevCard = Literal[
     "knight", "road_building", "year_of_plenty", "monopoly", "victory_point"
 ]
@@ -44,15 +45,7 @@ DEV_DECK_COUNTS: tuple[DevCard, ...] = (
     + ("victory_point",) * 5
 )
 
-TERRAIN_NAMES: tuple[str, ...] = (
-    "forest",
-    "pasture",
-    "fields",
-    "hills",
-    "mountains",
-    "desert",
-)
-TERRAIN_RESOURCE: dict[str, Resource | None] = {
+TERRAIN_RESOURCE: dict[Terrain, Resource | None] = {
     "forest": "wood",
     "pasture": "sheep",
     "fields": "wheat",
@@ -60,13 +53,26 @@ TERRAIN_RESOURCE: dict[str, Resource | None] = {
     "mountains": "ore",
     "desert": None,
 }
-TERRAIN_DECK: tuple[str, ...] = (
-    *("forest" for _ in range(4)),
-    *("pasture" for _ in range(4)),
-    *("fields" for _ in range(4)),
-    *("hills" for _ in range(3)),
-    *("mountains" for _ in range(3)),
-    *("desert" for _ in range(1)),
+TERRAIN_DECK: tuple[Terrain, ...] = (
+    "forest",
+    "forest",
+    "forest",
+    "forest",
+    "pasture",
+    "pasture",
+    "pasture",
+    "pasture",
+    "fields",
+    "fields",
+    "fields",
+    "fields",
+    "hills",
+    "hills",
+    "hills",
+    "mountains",
+    "mountains",
+    "mountains",
+    "desert",
 )
 NUMBER_TOKENS: tuple[int, ...] = (
     2,
@@ -255,7 +261,7 @@ type Action = (
 class Hex:
     """One board hex: its terrain and number token (None on the desert)."""
 
-    terrain: str
+    terrain: Terrain
     number: int | None
 
 

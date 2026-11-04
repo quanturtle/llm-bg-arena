@@ -29,6 +29,7 @@ from boardgames.games.catan.model import (
     Port,
     Resource,
     Roll,
+    Terrain,
 )
 
 __all__ = [
@@ -60,4 +61,5 @@ __all__ = [
     "Port",
     "Resource",
     "Roll",
+    "Terrain",
 ]

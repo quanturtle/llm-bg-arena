@@ -81,6 +81,7 @@ from boardgames.games.catan.model import (
     Port,
     Resource,
     Roll,
+    Terrain,
     can_afford,
     dev_get,
     dev_with,
@@ -966,12 +967,9 @@ def check_config(config: CatanConfig) -> None:
 
 
 def place_number_tokens(
-    terrains: tuple[str, ...], rng: Rng
+    terrains: tuple[Terrain, ...], rng: Rng
 ) -> tuple[tuple[Hex, ...], Rng]:
-    """Deal number tokens onto the producing hexes, redrawing until no 6 or 8 touch.
-
-    Each rejected layout consumes the RNG, so the board stays a function of the seed.
-    """
+    """Deal number tokens, redrawing until no two red numbers are adjacent."""
     while True:
         numbers, rng = rng.shuffled(NUMBER_TOKENS)
         board_hexes = number_hexes(terrains, numbers)
@@ -980,7 +978,7 @@ def place_number_tokens(
 
 
 def number_hexes(
-    terrains: tuple[str, ...], numbers: tuple[int, ...]
+    terrains: tuple[Terrain, ...], numbers: tuple[int, ...]
 ) -> tuple[Hex, ...]:
     """Hexes with tokens dealt in hex order, skipping the desert."""
     tokens = iter(numbers)
@@ -1006,7 +1004,7 @@ def setup_order(config: CatanConfig) -> tuple[PlayerId, ...]:
     return (*forward, *reversed(forward))
 
 
-def decision_kind(phase: str) -> str:
+def decision_kind(phase: Phase) -> str:
     """Decision kind recorded in logs for a phase."""
     return {
         "setup_settlement": "setup_settlement",
