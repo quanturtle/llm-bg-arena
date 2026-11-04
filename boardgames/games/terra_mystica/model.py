@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from typing import Literal, cast
 
-from boardgames.core import PlayerId, Rng
+from boardgames.core import JsonValue, PlayerId, Rng
 from boardgames.games.terra_mystica.constants import (
     BASE_MAP_ROWS,
     CULT_ORDER,
@@ -16,6 +16,7 @@ from boardgames.games.terra_mystica.constants import (
     BuildingType,
     Cost,
     Cult,
+    CultBonus,
     CultPositions,
     FactionProfile,
     FactionType,

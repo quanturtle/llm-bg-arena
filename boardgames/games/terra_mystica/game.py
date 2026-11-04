@@ -83,6 +83,7 @@ from boardgames.games.terra_mystica.model import (
     can_pay,
     can_place_building,
     can_spend_power,
+    cult_bonus_json,
     cult_limit,
     gain_power,
     income_with_power,
@@ -201,7 +202,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 + ".",
                 {
                     "scoring": [tile.action.value for tile in scoring],
-                    "bonuses": [_bonus_json(tile.bonus) for tile in scoring],
+                    "bonuses": [cult_bonus_json(tile.bonus) for tile in scoring],
                 },
             ),
             Event(
@@ -916,7 +917,7 @@ def start_round(
             {
                 "round": round_number,
                 "scoring": tile.action.value,
-                "bonus": _bonus_json(tile.bonus),
+                "bonus": cult_bonus_json(tile.bonus),
             },
         )
     ]
@@ -1108,15 +1109,6 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
 
 def _round_tile(state: TerraMysticaState) -> ScoringTile:
     return state.scoring[state.round - 1]
-
-
-def _bonus_json(bonus: CultBonus) -> dict[str, JsonValue]:
-    return {
-        "cult": bonus.cult.value,
-        "per": bonus.per,
-        "reward": bonus.reward,
-        "amount": bonus.amount,
-    }
 
 
 def _bonus_text(bonus: CultBonus) -> str:

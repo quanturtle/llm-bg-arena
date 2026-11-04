@@ -23,6 +23,7 @@ from boardgames.games.terra_mystica.model import (
     TransformTerrain,
     UpgradeBuilding,
     UseCultSpade,
+    cult_bonus_json,
 )
 from boardgames.games.terra_mystica.scoring import final_scores
 
@@ -48,15 +49,7 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "active": state.active_player,
         "order": list(state.order),
         "scoring": scoring,
-        "scoring_bonuses": [
-            {
-                "cult": tile.bonus.cult.value,
-                "per": tile.bonus.per,
-                "reward": tile.bonus.reward,
-                "amount": tile.bonus.amount,
-            }
-            for tile in state.scoring
-        ],
+        "scoring_bonuses": [cult_bonus_json(tile.bonus) for tile in state.scoring],
         "cult_spades": list(state.cult_spades),
         "used_orders": [
             {"cult": cult.value, "order": order, "player": player}
