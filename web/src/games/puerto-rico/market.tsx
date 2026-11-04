@@ -69,7 +69,7 @@ export function ScoreTable({ observation, match }: { observation: PuertoRicoObse
               </TableCell>
               <TableCell className="text-right font-semibold tabular-nums">{final ? final.points : player.public_points}</TableCell>
               <TableCell className="text-right tabular-nums">{final ? final.vp_chips : hidden}</TableCell>
-              <TableCell className="text-right tabular-nums">{final ? (final.breakdown.buildings ?? 0) : player.public_points}</TableCell>
+              <TableCell className="text-right tabular-nums">{final ? (final.breakdown.buildings ?? 0) : player.building_points}</TableCell>
               <TableCell className="text-right tabular-nums">{final ? (final.breakdown.bonus ?? 0) : hidden}</TableCell>
               <TableCell className="text-right tabular-nums">{player.doubloons}</TableCell>
             </TableRow>

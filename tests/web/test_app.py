@@ -183,7 +183,8 @@ def test_puerto_rico_frames_expose_the_board_data(tmp_path: Path) -> None:
     observation = board["observation"]
     assert observation["roles"]
     assert observation["players"]
-    assert observation["public_points"]
+    assert "public_points" in observation["players"][0]
+    assert "building_points" in observation["players"][0]
     assert observation["cargo_ships"]
     assert observation["face_up"] is not None
     assert "phase" in observation

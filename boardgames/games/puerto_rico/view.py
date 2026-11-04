@@ -48,7 +48,6 @@ def observe(state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
     """What `viewer` may see: public board plus their own VP chips."""
     players = seats(state.config.num_players)
     is_over = state.phase == "game_over"
-    shown_points = [public_points(state.players[player]) for player in players]
     data: dict[str, JsonValue] = {
         "round": state.round,
         "phase": state.phase,
@@ -82,7 +81,6 @@ def observe(state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
         "available_buildings": list(state.available_buildings),
         "quarry_supply": state.quarry_supply,
         "goods_supply": goods_json_map(state.goods_supply),
-        "public_points": shown_points,
         "players": [player_data(state, player, is_over) for player in players],
         "game_over": is_over,
         "winner": state.winner,
@@ -140,6 +138,7 @@ def player_data(
         "city_spaces_used": city_spaces_used(owner),
         "island_spaces_used": island_spaces_used(owner),
         "occupied_island_spaces": occupied_island_spaces(owner),
+        "building_points": building_points(owner),
         "public_points": public_points(owner),
     }
     if reveal:
@@ -255,7 +254,6 @@ def buildings_line(data: JsonObject) -> str:
 
 def player_lines(data: JsonObject) -> list[str]:
     lines: list[str] = []
-    public_points = _ints(data, "public_points")
     for player in _objects(data, "players"):
         seat = PlayerId(json_int(player, "seat"))
         goods = _object(player, "goods")
@@ -270,7 +268,7 @@ def player_lines(data: JsonObject) -> list[str]:
             f"{json_str(item, 'name')}({json_int(item, 'colonists')})"
             for item in _objects(player, "buildings")
         ]
-        public_vp = public_points[int(seat)] if int(seat) < len(public_points) else 0
+        public_vp = json_int(player, "public_points")
         lines.append(
             f"{seat_label(seat)}: {json_int(player, 'doubloons')}d, "
             f"goods [{goods_text or 'none'}], "
@@ -310,13 +308,6 @@ def _objects(data: JsonObject, key: str) -> list[JsonObject]:
 def _object(data: JsonObject, key: str) -> JsonObject:
     value = data.get(key)
     return value if isinstance(value, dict) else {}
-
-
-def _ints(data: JsonObject, key: str) -> list[int]:
-    value = data.get(key)
-    if not isinstance(value, list):
-        return []
-    return [item for item in value if isinstance(item, int)]
 
 
 def describe_action(observation: Observation, action: Action) -> str:

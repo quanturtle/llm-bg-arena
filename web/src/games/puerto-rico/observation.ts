@@ -34,6 +34,7 @@ const playerSchema = z.object({
   colonists_unplaced: z.number(),
   city_spaces_used: z.number(),
   island_spaces_used: z.number(),
+  building_points: z.number(),
   public_points: z.number(),
 });
 export type PuertoRicoPlayer = z.infer<typeof playerSchema>;
