@@ -197,6 +197,7 @@ async def play_rounds[S, A, C: GameConfig](
             await control.wait_until_resumed()
             progress, forfeited = await play_round(context, progress)
     except BaseException as error:
+        progress = getattr(error, "round_progress", progress)
         record_failed_decision(context, error, progress)
         stopped = MatchStopped(steps=progress.step, stopped_at=context.clock.now_iso())
         context.sink.write(stopped)
@@ -213,22 +214,47 @@ async def play_round[S, A, C: GameConfig](
         raise GameStuckError(f"no open decision at step {progress.step}")
     requests = [request_for(context, progress, decision) for decision in decisions]
     progress = mark_seen(progress, decisions)
-    answers = await asyncio.gather(
-        *(
-            timed_decide(context.agents[decision.player], request, context.clock)
-            for decision, request in zip(decisions, requests, strict=True)
-        )
-    )
     observed_at = progress.step
+    try:
+        answers = await decide_together(context, decisions, requests)
+    except BaseException as error:
+        error.round_progress = progress
+        error.decision_observed_at = observed_at
+        raise
     forfeited: list[PlayerId] = []
     for request, (choice, latency) in zip(requests, answers, strict=True):
         answer = Answer(request, observed_at, latency)
-        if isinstance(choice, Forfeited):
-            record_forfeit(context, progress, answer, choice)
-            forfeited.append(request.decision.player)
-        else:
-            progress = apply_choice(context, progress, answer, choice)
+        try:
+            if isinstance(choice, Forfeited):
+                record_forfeit(context, progress, answer, choice)
+                forfeited.append(request.decision.player)
+            else:
+                progress = apply_choice(context, progress, answer, choice)
+        except BaseException as error:
+            error.round_progress = progress
+            raise
     return progress, tuple(forfeited)
+
+
+async def decide_together[S, A, C: GameConfig](
+    context: MatchContext[S, A, C],
+    decisions: Sequence[Decision],
+    requests: Sequence[DecisionRequest[A]],
+) -> list[tuple[AgentChoice[A], float]]:
+    """Ask every open decision at once; when one fails, cancel the rest."""
+    tasks = [
+        asyncio.ensure_future(
+            timed_decide(context.agents[decision.player], request, context.clock)
+        )
+        for decision, request in zip(decisions, requests, strict=True)
+    ]
+    try:
+        return await asyncio.gather(*tasks)
+    except BaseException:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
 
 
 def request_for[S, A, C: GameConfig](

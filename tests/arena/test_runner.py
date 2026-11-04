@@ -1,21 +1,37 @@
 import asyncio
 import json
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from boardgames.agents import Agent, AgentChoice, DecisionRequest
+from boardgames.agents import (
+    Agent,
+    AgentChoice,
+    Chosen,
+    DecisionRequest,
+    DecisionTrace,
+)
 from boardgames.arena.control import PauseGate
 from boardgames.arena.runner import (
     DEFAULT_LIMITS,
     AgentContractError,
+    MatchContext,
     MatchLimits,
     MatchResult,
     StepLimitError,
+    decide_together,
     play_match,
 )
-from boardgames.core import AnyGame, ConfigError, GameConfig, JsonValue, PlayerId
+from boardgames.core import (
+    AnyGame,
+    ConfigError,
+    Decision,
+    GameConfig,
+    JsonValue,
+    PlayerId,
+)
 from boardgames.games.catan import Catan, CatanConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.llm.model import ModelUnavailableError
@@ -38,6 +54,7 @@ from tests.arena.support import (
     ScriptedAgent,
     random_agents,
 )
+from tests.llm.requests import tic_tac_toe_request
 
 P1, P2 = PlayerId(0), PlayerId(1)
 
@@ -167,6 +184,58 @@ class UnavailableAgent:
 
     async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
         raise ModelUnavailableError("down failed 6 times")
+
+
+class SlowAgent:
+    """A decision that takes long enough for a sibling's failure to cancel it."""
+
+    def __init__(self) -> None:
+        self.finished = 0
+        return
+
+    @property
+    def name(self) -> str:
+        return "slow"
+
+    def settings(self) -> dict[str, JsonValue]:
+        return {"kind": "llm"}
+
+    async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
+        await asyncio.sleep(0.2)
+        self.finished += 1
+        return Chosen(request.action_text.parse_action("a1"), DecisionTrace())
+
+
+def test_one_failing_simultaneous_decision_cancels_the_other() -> None:
+    slow = SlowAgent()
+    base = tic_tac_toe_request([])
+    requests = [
+        base,
+        replace(
+            base,
+            decision=Decision(PlayerId(1), base.decision.kind, base.decision.prompt),
+        ),
+    ]
+    decisions = [request.decision for request in requests]
+    context = MatchContext(
+        TicTacToe(),
+        (slow, UnavailableAgent()),
+        MemorySink(),
+        FakeClock(),
+        "",
+        DEFAULT_LIMITS,
+    )
+
+    async def fail_together() -> None:
+        with pytest.raises(ModelUnavailableError, match="down failed"):
+            await decide_together(context, decisions, requests)
+        assert slow.finished == 0
+        await asyncio.sleep(0.3)
+        assert slow.finished == 0
+        return
+
+    asyncio.run(fail_together())
+    return
 
 
 def test_a_failed_match_logs_its_stop_and_raises() -> None:
