@@ -41,7 +41,8 @@ Each round has an income phase, an action phase and cleanup.
   stronghold; temple to sanctuary. A trading house costs less when an opponent's
   structure is directly adjacent.
 - **Advance shipping** for 1 priest and 4 coins, gaining 2/3/4 points on the
-  standard track. Shipping is not available to the Dwarves or Fakirs.
+  standard track. Mermaids have a longer track: they begin one step ahead and
+  earn 2/3/4/5. Shipping is not available to the Dwarves or Fakirs.
 - **Advance digging** for the faction's digging cost. Darklings cannot dig and
   Fakirs stop after one step.
 - **Send a priest** to an unused order space of a cult to advance 3 or 2 spaces.

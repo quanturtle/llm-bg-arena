@@ -533,9 +533,19 @@ def shipping_cost() -> Cost:
     return Cost(priests=1, coins=4)
 
 
-def shipping_points(level: int) -> int:
-    """Victory points printed on the shipping space reached (2, 3, 4, ...)."""
-    return level + 1
+def shipping_points(level: int, shipping_start: int) -> int:
+    """Victory points on the reached space: 2, 3, 4, ... from the faction's start."""
+    return level - shipping_start + 1
+
+
+def cult_bonus_json(bonus: CultBonus) -> dict[str, JsonValue]:
+    """The observation shape of one round tile's cult bonus."""
+    return {
+        "cult": bonus.cult.value,
+        "per": bonus.per,
+        "reward": bonus.reward,
+        "amount": bonus.amount,
+    }
 
 
 def cult_gain_power(old: int, new: int) -> int:

@@ -641,7 +641,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             owner,
             resources=pay(owner.resources, cost),
             shipping=owner.shipping + 1,
-            victory_points=owner.victory_points + shipping_points(owner.shipping + 1),
+            victory_points=owner.victory_points
+            + shipping_points(owner.shipping + 1, owner.profile.shipping_start),
         )
         state = replace_player(state, player, owner)
         event = Event(
