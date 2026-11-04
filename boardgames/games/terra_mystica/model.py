@@ -568,7 +568,7 @@ def advance_cult(
 ) -> tuple[PlayerState, int]:
     """Advance a cult, spending a key to enter space 10; return power gained."""
     current = player.cult(cult)
-    limit = 10 if player.keys > 0 and not top_occupied else 9
+    limit = cult_limit(player, top_occupied)
     new = min(current + steps, limit)
     keys = player.keys
     if new == 10 and current < 10:
