@@ -16,6 +16,7 @@ from boardgames.games.catan.model import (
     CatanState,
     Hand,
     Resource,
+    building_counts,
     empty_hand,
     hand_total,
     hand_with,
@@ -59,14 +60,8 @@ def settlement_connected(state: CatanState, vertex: int, player: PlayerId) -> bo
 
 def settlement_pieces_available(state: CatanState, player: PlayerId) -> bool:
     """Whether the player has an unused settlement piece."""
-    used = sum(
-        1
-        for building in state.buildings
-        if building is not None
-        and building.player == player
-        and building.kind == "settlement"
-    )
-    return used < MAX_SETTLEMENTS
+    settlements, _ = building_counts(state, player)
+    return settlements < MAX_SETTLEMENTS
 
 
 def city_legal(state: CatanState, vertex: int, player: PlayerId) -> bool:
@@ -79,16 +74,8 @@ def city_legal(state: CatanState, vertex: int, player: PlayerId) -> bool:
 
 def city_pieces_available(state: CatanState, player: PlayerId) -> bool:
     """Whether the player has an unused city piece."""
-    return (
-        sum(
-            1
-            for building in state.buildings
-            if building is not None
-            and building.player == player
-            and building.kind == "city"
-        )
-        < MAX_CITIES
-    )
+    _, cities = building_counts(state, player)
+    return cities < MAX_CITIES
 
 
 def setup_road_legal(state: CatanState, edge: int, anchor: int) -> bool:
@@ -138,9 +125,7 @@ def road_pieces_available(state: CatanState, player: PlayerId) -> bool:
 def legal_free_road_edges(state: CatanState, player: PlayerId) -> tuple[int, ...]:
     """Empty paths a free road from Road Building could use."""
     return tuple(
-        edge
-        for edge in range(len(state.roads))
-        if state.roads[edge] is None and road_legal(state, edge, player)
+        edge for edge in range(len(state.roads)) if road_legal(state, edge, player)
     )
 
 
