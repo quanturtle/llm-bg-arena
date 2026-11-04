@@ -28,7 +28,6 @@ PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
 ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
 POWER_PATTERN = re.compile(r"power (priest|workers|coins)")
 CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}")
-SKIP_CULT_SPADE_PATTERN = re.compile(r"skip spade")
 
 BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingType)
 CULTS: frozenset[str] = frozenset(cult.value for cult in Cult)
