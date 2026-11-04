@@ -1012,11 +1012,13 @@ def decision_prompt(state: CatanState) -> str:
 
 
 def default_action(state: CatanState, actions: list[Action]) -> Action | None:
-    """The safe action listed for this phase, if any."""
-    if state.phase in ("roll", "actions"):
-        return actions[0] if actions else None
+    """The safe action for this phase, if any."""
+    if state.phase == "roll":
+        return Roll()
+    if state.phase == "actions":
+        return EndTurn()
     if state.phase == "trade_response":
-        return actions[-1] if actions else None
+        return DeclineOffer()
     return None
 
 
