@@ -1634,6 +1634,11 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
                 return f"No {action.good} plantation is face up."
             if island_spaces_used(owner) >= MAX_ISLAND_SPACES:
                 return "Your island is full."
+            if not action.use_hospice:
+                if not owner.active("hospice"):
+                    return "You have no active Hospice."
+                if not can_take_colonist(state):
+                    return "There is no colonist available to place."
         if isinstance(action, TakeQuarry):
             if island_spaces_used(owner) >= MAX_ISLAND_SPACES:
                 return "Your island is full."
@@ -1644,6 +1649,11 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
                     "You may take a quarry only with the Settler privilege "
                     "or a Construction Hut."
                 )
+            if not action.use_hospice:
+                if not owner.active("hospice"):
+                    return "You have no active Hospice."
+                if not can_take_colonist(state):
+                    return "There is no colonist available to place."
         if isinstance(action, UseHacienda):
             if not owner.active("hacienda"):
                 return "You have no active Hacienda."
@@ -1661,10 +1671,16 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
             return "That colonist placement is not available now."
         return "Place or move a colonist, or finish."
     if phase == "builder_action":
+        owner = state.players[player]
         if isinstance(action, Build) and action.building not in available_to_build(
             state, player
         ):
             return "You cannot afford that building or have no room."
+        if isinstance(action, Build) and not action.use_university:
+            if not owner.active("university"):
+                return "You have no active University."
+            if not can_take_colonist(state):
+                return "There is no colonist available to place."
         return "Build an available building or pass."
     if phase == "craftsman_action":
         if isinstance(action, ProducePrivilege):

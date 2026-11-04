@@ -1332,6 +1332,44 @@ def test_university_colonist_is_optional() -> None:
     assert state.players[player].buildings[-1].colonists == 0
 
 
+def test_declining_a_missing_hospice_or_university_is_explained() -> None:
+    state = start(seed=3)
+    state = select_role(state, "settler")
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    assert (
+        space.explain(TakePlantation(state.face_up[0], use_hospice=False))
+        == "You have no active Hospice."
+    )
+    state = start(seed=6)
+    state = select_role(state, "builder")
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    assert (
+        space.explain(Build("small_indigo_plant", use_university=False))
+        == "You have no active University."
+    )
+
+
+def test_declining_a_bonus_colonist_with_none_left_is_explained() -> None:
+    state = start(seed=3)
+    player = state.order[0]
+    state = with_buildings(
+        state,
+        player,
+        OwnedBuilding("hospice", 1),
+        OwnedBuilding("university", 1),
+    )
+    state = replace(state, colonist_supply=0, colonist_ship=0)
+    state = select_role(state, "settler")
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    assert (
+        space.explain(TakePlantation(state.face_up[0], use_hospice=False))
+        == "There is no colonist available to place."
+    )
+
+
 def test_hospice_and_university_use_the_ship_when_the_supply_is_empty() -> None:
     state = start(seed=3)
     player = state.order[0]
