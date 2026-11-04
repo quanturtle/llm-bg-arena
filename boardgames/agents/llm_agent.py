@@ -261,7 +261,9 @@ class LlmAgent:
     ) -> None:
         """Keep what earlier calls cost on the exception, for the runner's log."""
         if attempts:
-            error.decision_trace = decision_trace(attempts, None, self._memory, None)
+            error.__dict__["decision_trace"] = decision_trace(
+                attempts, None, self._memory, None
+            )
         return
 
     def _remember(self, reply: ParsedReply | None) -> None:

@@ -1,3 +1,4 @@
+import webbrowser
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -184,7 +185,7 @@ def test_browser_waits_for_our_server_not_any_listener(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     opened: list[str] = []
-    monkeypatch.setattr(cli.webbrowser, "open", opened.append)
+    monkeypatch.setattr(webbrowser, "open", opened.append)
     other_server = SimpleNamespace(started=False, should_exit=True)
     cli.open_when_started("http://127.0.0.1:8765/match/", other_server, 0.1)
     assert opened == []

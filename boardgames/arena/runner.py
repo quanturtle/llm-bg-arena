@@ -218,8 +218,8 @@ async def play_round[S, A, C: GameConfig](
     try:
         answers = await decide_together(context, decisions, requests)
     except BaseException as error:
-        error.round_progress = progress
-        error.decision_observed_at = observed_at
+        error.__dict__["round_progress"] = progress
+        error.__dict__["decision_observed_at"] = observed_at
         raise
     forfeited: list[PlayerId] = []
     for request, (choice, latency) in zip(requests, answers, strict=True):
@@ -231,7 +231,7 @@ async def play_round[S, A, C: GameConfig](
             else:
                 progress = apply_choice(context, progress, answer, choice)
         except BaseException as error:
-            error.round_progress = progress
+            error.__dict__["round_progress"] = progress
             raise
     return progress, tuple(forfeited)
 
@@ -294,16 +294,16 @@ async def timed_decide[A](
     try:
         choice = await agent.decide(request)
     except BaseException as error:
-        error.decision_request = request
-        error.decision_latency = clock.monotonic() - started
+        error.__dict__["decision_request"] = request
+        error.__dict__["decision_latency"] = clock.monotonic() - started
         raise
     return choice, clock.monotonic() - started
 
 
-def record_failed_decision(
-    context: MatchContext[object, object, GameConfig],
+def record_failed_decision[S, A, C: GameConfig](
+    context: MatchContext[S, A, C],
     error: BaseException,
-    progress: Progress[object],
+    progress: Progress[S],
 ) -> None:
     """Keep the paid attempts of a decision that failed or was cancelled.
 

@@ -19,6 +19,7 @@ import threading
 import time
 import webbrowser
 from pathlib import Path
+from typing import Protocol
 
 import uvicorn
 from dotenv import load_dotenv
@@ -53,6 +54,13 @@ BROWSER_WAIT_SECONDS = 10.0
 ENV_FILE = Path(".env")
 
 type Commands = argparse._SubParsersAction[argparse.ArgumentParser]
+
+
+class ServerState(Protocol):
+    """The bits of a running server the browser opener needs to see."""
+
+    started: bool
+    should_exit: bool
 
 
 def load_environment() -> None:
@@ -219,7 +227,7 @@ def open_replays(
 
 
 def open_when_started(
-    url: str, server: uvicorn.Server, wait_seconds: float = BROWSER_WAIT_SECONDS
+    url: str, server: ServerState, wait_seconds: float = BROWSER_WAIT_SECONDS
 ) -> None:
     """Open `url` only after `server` bound its port, never for another server's."""
     deadline = time.monotonic() + wait_seconds
