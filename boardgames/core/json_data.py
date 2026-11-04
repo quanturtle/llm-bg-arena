@@ -31,9 +31,7 @@ def clean_json(value: JsonValue) -> JsonValue:
 
 def canonical_json(value: JsonValue) -> str:
     """Encode with sorted keys and no whitespace, so equal values give equal text."""
-    return json.dumps(
-        clean_json(value), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    )
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def json_digest(value: JsonValue) -> str:

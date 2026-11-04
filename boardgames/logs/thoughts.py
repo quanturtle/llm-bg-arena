@@ -10,7 +10,7 @@ from types import TracebackType
 from typing import Self, TextIO
 
 from boardgames.agents import AttemptRecord, AttemptToolCall
-from boardgames.core import PlayerId, clean_text, seat_label
+from boardgames.core import PlayerId, seat_label
 from boardgames.logs.schema import (
     DecisionRecord,
     ForfeitRecord,
@@ -58,7 +58,7 @@ class ThoughtsLog:
         return f"{seat_label(PlayerId(player))} {self._agents.get(player, '?')}"
 
     def _write(self, text: str) -> None:
-        self._stream.write(clean_text(text))
+        self._stream.write(text)
         self._stream.flush()
         return
 

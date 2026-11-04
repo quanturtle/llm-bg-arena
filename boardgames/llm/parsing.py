@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from boardgames.agents.base import DecisionRequest
-from boardgames.core import NotationError
+from boardgames.core import NotationError, clean_json
 from boardgames.llm.model import ChatModel, Completion, Message, ModelSettings
 
 type ResolveMethod = Literal["strict", "soft", "number", "extractor"]
@@ -73,7 +73,7 @@ def parse_reply(
 def parse_tool_arguments(arguments: str) -> ParsedReply | Rejected:
     """Fields of a submit_action call; a missing or empty action is rejected."""
     try:
-        fields = json.loads(arguments)
+        fields = clean_json(json.loads(arguments))
     except json.JSONDecodeError:
         return Rejected("format", "The tool arguments were not valid JSON.")
     if not isinstance(fields, dict):

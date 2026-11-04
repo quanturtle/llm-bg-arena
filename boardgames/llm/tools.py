@@ -14,7 +14,7 @@ from dataclasses import dataclass, replace
 from typing import Literal
 
 from boardgames.agents.base import DecisionRequest
-from boardgames.core import ActionSpace, JsonObject, NotationError, Tokens
+from boardgames.core import ActionSpace, JsonObject, NotationError, Tokens, clean_json
 from boardgames.llm.model import ToolCall, ToolSpec
 from boardgames.llm.parsing import (
     ParsedReply,
@@ -131,7 +131,7 @@ def parse_arguments(text: str) -> JsonObject | None:
     if not text.strip():
         return {}
     try:
-        parsed = json.loads(text)
+        parsed = clean_json(json.loads(text))
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None

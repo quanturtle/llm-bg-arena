@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from pydantic import JsonValue as PlainJson
 
 from boardgames.agents import AttemptRecord, DecisionTrace, FallbackPolicy
-from boardgames.core import Event, JsonObject, JsonValue, clean_json
+from boardgames.core import Event, JsonObject, JsonValue
 
 LOG_VERSION = 1
 
@@ -131,9 +131,8 @@ LOG_RECORD = TypeAdapter[LogRecord](LogRecord)
 
 
 def plain_json(value: JsonValue) -> PlainJson:
-    """`value` with every mapping as a dict, every sequence as a list, and no
-    lone surrogates that a UTF-8 log could not hold."""
-    plain: PlainJson = json.loads(json.dumps(clean_json(value)))
+    """`value` with every mapping as a dict and every sequence as a list."""
+    plain: PlainJson = json.loads(json.dumps(value))
     return plain
 
 

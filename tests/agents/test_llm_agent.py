@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -21,8 +22,9 @@ from boardgames.llm.parsing import ActionExtractor
 from boardgames.llm.prompting import PromptSettings
 from boardgames.llm.retry import RetryingChatModel
 from boardgames.llm.tools import NO_TOOL_NUDGE
-from boardgames.logs.replay import replay_match
+from boardgames.logs.replay import read_log, replay_match
 from boardgames.logs.schema import DecisionRecord, ForfeitRecord, MatchStopped
+from boardgames.logs.sink import JsonlFile
 from tests.arena.support import FakeClock, MemorySink, ScriptedAgent
 from tests.llm.fakes import QueuedChatModel, reply, tool_calls_reply
 from tests.llm.requests import puerto_rico_request, tic_tac_toe_request
@@ -197,6 +199,27 @@ def test_a_failed_call_keeps_the_cost_of_its_earlier_attempts() -> None:
     forfeit = next(r for r in sink.records if isinstance(r, ForfeitRecord))
     assert forfeit.trace.cost_usd == pytest.approx(0.12)
     assert isinstance(sink.records[-1], MatchStopped)
+    return
+
+
+def test_a_lone_surrogate_in_a_reply_does_not_stop_the_match(tmp_path: Path) -> None:
+    replies = [answer("a1", memory="nice \ud83d"), answer("b1"), answer("c1")]
+    model = QueuedChatModel(replies)
+    llm = LlmAgent(model, LlmAgentSettings(model=MODEL), seed=1)
+    path = tmp_path / "match.jsonl"
+    with JsonlFile(path) as sink:
+        asyncio.run(
+            play_match(
+                TicTacToe(),
+                TicTacToeConfig(),
+                3,
+                [llm, ScriptedAgent(["a2", "b2"])],
+                match_id="m",
+                sink=sink,
+                clock=FakeClock(),
+            )
+        )
+    assert replay_match(read_log(path)).ending == "finished"
     return
 
 

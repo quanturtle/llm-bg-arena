@@ -11,7 +11,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Protocol
 
-from boardgames.core import JsonObject, JsonValue, json_digest
+from boardgames.core import JsonObject, JsonValue, clean_json, json_digest
 from boardgames.llm.model import (
     ChatModel,
     Completion,
@@ -48,7 +48,7 @@ class DirectoryResponseStore:
         """The stored object, or None when the file is missing or not a JSON object."""
         path = self._path(key)
         try:
-            value = json.loads(path.read_text(encoding="utf-8"))
+            value = clean_json(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, ValueError):
             return None
         return value if isinstance(value, dict) else None

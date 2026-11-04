@@ -12,7 +12,7 @@ from typing import Literal
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from boardgames.core import JsonValue
+from boardgames.core import JsonValue, clean_json
 from boardgames.llm.model import (
     Completion,
     Message,
@@ -178,7 +178,7 @@ def parse_payload(response: httpx.Response) -> ResponsePayload:
     the reply, including its usage and cost.
     """
     try:
-        raw = response.json()
+        raw = clean_json(response.json())
     except (ValueError, UnicodeError):
         return ResponsePayload()
     if not isinstance(raw, dict):
