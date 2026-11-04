@@ -195,6 +195,7 @@ MAX_BUILDINGS: dict[BuildingType, int] = {
 
 CULT_ORDER_STEPS: tuple[int, ...] = (3, 2, 2, 2)
 CULT_POWER_THRESHOLDS: dict[int, int] = {3: 1, 5: 2, 7: 2, 10: 3}
+PRIEST_SUPPLY = 7
 CULT_FINAL_POINTS: tuple[int, ...] = (8, 4, 2)
 AREA_FINAL_POINTS: tuple[int, ...] = (18, 12, 6)
 

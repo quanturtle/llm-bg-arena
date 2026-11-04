@@ -509,6 +509,29 @@ def test_cult_spade_bonus_is_a_player_choice() -> None:
     assert state.phase == "action"
 
 
+def test_priest_supply_caps_cult_bonuses() -> None:
+    state = play_setup(start(num_players=2, seed=1, rounds=2))
+    priest_tile = ScoringTile(
+        ScoringAction.DWELLING, CultBonus(Cult.WATER, 4, "priests")
+    )
+    state = replace(state, scoring=(priest_tile, priest_tile))
+    state = replace(
+        state,
+        players=tuple(
+            replace(
+                player,
+                cults=(9, 9, 9, 9),
+                resources=replace(player.resources, priests=7),
+            )
+            for player in state.players
+        ),
+    )
+    while state.phase == "action" and state.round == 1:
+        state = play(state, "pass")
+    assert state.round == 2
+    assert all(player.resources.priests == 7 for player in state.players)
+
+
 def test_action_json_has_a_type_tag() -> None:
     action = BuildDwelling(Hex(0, 0))
     assert GAME.action_json(action)["type"] == "build_dwelling"
