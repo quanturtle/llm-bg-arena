@@ -81,7 +81,7 @@ from boardgames.games.puerto_rico.model import (
     can_ship,
     city_spaces_used,
     end_game_bonus,
-    factory_bonus,
+    factory_bonus_for_produced,
     goods_add,
     goods_from_list,
     goods_get,
@@ -943,7 +943,7 @@ def run_production(
                     {"player": seat, "goods": produced},
                 )
             )
-        bonus = factory_bonus(owner)
+        bonus = factory_bonus_for_produced(owner, cast(Goods, tuple(produced)))
         if bonus:
             state = replace_player(
                 state,

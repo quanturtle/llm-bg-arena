@@ -423,11 +423,11 @@ def production(player: PlayerState) -> Goods:
     return tuple(counts)  # type: ignore[return-value]
 
 
-def factory_bonus(player: PlayerState) -> int:
-    """Doubloons from the Factory when two or more goods types are produced."""
+def factory_bonus_for_produced(player: PlayerState, produced: Goods) -> int:
+    """Doubloons from the Factory for the goods types actually produced."""
     if not owns_active(player, "factory"):
         return 0
-    types = sum(1 for count in production(player) if count > 0)
+    types = sum(1 for count in produced if count > 0)
     return {0: 0, 1: 0, 2: 1, 3: 2, 4: 3, 5: 5}[types]
 
 

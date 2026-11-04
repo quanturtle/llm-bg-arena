@@ -63,7 +63,7 @@ from boardgames.games.puerto_rico.model import (
     building_points,
     city_spaces_used,
     end_game_bonus,
-    factory_bonus,
+    factory_bonus_for_produced,
     goods_from,
     goods_get,
     goods_total,
@@ -435,16 +435,16 @@ def test_factory_bonus_counts_distinct_goods() -> None:
             OwnedBuilding("small_sugar_mill", 1),
         ),
     )
-    assert factory_bonus(player) == 2  # three types
+    assert factory_bonus_for_produced(player, production(player)) == 2  # three types
     player = replace(
         player,
         plantations=(Plantation("corn", True), Plantation("indigo", True)),
     )
-    assert factory_bonus(player) == 1  # two types
+    assert factory_bonus_for_produced(player, production(player)) == 1  # two types
     player = replace(player, plantations=(Plantation("corn", True),))
-    assert factory_bonus(player) == 0
+    assert factory_bonus_for_produced(player, production(player)) == 0
     player = replace(player, buildings=())
-    assert factory_bonus(player) == 0
+    assert factory_bonus_for_produced(player, production(player)) == 0
 
 
 def test_market_and_trader_bonuses_set_sale_price() -> None:
