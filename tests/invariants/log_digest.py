@@ -13,6 +13,7 @@ from boardgames.arena.runner import play_match
 from boardgames.core import AnyGame, GameConfig
 from boardgames.games.catan import Catan, CatanConfig
 from boardgames.games.puerto_rico import PuertoRico, PuertoRicoConfig
+from boardgames.games.terra_mystica import TerraMystica, TerraMysticaConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.schema import LogRecord
 from tests.arena.support import FakeClock, MemorySink, random_agents
@@ -21,6 +22,10 @@ CASES: dict[str, tuple[AnyGame, GameConfig]] = {
     "tic_tac_toe": (TicTacToe(), TicTacToeConfig()),
     "catan": (Catan(), CatanConfig(num_players=3, victory_points=3)),
     "puerto_rico": (PuertoRico(), PuertoRicoConfig(num_players=3, max_rounds=2)),
+    "terra_mystica": (
+        TerraMystica(),
+        TerraMysticaConfig(num_players=2, rounds=1),
+    ),
 }
 
 

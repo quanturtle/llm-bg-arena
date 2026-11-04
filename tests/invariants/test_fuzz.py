@@ -25,6 +25,12 @@ from boardgames.games.puerto_rico import (
 )
 from boardgames.games.puerto_rico.constants import COLONIST_SUPPLY, GOOD_SUPPLY
 from boardgames.games.puerto_rico.model import goods_total
+from boardgames.games.terra_mystica import (
+    TerraMystica,
+    TerraMysticaConfig,
+    TerraMysticaState,
+)
+from boardgames.games.terra_mystica.constants import MAX_BUILDINGS, BuildingType
 from boardgames.games.tic_tac_toe import (
     TicTacToe,
     TicTacToeConfig,
@@ -51,6 +57,7 @@ def has_line(state: TicTacToeState) -> bool:
 
 
 PUERTO_RICO = PuertoRico()
+TERRA_MYSTICA = TerraMystica()
 
 
 def check_tic_tac_toe(state: TicTacToeState) -> None:
@@ -89,6 +96,24 @@ def check_catan(state: CatanState) -> None:
     if state.largest_army is not None:
         assert knights[state.largest_army] == max(knights) >= LARGEST_ARMY_MINIMUM
     assert (state.phase == "discard") == any(state.discard_remaining)
+    return
+
+
+def check_terra_mystica(state: TerraMysticaState) -> None:
+    """Resources stay non-negative, power stays in its cycle, cults stay bounded."""
+    assert len(state.players) == state.config.num_players
+    for player in state.players:
+        resources = player.resources
+        assert resources.coins >= 0
+        assert resources.workers >= 0
+        assert resources.priests >= 0
+        assert resources.power == 12
+        assert 0 <= min(player.cults) <= max(player.cults) <= 10
+        assert player.keys >= 0
+    for seat in seats(state.config.num_players):
+        for building in BuildingType:
+            assert state.board.count(seat, building) <= MAX_BUILDINGS[building]
+    assert (state.phase == "setup") == bool(state.setup_queue)
     return
 
 
@@ -156,4 +181,15 @@ def test_puerto_rico_random_play_keeps_invariants(
 ) -> None:
     config = PuertoRicoConfig(num_players=players, max_rounds=rounds)
     random_playthrough(PUERTO_RICO, config, seed, check_puerto_rico)
+    return
+
+
+@settings(max_examples=6, deadline=None)
+@given(
+    seed=SEEDS,
+    players=st.integers(2, 3),
+)
+def test_terra_mystica_random_play_keeps_invariants(seed: int, players: int) -> None:
+    config = TerraMysticaConfig(num_players=players, rounds=1)
+    random_playthrough(TERRA_MYSTICA, config, seed, check_terra_mystica)
     return
