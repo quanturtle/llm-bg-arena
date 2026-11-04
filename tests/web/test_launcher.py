@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from boardgames.core import ConfigError
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher, MatchStillPlayingError
-from boardgames.web.store import MatchStore
+from boardgames.web.store import MatchStore, ReadOnlyLogError
 from tests.llm.fakes import FirstListedMove
 
 BOT_MATCH = "game: tic_tac_toe\n"
@@ -95,6 +95,23 @@ def test_delete_removes_an_ended_match_and_its_files(tmp_path: Path) -> None:
     assert list(tmp_path.iterdir()) == []
     assert client.get(f"/api/matches/{match_id}").status_code == 404
     assert client.get("/api/launches").json() == []
+    return
+
+
+def test_a_failed_delete_keeps_the_launch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    launcher = MatchLauncher(tmp_path, FirstListedMove(), None)
+    match_id = asyncio.run(play_to_the_end(launcher))
+    store = MatchStore(tmp_path)
+
+    def refuse(match_id: str) -> None:
+        raise ReadOnlyLogError("the log cannot be removed")
+
+    monkeypatch.setattr(store, "delete", refuse)
+    client = TestClient(create_app(store, launcher))
+    assert client.delete(f"/api/matches/{match_id}").status_code == 409
+    assert launcher.launch(match_id).match_id == match_id
     return
 
 

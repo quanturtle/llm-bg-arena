@@ -346,9 +346,11 @@ def match_summary(request: Request, match_id: str) -> MatchSummary:
 @api.delete("/matches/{match_id}", status_code=204)
 async def delete_match(request: Request, match_id: str) -> Response:
     """Delete a match's log and thoughts file; a match still playing here is 409."""
-    launcher_of(request).forget(match_id)
+    launcher = launcher_of(request)
+    launcher.check_forgettable(match_id)
     store_of(request).delete(match_id)
     cache_of(request).forget(match_id)
+    launcher.forget(match_id)
     return Response(status_code=204)
 
 

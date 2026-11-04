@@ -148,19 +148,28 @@ class MatchLauncher:
             await asyncio.wait({task}, timeout=STOP_TIMEOUT_SECONDS)
         return self.launch(match_id)
 
-    def forget(self, match_id: str) -> None:
-        """Drop an ended match from the launches, before its log is deleted.
+    def check_forgettable(self, match_id: str) -> None:
+        """Raise unless the match has ended, so its log may be deleted.
 
         A match still running or paused raises MatchStillPlayingError; unknown ids pass.
         """
-        if match_id not in self._launched:
-            return
-        if self.launch(match_id).status in ("running", "paused"):
+        if match_id in self._launched and self.launch(match_id).status in (
+            "running",
+            "paused",
+        ):
             raise MatchStillPlayingError(
                 f"match {match_id!r} is still playing; stop it before deleting it"
             )
-        del self._launched[match_id]
-        del self._tasks[match_id]
+        return
+
+    def forget(self, match_id: str) -> None:
+        """Drop an ended match from the launches, after its log was deleted.
+
+        A match still running or paused raises MatchStillPlayingError; unknown ids pass.
+        """
+        self.check_forgettable(match_id)
+        self._launched.pop(match_id, None)
+        self._tasks.pop(match_id, None)
         return
 
     async def wait(self) -> None:
