@@ -13,6 +13,7 @@ from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
 from boardgames.logs.replay import (
     LogFormatError,
     ReplayMismatchError,
+    RulesVersionError,
     read_log,
     replay_match,
 )
@@ -96,6 +97,14 @@ def test_changed_seed_is_detected() -> None:
     records = record_match(Catan(), CATAN, random_agents(3))
     with pytest.raises(ReplayMismatchError, match="step 0"):
         replay_match(replace_first(records, MatchStarted, {"seed": 4}))
+    return
+
+
+def test_log_from_other_rules_is_detected() -> None:
+    records = record_match(TicTacToe(), TicTacToeConfig(), random_agents(2))
+    older = replace_first(records, MatchStarted, {"rules_version": 0})
+    with pytest.raises(RulesVersionError, match="tic_tac_toe rules v0; the current"):
+        replay_match(older)
     return
 
 

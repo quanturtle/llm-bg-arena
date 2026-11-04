@@ -16,6 +16,7 @@ from boardgames.core import AnyGame, Observation, PlayerId, seats
 from boardgames.logs.replay import (
     Replayed,
     ReplayMismatchError,
+    RulesVersionError,
     events_by_step,
     replay_states,
 )
@@ -226,7 +227,8 @@ def replay_complete_steps(records: Sequence[LogRecord]) -> CompleteSteps:
 
     Dropping one decision from a running log is normal: it is still being
     written. Anything more means the log no longer matches the game's rules.
-    A log whose setup does not replay raises ReplayMismatchError.
+    A log whose setup does not replay raises ReplayMismatchError, and one from
+    other rules raises RulesVersionError at once.
     """
     remaining = list(records)
     first_error: str | None = None
@@ -234,6 +236,8 @@ def replay_complete_steps(records: Sequence[LogRecord]) -> CompleteSteps:
     while True:
         try:
             replayed = replay_states(remaining)
+        except RulesVersionError:
+            raise
         except ReplayMismatchError as error:
             first_error = first_error or str(error)
             remaining = without_last_decision(remaining)

@@ -1,6 +1,9 @@
+import pytest
+
 from boardgames.agents import Agent
 from boardgames.games.catan import Catan, CatanConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
+from boardgames.logs.replay import RulesVersionError
 from boardgames.logs.schema import DecisionRecord
 from boardgames.web.timeline import build_timeline, outline
 from tests.arena.support import ForfeitingAgent, ScriptedAgent, random_agents
@@ -46,6 +49,14 @@ def test_an_ended_log_that_diverges_shows_its_steps_up_to_there() -> None:
     assert outline(timeline).replay_error == timeline.replay_error
     step_two = build_timeline(records).frames[2]
     assert timeline.frames[-1].scores == step_two.scores
+    return
+
+
+def test_a_log_from_other_rules_is_not_cut_down() -> None:
+    records = play_records(TicTacToe(), TicTacToeConfig(), random_agents(2), 3, "m")
+    start = records[0].model_copy(update={"rules_version": 0})
+    with pytest.raises(RulesVersionError):
+        build_timeline([start, *records[1:]])
     return
 
 

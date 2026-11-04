@@ -46,6 +46,10 @@ class ReplayMismatchError(ArenaError):
     """The replayed match differs from its log."""
 
 
+class RulesVersionError(ReplayMismatchError):
+    """The log was recorded under another version of the game's rules."""
+
+
 @dataclass(frozen=True)
 class ReplayReport:
     match_id: str
@@ -94,6 +98,7 @@ def replay_states(records: Sequence[LogRecord]) -> Replayed:
     """Every state of a log, checking each decision; the log may be unfinished."""
     start = first_record(records, MatchStarted)
     game = create_game(start.game_id)
+    check_rules_version(game, start)
     events = events_by_step(records)
     setup = game.setup(game.parse_config(start.config), start.seed)
     check_events(0, events.get(0, []), setup.events)
@@ -148,6 +153,16 @@ def first_record[R: LogRecord](records: Sequence[LogRecord], kind: type[R]) -> R
         if isinstance(record, kind):
             return record
     raise LogFormatError(f"log has no {kind.__name__} record")
+
+
+def check_rules_version(game: AnyGame, start: MatchStarted) -> None:
+    """Raise RulesVersionError unless the log uses the game's current rules."""
+    if start.rules_version != game.rules_version:
+        raise RulesVersionError(
+            f"recorded under {game.id} rules v{start.rules_version}; "
+            f"the current rules are v{game.rules_version}"
+        )
+    return
 
 
 def events_by_step(records: Sequence[LogRecord]) -> dict[int, list[EventRecord]]:
