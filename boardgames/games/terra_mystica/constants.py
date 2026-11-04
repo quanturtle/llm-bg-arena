@@ -309,7 +309,7 @@ ENGINEER_DWELLING_INCOME: tuple[Income, ...] = (
     Income(workers=4),
     Income(workers=4),
     Income(workers=5),
-    Income(workers=5),
+    Income(workers=6),
 )
 
 ENGINEER_COSTS = BuildingCosts(
