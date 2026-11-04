@@ -1,0 +1,11 @@
+# A short two-player Terra Mystica game between cheap models.
+# The base game runs six rounds; three keeps a match short.
+# Needs OPENROUTER_API_KEY in the environment or in .env.
+game: terra_mystica
+config: {num_players: 2, rounds: 3}
+seed: 1
+seats:
+  - model: qwen/qwen3.7-flash
+    temperature: 0.3
+  - model: openai/gpt-5-nano
+    reasoning_effort: low

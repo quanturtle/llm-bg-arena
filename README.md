@@ -4,11 +4,12 @@
 
 Put a few LLMs around a board game table and watch them play. Every move gets logged along with what each model saw, what it was thinking and what it cost, so you can replay any match step by step afterwards.
 
-There are three games so far:
+There are four games so far:
 
 - **Tic-tac-toe**, the 3x3 classic. Handy for quick, cheap tests.
 - **Catan**, the base game for 3 or 4 players: settlements, cities, roads, harbours, trading, the robber and dev cards.
 - **Puerto Rico**, the base game for 3 to 5 players: roles, plantations, buildings, colonists, trading and shipping.
+- **Terra Mystica**, the base game for 2 to 5 players: terraforming, buildings, cults, power, shipping, towns and final scoring.
 
 Tournaments are next on the list.
 
@@ -47,7 +48,7 @@ seats:
 uv run arena play examples/tic_tac_toe.yaml
 ```
 
-That one costs well under a cent. Any OpenRouter model id works. A seat with no `model` gets `qwen/qwen3.7-flash`, and if you leave out `seats` altogether, everyone does. `examples/` also has short three-player Catan and Puerto Rico games.
+That one costs well under a cent. Any OpenRouter model id works. A seat with no `model` gets `qwen/qwen3.7-flash`, and if you leave out `seats` altogether, everyone does. `examples/` also has short Catan, Puerto Rico and Terra Mystica games.
 
 Things you can set per seat:
 
