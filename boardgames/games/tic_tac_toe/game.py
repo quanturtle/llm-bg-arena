@@ -241,16 +241,14 @@ def cell_name(mark: Mark) -> str:
 
 
 def explain_mark(state: TicTacToeState, mark: Mark) -> str:
-    """Why marking this cell is illegal now."""
+    """Why marking this cell is illegal; only called for an illegal mark."""
     cell = cell_name(mark)
-    if state.outcome is not None:
-        return "The game is over."
     if not (0 <= mark.row < SIZE and 0 <= mark.col < SIZE):
         return f"{cell} is off the board, which runs from a1 to c3."
     owner = state.board[mark.row][mark.col]
     if owner is not None:
         return f"{cell} is already taken by {MARKS[owner]}."
-    return f"{cell} is not a legal cell now."
+    raise AssertionError("explain_mark is only called for an illegal mark")
 
 
 def check_move(state: TicTacToeState, player: PlayerId, mark: Mark) -> None:
