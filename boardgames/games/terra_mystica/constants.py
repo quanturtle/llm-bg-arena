@@ -4,8 +4,6 @@ Everything here is immutable and shared. The mutable match state lives in
 ``model.py``; the rules live in ``game.py``.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from enum import Enum
 

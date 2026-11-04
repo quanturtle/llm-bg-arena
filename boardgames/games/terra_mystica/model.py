@@ -1,7 +1,5 @@
 """Immutable model for a Terra Mystica match: board, players, actions and state."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, replace
 from typing import Literal, cast
 
@@ -36,7 +34,7 @@ class Hex:
     q: int
     r: int
 
-    def neighbours(self) -> tuple[Hex, ...]:
+    def neighbours(self) -> tuple["Hex", ...]:
         """The six hexes sharing an edge with this one."""
         return (
             Hex(self.q + 1, self.r),
@@ -99,18 +97,18 @@ class Board:
     tiles: tuple[Tile, ...]
 
     @classmethod
-    def base(cls) -> Board:
+    def base(cls) -> "Board":
         return cls(tuple(Tile(position, terrain) for position, terrain in BASE_TILES))
 
     def tile(self, position: Hex) -> Tile | None:
         index = HEX_INDEX.get(position)
         return None if index is None else self.tiles[index]
 
-    def replace_tile(self, position: Hex, tile: Tile) -> Board:
+    def replace_tile(self, position: Hex, tile: Tile) -> "Board":
         index = HEX_INDEX[position]
         return Board((*self.tiles[:index], tile, *self.tiles[index + 1 :]))
 
-    def place(self, position: Hex, building: Building) -> Board:
+    def place(self, position: Hex, building: Building) -> "Board":
         tile = self.tile(position)
         if tile is None:
             raise ValueError(f"no tile at {position}")
@@ -252,7 +250,7 @@ class PlayerState:
     def cult(self, cult: Cult) -> int:
         return self.cults[CULT_ORDER.index(cult)]
 
-    def with_cult(self, cult: Cult, value: int) -> PlayerState:
+    def with_cult(self, cult: Cult, value: int) -> "PlayerState":
         index = CULT_ORDER.index(cult)
         values = list(self.cults)
         values[index] = value

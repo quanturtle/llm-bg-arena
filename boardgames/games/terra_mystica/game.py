@@ -1,7 +1,5 @@
 """Terra Mystica: the standard base game for two to five players."""
 
-from __future__ import annotations
-
 from dataclasses import replace
 from functools import partial
 from importlib.resources import files

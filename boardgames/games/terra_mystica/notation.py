@@ -1,7 +1,5 @@
 """Text notation for Terra Mystica actions: one canonical form, strict parsing."""
 
-from __future__ import annotations
-
 import re
 
 from boardgames.core import NotationError

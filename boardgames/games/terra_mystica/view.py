@@ -1,7 +1,5 @@
 """Observation data, text rendering and action descriptions for Terra Mystica."""
 
-from __future__ import annotations
-
 from boardgames.core import (
     JsonObject,
     JsonValue,
