@@ -50,6 +50,7 @@ from boardgames.llm.prompting import (
 )
 from boardgames.llm.tools import (
     NO_TOOL_NUDGE,
+    Committed,
     DecisionProgress,
     ToolBudget,
     ToolResult,
@@ -213,7 +214,7 @@ class LlmAgent:
                     tool_round_attempt(completion, results, messages[logged:])
                 )
                 logged = len(messages)
-            if progress.chosen is not None:
+            if isinstance(progress, Committed):
                 self._remember(progress.reply)
                 reasoning = progress.reply.reasoning if progress.reply else None
                 trace = decision_trace(attempts, reasoning, self._memory, None)

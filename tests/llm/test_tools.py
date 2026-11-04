@@ -5,6 +5,7 @@ from boardgames.llm.model import ToolCall
 from boardgames.llm.parsing import Rejected, Resolved
 from boardgames.llm.prompting import PromptSettings
 from boardgames.llm.tools import (
+    Committed,
     DecisionProgress,
     ToolBudget,
     ToolResult,
@@ -114,6 +115,7 @@ def test_progress_commits_on_a_resolved_take_action() -> None:
         answer("take_action", request, action="a1"),
     ]
     progress = after_tool_calls(DecisionProgress[Any](), results, BUDGET)
+    assert isinstance(progress, Committed)
     assert (progress.phase, progress.calls_made) == ("committed", 2)
     assert progress.chosen is not None
     return

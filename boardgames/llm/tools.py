@@ -211,14 +211,39 @@ class ToolBudget:
 
 @dataclass(frozen=True)
 class DecisionProgress[A]:
-    """Where a decision stands; `chosen` and `reply` are set once committed."""
+    """A decision still exploring; `Committed` carries the accepted action."""
 
-    phase: Phase = "exploring"
     calls_made: int = 0
     rejections: int = 0
     text_replies: int = 0
-    chosen: Resolved[A] | None = None
+
+    @property
+    def phase(self) -> Phase:
+        return "exploring"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Committed[A](DecisionProgress[A]):
+    """A decision whose action was accepted, so its reply always goes with it."""
+
+    chosen: Resolved[A]
     reply: ParsedReply | None = None
+
+    @property
+    def phase(self) -> Phase:
+        return "committed"
+
+
+@dataclass(frozen=True)
+class Exhausted[A](DecisionProgress[A]):
+    """A decision that used up one of its limits."""
+
+    @property
+    def phase(self) -> Phase:
+        return "exhausted"
+
+
+type ProgressState[A] = DecisionProgress[A] | Committed[A] | Exhausted[A]
 
 
 def answer_tool_calls[A](
@@ -240,52 +265,62 @@ def answer_tool_calls[A](
 
 
 def after_tool_calls[A](
-    progress: DecisionProgress[A],
+    progress: ProgressState[A],
     results: Sequence[ToolResult[A]],
     budget: ToolBudget,
-) -> DecisionProgress[A]:
+) -> ProgressState[A]:
     """Progress after one reply's tool calls; an accepted action always commits,
     and the limits are checked only once the whole reply is counted."""
     for result in results:
         progress = after_tool_call(progress, result)
-    if progress.phase == "committed":
+    if isinstance(progress, Committed):
         return progress
     return exhausted_if_over(progress, budget)
 
 
 def after_tool_call[A](
-    progress: DecisionProgress[A], result: ToolResult[A]
-) -> DecisionProgress[A]:
+    progress: ProgressState[A], result: ToolResult[A]
+) -> ProgressState[A]:
     """Progress after one answered tool call; the first accepted action commits."""
     calls_made = progress.calls_made + 1
-    if isinstance(result.outcome, Resolved) and progress.chosen is None:
-        return replace(
-            progress,
-            phase="committed",
+    rejected = isinstance(result.outcome, Rejected)
+    rejections = progress.rejections + (1 if rejected else 0)
+    if isinstance(result.outcome, Resolved) and not isinstance(progress, Committed):
+        return Committed(
             calls_made=calls_made,
+            rejections=rejections,
+            text_replies=progress.text_replies,
             chosen=result.outcome,
             reply=result.reply,
         )
-    rejected = isinstance(result.outcome, Rejected)
-    rejections = progress.rejections + (1 if rejected else 0)
-    return replace(progress, calls_made=calls_made, rejections=rejections)
+    return replace(
+        progress, calls_made=calls_made, rejections=rejections
+    )
 
 
 def after_text_reply[A](
-    progress: DecisionProgress[A], budget: ToolBudget
-) -> DecisionProgress[A]:
+    progress: ProgressState[A], budget: ToolBudget
+) -> ProgressState[A]:
     """Progress after a reply with no tool call; the second one exhausts."""
     advanced = replace(progress, text_replies=progress.text_replies + 1)
     return exhausted_if_over(advanced, budget)
 
 
 def exhausted_if_over[A](
-    progress: DecisionProgress[A], budget: ToolBudget
-) -> DecisionProgress[A]:
+    progress: ProgressState[A], budget: ToolBudget
+) -> ProgressState[A]:
     """The progress, moved to "exhausted" once any limit is reached."""
+    if isinstance(progress, Committed):
+        return progress
     over = (
         progress.calls_made >= budget.max_tool_calls
         or progress.rejections > budget.max_illegal_retries
         or progress.text_replies > 1
     )
-    return replace(progress, phase="exhausted") if over else progress
+    if not over:
+        return progress
+    return Exhausted(
+        calls_made=progress.calls_made,
+        rejections=progress.rejections,
+        text_replies=progress.text_replies,
+    )
