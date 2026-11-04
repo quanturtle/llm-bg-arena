@@ -686,6 +686,24 @@ def test_hacienda_draws_an_extra_plantation_once() -> None:
     assert "hacienda" not in notations(state)
 
 
+def test_hacienda_can_draw_when_only_the_discard_pile_remains() -> None:
+    state = start(seed=3)
+    governor = state.order[0]
+    state = with_buildings(state, governor, OwnedBuilding("hacienda", 1))
+    state = replace(
+        state,
+        plantation_deck=(),
+        plantation_discard=("coffee", "coffee"),
+    )
+    state = select_role(state, "settler")
+    assert "hacienda" in notations(state)
+    state = play(state, "hacienda")
+    owner = state.players[governor]
+    assert owner.plantations[-1].good == "coffee"
+    assert state.plantation_discard == ()
+    assert state.plantation_deck == ("coffee",)
+
+
 def test_settler_draws_leftover_deck_before_reshuffling_discards() -> None:
     state = start(seed=3)
     state = replace(

@@ -462,6 +462,14 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     ) -> Transition[PuertoRicoState]:
         owner = state.players[player]
         if isinstance(action, UseHacienda):
+            if not state.plantation_deck:
+                deck, rng = state.rng.shuffled(state.plantation_discard)
+                state = replace(
+                    state,
+                    plantation_deck=deck,
+                    plantation_discard=(),
+                    rng=rng,
+                )
             good = state.plantation_deck[0]
             state = replace(
                 state,
@@ -1323,7 +1331,7 @@ def settler_actions(
         space
         and owns_active(owner, "hacienda")
         and not owner.hacienda_used
-        and state.plantation_deck
+        and (state.plantation_deck or state.plantation_discard)
     ):
         actions.append(UseHacienda())
     if space:
@@ -1518,8 +1526,8 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
                 return "You have no active Hacienda."
             if owner.hacienda_used:
                 return "Your Hacienda was already used this Settler phase."
-            if not state.plantation_deck:
-                return "The plantation deck is empty."
+            if not state.plantation_deck and not state.plantation_discard:
+                return "No plantation remains in the deck or discard pile."
         return "Take a face-up plantation, a quarry if allowed, or pass."
     if phase == "mayor_action":
         if isinstance(action, FinishPlacement) and has_placement_targets(
