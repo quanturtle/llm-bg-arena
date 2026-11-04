@@ -16,7 +16,7 @@ Build the most victory points. Points come from shipping goods to Europe (victor
 - **Builder:** build one building. Privilege: the Builder pays one doubloon less. Each active quarry also reduces a building's cost by one, up to the building's victory point value.
 - **Craftsman:** every player produces goods. Privilege: the Craftsman may take one extra producible good from the supply.
 - **Trader:** sell one good to the trading house. Privilege: the Trader gets one extra doubloon. The trading house holds at most four goods; when it is full at the end of the Trader phase its goods return to the supply. An Office lets its owner sell a type already present.
-- **Captain:** load goods on the cargo ships. Privilege: the Captain gets one extra victory point on their first shipment of the phase. A Harbor gives one extra victory point on every shipment. A Wharf may load all goods of one type once per phase.
+- **Captain:** load goods on the cargo ships. Privilege: the Captain gets one extra victory point on their first shipment of the phase. A Harbor gives one extra victory point on every shipment. A Wharf may load all goods of one type once per phase; goods shipped by Wharf return to the supply.
 - **Prospector:** take one doubloon and no action. In a 4-player game there is one Prospector; in a 5-player game there are two.
 
 ## Production and shipping

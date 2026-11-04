@@ -755,7 +755,11 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             points = ship_victory_points(state, player, quantity)
             owner = replace(owner, vp_chips=owner.vp_chips + points)
             state = replace_player(state, player, owner)
-            state = replace(state, vp_supply=state.vp_supply - points)
+            state = replace(
+                state,
+                goods_supply=goods_add(state.goods_supply, good, quantity),
+                vp_supply=state.vp_supply - points,
+            )
             event = Event(
                 "wharf_shipped",
                 f"{seat_label(player)} shipped {quantity} {good} by Wharf "
