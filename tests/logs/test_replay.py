@@ -171,6 +171,13 @@ def test_log_without_finish_is_malformed() -> None:
     return
 
 
+def test_example_catan_log_still_replays() -> None:
+    path = Path(__file__).parents[2] / "examples" / "catan_game.jsonl"
+    report = replay_match(read_log(path))
+    assert report.steps == 811
+    return
+
+
 def test_read_log_round_trips_a_file(tmp_path: Path) -> None:
     path = tmp_path / "match.jsonl"
     records = record_match(Catan(), CATAN, random_agents(3))
