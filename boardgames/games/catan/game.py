@@ -363,8 +363,6 @@ class Catan:
     def action_json(self, action: Action) -> dict[str, JsonValue]:
         return tagged_json_object(action)
 
-    # Setup ---------------------------------------------------------------
-
     def place_setup_settlement(
         self, state: CatanState, player: PlayerId, vertex: int
     ) -> Transition[CatanState]:
@@ -416,8 +414,6 @@ class Catan:
             replace(state, roads=roads, setup_vertex=None)
         )
         return Transition(advanced, tuple([*events, *next_events]))
-
-    # Turn phases ---------------------------------------------------------
 
     def roll_dice(self, state: CatanState, player: PlayerId) -> Transition[CatanState]:
         first, rng = state.rng.roll(6)
@@ -580,8 +576,6 @@ class Catan:
         if isinstance(action, EndTurn):
             return self.end_turn(state, player)
         raise IllegalActionError("that action is not available in the action phase")
-
-    # Building and trading ------------------------------------------------
 
     def build_road(
         self, state: CatanState, player: PlayerId, edge: int
@@ -766,8 +760,6 @@ class Catan:
             tuple(events),
         )
 
-    # Development cards ---------------------------------------------------
-
     def play_knight(
         self,
         state: CatanState,
@@ -902,8 +894,6 @@ class Catan:
             ),
             tuple(events),
         )
-
-    # Ending a turn -------------------------------------------------------
 
     def end_turn(self, state: CatanState, player: PlayerId) -> Transition[CatanState]:
         next_player = PlayerId((player + 1) % state.config.num_players)
@@ -1305,10 +1295,7 @@ def production_event(gains: tuple[Hand, ...], total: int) -> Event:
 def update_longest_road(
     previous: CatanState, state: CatanState
 ) -> tuple[CatanState, list[Event]]:
-    """Recompute the longest road award after `previous` became `state`.
-
-    A tie keeps the holder only while the holder's own road is unbroken.
-    """
+    """Recompute the award, keeping an unbroken holder through a tie."""
     lengths = longest_road_lengths(state)
     best = max(lengths)
     current = state.longest_road
@@ -1341,10 +1328,7 @@ def update_longest_road(
 def longest_road_holder(
     lengths: tuple[int, ...], current: PlayerId | None, *, is_broken: bool
 ) -> PlayerId | None:
-    """Who holds the award: the sole longest road of at least 5, else nobody.
-
-    An unbroken holder tied for the longest keeps the card.
-    """
+    """The sole longest road of at least 5; an unbroken holder keeps a tie."""
     best = max(lengths)
     if best < LONGEST_ROAD_MINIMUM:
         return None
@@ -1636,7 +1620,7 @@ def hex_name(state: CatanState, hex_id: int) -> str:
 
 
 def dev_name(card: DevCard) -> str:
-    """Human name of a development card."""
+    """Human name of a development card, as older logs and events spell it."""
     return card.replace("_", " ")
 
 

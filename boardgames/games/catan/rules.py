@@ -98,11 +98,7 @@ def road_legal(state: CatanState, edge: int, player: PlayerId) -> bool:
 
 
 def road_connected(state: CatanState, edge: int, player: PlayerId) -> bool:
-    """Whether a new road on `edge` joins the player's road network.
-
-    Another player's building blocks passage through its intersection, so a
-    road ending there does not connect to roads on its far side.
-    """
+    """Whether a road joins the network; opponent buildings block passage."""
     for vertex in EDGE_VERTICES[edge]:
         building = state.buildings[vertex]
         if building is not None:
@@ -180,10 +176,7 @@ def trade_rates(state: CatanState, player: PlayerId) -> dict[Resource, int]:
 
 
 def longest_road_length(state: CatanState, player: PlayerId) -> int:
-    """Longest trail of the player's roads: each road once, intersections may repeat.
-
-    A trail may end at an opponent's building but never passes through it.
-    """
+    """Longest trail of the player's roads, each road at most once."""
     adjacent = road_adjacency(state, player)
     blocked = frozenset(
         vertex

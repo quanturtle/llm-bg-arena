@@ -152,6 +152,7 @@ def build_geometry() -> None:
         tuple(sorted(grouped[y], key=lambda hex_id: center(*HEXES[hex_id])[0]))
         for y in sorted(grouped, reverse=True)
     )
+    return
 
 
 def coastal_cycle() -> tuple[int, ...]:

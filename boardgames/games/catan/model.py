@@ -112,11 +112,7 @@ DISCARD_THRESHOLD = 7
 
 @dataclass(frozen=True)
 class CatanConfig:
-    """Standard 19-hex Catan for 3 or 4 players, with a configurable VP goal.
-
-    `max_offers_per_turn` keeps trade talks from stalling a match; 0 allows
-    unlimited offers.
-    """
+    """Standard 19-hex Catan; 0 offers per turn allows unlimited trade talk."""
 
     num_players: int = 4
     victory_points: int = 10
@@ -228,6 +224,7 @@ class PlayYearOfPlenty:
         if RESOURCE_INDEX[first] > RESOURCE_INDEX[second]:
             object.__setattr__(self, "first", second)
             object.__setattr__(self, "second", first)
+        return
 
 
 @dataclass(frozen=True)
