@@ -1,5 +1,6 @@
 """Immutable model for a Terra Mystica match: board, players, actions and state."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from typing import Literal, cast
 
@@ -11,7 +12,6 @@ from boardgames.games.terra_mystica.constants import (
     FACTION_BY_TYPE,
     MAX_BUILDINGS,
     POWER_VALUES,
-    PRIEST_SUPPLY,
     TERRAIN_WHEEL,
     BuildingType,
     Cost,
@@ -283,7 +283,7 @@ class TerraMysticaState:
     scoring: tuple[ScoringTile, ...]
     cult_spades: tuple[int, ...]
     used_power_actions: frozenset[str]
-    used_orders: frozenset[tuple[Cult, int]]
+    used_orders: Mapping[tuple[Cult, int], PlayerId]
     end_reason: str | None = None
 
 
@@ -394,7 +394,7 @@ def income_with_power(resources: Resources, income: Income) -> Resources:
     updated = Resources(
         coins=resources.coins + income.coins,
         workers=resources.workers + income.workers,
-        priests=min(PRIEST_SUPPLY, resources.priests + income.priests),
+        priests=resources.priests + income.priests,
         power1=resources.power1,
         power2=resources.power2,
         power3=resources.power3,
@@ -478,7 +478,7 @@ def add_resources(resources: Resources, income: Income) -> Resources:
         resources,
         coins=resources.coins + income.coins,
         workers=resources.workers + income.workers,
-        priests=min(PRIEST_SUPPLY, resources.priests + income.priests),
+        priests=resources.priests + income.priests,
         power1=resources.power1,
         power2=resources.power2,
         power3=resources.power3,

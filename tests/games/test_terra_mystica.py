@@ -291,7 +291,7 @@ def test_send_priest_costs_a_priest_and_advances_cult() -> None:
     state = GAME.apply(state, player, action).state
     assert state.players[player].resources.priests == 0
     assert state.players[player].cult(Cult.FIRE) > before
-    assert (action.cult, action.order) in state.used_orders
+    assert state.used_orders[(action.cult, action.order)] == player
 
 
 def test_cult_order_spaces_are_shared() -> None:
@@ -307,7 +307,7 @@ def test_cult_order_spaces_are_shared() -> None:
         and action.order == 0
     )
     state = GAME.apply(state, first, action).state
-    assert (Cult.FIRE, 0) in state.used_orders
+    assert state.used_orders[(Cult.FIRE, 0)] == first
     state = with_resources(state, second, priests=1)
     state = replace(state, active_player=second)
     assert not any(
@@ -554,13 +554,15 @@ def test_priest_supply_caps_cult_bonuses() -> None:
         ScoringAction.DWELLING, CultBonus(Cult.WATER, 4, "priests")
     )
     state = replace(state, scoring=(priest_tile, priest_tile))
+    first, second = state.order
     state = replace(
         state,
+        used_orders={(Cult.FIRE, 0): first, (Cult.WATER, 0): second},
         players=tuple(
             replace(
                 player,
                 cults=(9, 9, 9, 9),
-                resources=replace(player.resources, priests=7),
+                resources=replace(player.resources, priests=6),
             )
             for player in state.players
         ),
@@ -568,7 +570,7 @@ def test_priest_supply_caps_cult_bonuses() -> None:
     while state.phase == "action" and state.round == 1:
         state = play(state, "pass")
     assert state.round == 2
-    assert all(player.resources.priests == 7 for player in state.players)
+    assert all(player.resources.priests == 6 for player in state.players)
 
 
 def test_action_json_has_a_type_tag() -> None:

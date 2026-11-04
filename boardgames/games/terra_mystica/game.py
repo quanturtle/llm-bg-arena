@@ -37,6 +37,7 @@ from boardgames.games.terra_mystica.constants import (
     MAX_BUILDINGS,
     POWER_ACTION_COSTS,
     POWER_ACTION_INCOME,
+    PRIEST_SUPPLY,
     SCORING_TILES,
     SCORING_VALUES,
     STANDARD_DWELLING_INCOME,
@@ -167,7 +168,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             scoring=scoring,
             cult_spades=(0,) * n,
             used_power_actions=frozenset(),
-            used_orders=frozenset(),
+            used_orders={},
         )
         events = (
             Event(
@@ -687,7 +688,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("that cult track cannot advance further")
         resources = replace(owner.resources, priests=owner.resources.priests - 1)
         owner = replace(owner, resources=resources)
-        state = replace(state, used_orders=state.used_orders | {(cult, order)})
+        state = replace(state, used_orders={**state.used_orders, (cult, order): player})
         steps = CULT_ORDER_STEPS[order]
         owner, gained = advance_cult(
             owner,
@@ -749,7 +750,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you do not have enough power to burn")
         spent = spend_power(resources, cost)
         assert spent is not None
-        resources = _add_income(spent, POWER_ACTION_INCOME[kind])
+        resources = _cap_priests(
+            state, player, _add_income(spent, POWER_ACTION_INCOME[kind])
+        )
         owner = replace(owner, resources=resources)
         state = replace_player(state, player, owner)
         state = replace(state, used_power_actions=state.used_power_actions | {kind})
@@ -921,7 +924,9 @@ def start_round(
     for seat in state.order:
         owner = state.players[seat]
         income = income_for(state.board, seat, owner)
-        resources = income_with_power(owner.resources, income)
+        resources = _cap_priests(
+            state, seat, income_with_power(owner.resources, income)
+        )
         owner = replace(
             owner,
             resources=resources,
@@ -1034,7 +1039,9 @@ def _apply_cult_bonus(
     if amount <= 0:
         return state, None
     if bonus.reward == "priests":
-        resources = _add_income(owner.resources, Income(priests=amount))
+        resources = _cap_priests(
+            state, seat, _add_income(owner.resources, Income(priests=amount))
+        )
         owner = replace(owner, resources=resources)
     elif bonus.reward == "workers":
         resources = _add_income(owner.resources, Income(workers=amount))
@@ -1064,6 +1071,22 @@ def _apply_cult_bonus(
 
 def _next_cult_spade_player(state: TerraMysticaState) -> PlayerId | None:
     return next((seat for seat in state.order if state.cult_spades[seat] > 0), None)
+
+
+def _claimed_priests(state: TerraMysticaState, player: PlayerId) -> int:
+    return sum(1 for owner in state.used_orders.values() if owner == player)
+
+
+def _priest_capacity(state: TerraMysticaState, player: PlayerId) -> int:
+    return PRIEST_SUPPLY - _claimed_priests(state, player)
+
+
+def _cap_priests(
+    state: TerraMysticaState, player: PlayerId, resources: Resources
+) -> Resources:
+    return replace(
+        resources, priests=min(resources.priests, _priest_capacity(state, player))
+    )
 
 
 def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:

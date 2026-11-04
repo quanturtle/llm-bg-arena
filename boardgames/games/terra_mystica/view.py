@@ -59,10 +59,10 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         ],
         "cult_spades": list(state.cult_spades),
         "used_orders": [
-            {"cult": cult.value, "order": order}
-            for cult, order in sorted(
-                state.used_orders,
-                key=lambda item: (CULT_ORDER.index(item[0]), item[1]),
+            {"cult": cult.value, "order": order, "player": player}
+            for (cult, order), player in sorted(
+                state.used_orders.items(),
+                key=lambda item: (CULT_ORDER.index(item[0][0]), item[0][1]),
             )
         ],
         "passed": sorted(state.passed),
@@ -195,7 +195,11 @@ def orders_line(data: JsonObject) -> str:
     orders = _objects(data, "used_orders")
     if not orders:
         return "Claimed cult order spaces: none."
-    parts = [f"{_str(order, 'cult')} {_int(order, 'order')}" for order in orders]
+    parts = [
+        f"{_str(order, 'cult')} {_int(order, 'order')} "
+        f"({seat_label(PlayerId(_int(order, 'player')))})"
+        for order in orders
+    ]
     return "Claimed cult order spaces: " + ", ".join(parts) + "."
 
 
