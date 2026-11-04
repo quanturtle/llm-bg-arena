@@ -857,7 +857,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     ) -> tuple[PuertoRicoState, tuple[Event, ...]]:
         acted = state.players_acted | {player}
         if len(acted) >= len(state.order):
-            return _finish_standard_phase(replace(state, players_acted=acted))
+            return finish_standard_phase(replace(state, players_acted=acted))
         next_player = next_unacted(replace(state, players_acted=acted), player)
         assert next_player is not None
         return (
@@ -1010,7 +1010,7 @@ def run_production(
     return state, tuple(events)
 
 
-def _finish_standard_phase(
+def finish_standard_phase(
     state: PuertoRicoState,
 ) -> tuple[PuertoRicoState, tuple[Event, ...]]:
     role = state.active_role

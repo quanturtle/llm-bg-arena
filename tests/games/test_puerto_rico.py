@@ -48,12 +48,12 @@ from boardgames.games.puerto_rico.constants import (
     Role,
 )
 from boardgames.games.puerto_rico.game import (
-    _finish_standard_phase,
     check_end_game,
     compute_winner,
     craftsman_actions,
     discard_actions,
     end_round,
+    finish_standard_phase,
     refill_colonist_ship,
     run_production,
     tiebreak_key,
@@ -744,7 +744,7 @@ def test_settler_draws_leftover_deck_before_reshuffling_discards() -> None:
         plantation_deck=("coffee",),
         plantation_discard=("corn", "corn", "corn"),
     )
-    state = _finish_standard_phase(state)[0]
+    state = finish_standard_phase(state)[0]
     assert state.face_up[0] == "coffee"
     assert state.face_up[1:] == ("corn", "corn", "corn")
 
@@ -772,7 +772,7 @@ def test_short_colonist_refill_is_announced_and_observed() -> None:
         colonist_supply=0,
         colonist_ship=0,
     )
-    state, events = _finish_standard_phase(state)
+    state, events = finish_standard_phase(state)
     assert state.colonist_shortage
     assert any(event.kind == "colonist_shortage" for event in events)
     observation = GAME.observe(state, None)
@@ -959,7 +959,7 @@ def test_full_trading_house_is_cleared_at_phase_end() -> None:
         phase="trader_action",
         trading_house=("indigo", "sugar", "corn", "coffee"),
     )
-    state = _finish_standard_phase(state)[0]
+    state = finish_standard_phase(state)[0]
     assert state.trading_house == ()
     expected = list(before)
     expected[0] += 1  # corn
