@@ -276,11 +276,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 f"{seat_label(player)} proposed an unknown action: {error}"
             ) from error
         if not is_legal:
-            try:
-                reason = space.explain(action)
-            except (TypeError, ValueError, IndexError, AttributeError) as error:
-                reason = f"that action is not legal now ({error})"
-            raise IllegalActionError(reason)
+            raise IllegalActionError(space.explain(action))
         return self.apply_legal(state, player, action)
 
     # Rules ----------------------------------------------------------------
