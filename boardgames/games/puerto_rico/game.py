@@ -842,15 +842,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         if not isinstance(action, DiscardGoods):
             raise IllegalActionError("choose goods to keep now")
         owner = state.players[player]
-        keep = [0, 0, 0, 0, 0]
-        discard = [0, 0, 0, 0, 0]
-        for index, good in enumerate(GOODS):
-            count = goods_get(owner.goods, good)
-            if good in action.protected:
-                keep[index] = count
-            elif action.legacy or good == action.keep:
-                keep[index] = min(1, count)
-            discard[index] = count - keep[index]
+        keep, discard = discard_counts(owner, action)
         state = replace_player(
             state, player, replace(owner, goods=cast(Goods, tuple(keep)))
         )
@@ -1525,15 +1517,17 @@ def captain_actions(
     return actions
 
 
+def max_protected_types(owner: PlayerState) -> int:
+    """How many goods types the owner's warehouses may protect."""
+    return (1 if owner.active("small_warehouse") else 0) + (
+        2 if owner.active("large_warehouse") else 0
+    )
+
+
 def discard_actions(owner: PlayerState) -> list[Action]:
     held = [good for good in GOODS if goods_get(owner.goods, good) > 0]
-    max_protected = 0
-    if owner.active("small_warehouse"):
-        max_protected += 1
-    if owner.active("large_warehouse"):
-        max_protected += 2
     actions: list[Action] = []
-    for size in range(max_protected + 1):
+    for size in range(max_protected_types(owner) + 1):
         for combination in combinations(held, size):
             protected = set(combination)
             keepable: list[Good | None] = [
@@ -1580,12 +1574,26 @@ def default_action(state: PuertoRicoState, actions: list[Action]) -> Action | No
     return None
 
 
+def discard_counts(
+    owner: PlayerState, action: DiscardGoods
+) -> tuple[list[int], list[int]]:
+    """Keep and discard counts per good for one discard choice."""
+    keep = [0, 0, 0, 0, 0]
+    discard = [0, 0, 0, 0, 0]
+    for index, good in enumerate(GOODS):
+        count = goods_get(owner.goods, good)
+        if good in action.protected:
+            keep[index] = count
+        elif good == action.keep:
+            keep[index] = min(1, count)
+        discard[index] = count - keep[index]
+    return keep, discard
+
+
 def kept_goods(owner: PlayerState, action: DiscardGoods) -> int:
     """How many cards a discard choice keeps, for the fallback choice."""
-    total = sum(goods_get(owner.goods, good) for good in action.protected)
-    if action.keep is not None:
-        total += min(1, goods_get(owner.goods, action.keep))
-    return total
+    keep, _ = discard_counts(owner, action)
+    return sum(keep)
 
 
 def decision_kind(phase: str) -> str:
@@ -1717,10 +1725,7 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
                     return f"You have no {good}."
             if action.keep is not None and action.keep in action.protected:
                 return "That good is already protected by a warehouse."
-            protected_limit = (1 if owner.active("small_warehouse") else 0) + (
-                2 if owner.active("large_warehouse") else 0
-            )
-            if len(action.protected) > protected_limit:
+            if len(action.protected) > max_protected_types(owner):
                 return "Your warehouses cannot protect that many types."
             return "Choose one good to keep plus the types your warehouses protect."
         return "Choose goods to keep after shipping."
