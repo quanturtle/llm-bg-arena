@@ -240,6 +240,11 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     def apply(
         self, state: PuertoRicoState, player: PlayerId, action: Action
     ) -> Transition[PuertoRicoState]:
+        if isinstance(action, DiscardGoods):
+            action = replace(
+                action,
+                protected=tuple(sorted(action.protected, key=GOODS.index)),
+            )
         decision = next(
             (item for item in self.pending_decisions(state) if item.player == player),
             None,

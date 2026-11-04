@@ -136,7 +136,7 @@ def parse_action(text: str) -> Action:
         for good in protected:
             if good not in GOODS:
                 raise NotationError(f"{text!r} names an unknown good")
-        return DiscardGoods(protected)
+        return DiscardGoods(tuple(sorted(protected, key=GOODS.index)))
     raise NotationError(f"{text!r} is not a Puerto Rico action")
 
 
