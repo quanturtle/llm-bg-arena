@@ -315,12 +315,11 @@ class TerraMysticaState:
 class BuildDwelling:
     """Transform a reachable tile if needed, then build a dwelling on it.
 
-    Mermaids may set `join_river` to False to decline joining a town across one
-    river space.
+    Mermaids may set `join_river` to True to join a town across one river space.
     """
 
     position: Hex
-    join_river: bool = True
+    join_river: bool = False
 
 
 @dataclass(frozen=True)
@@ -334,13 +333,12 @@ class TransformTerrain:
 class UpgradeBuilding:
     """Upgrade one of the player's structures.
 
-    Mermaids may set `join_river` to False to decline joining a town across one
-    river space.
+    Mermaids may set `join_river` to True to join a town across one river space.
     """
 
     position: Hex
     to: BuildingType
-    join_river: bool = True
+    join_river: bool = False
 
 
 @dataclass(frozen=True)
@@ -633,7 +631,7 @@ def advance_cult(
     """Advance a cult, spending a key to enter space 10; return power gained."""
     current = player.cult(cult)
     limit = cult_limit(player, top_occupied)
-    new = min(current + steps, limit)
+    new = min(current + steps, max(limit, current))
     keys = player.keys
     if new == 10 and current < 10:
         keys -= 1

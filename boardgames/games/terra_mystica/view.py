@@ -301,12 +301,12 @@ def describe_action(observation: Observation, action: Action) -> str:
         case BuildDwelling(position=position, join_river=join_river):
             if observation.data.get("phase") == "setup":
                 return f"Place a starting dwelling at {position.notation()}."
-            suffix = "" if join_river else " without crossing the river"
+            suffix = " across one river" if join_river else ""
             return f"Build a dwelling at {position.notation()}{suffix}."
         case TransformTerrain(position=position):
             return f"Transform {position.notation()} into your home terrain."
         case UpgradeBuilding(position=position, to=building, join_river=join_river):
-            suffix = "" if join_river else " without crossing the river"
+            suffix = " across one river" if join_river else ""
             return (
                 f"Upgrade the building at {position.notation()} to "
                 f"{building.value}{suffix}."

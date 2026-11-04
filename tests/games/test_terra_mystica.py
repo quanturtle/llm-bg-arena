@@ -394,7 +394,11 @@ def test_cult_space_ten_requires_a_key() -> None:
     state = replace_player(state, player, owner)
     assert cult_limit(state.players[player]) == 9
     assert not any(
-        isinstance(action, SendPriest | AdvanceCult) and action.cult is Cult.EARTH
+        isinstance(action, AdvanceCult) and action.cult is Cult.EARTH
+        for action in listing(state)
+    )
+    assert any(
+        isinstance(action, SendPriest) and action.cult is Cult.EARTH
         for action in listing(state)
     )
     owner = replace(state.players[player], keys=1)
@@ -403,7 +407,7 @@ def test_cult_space_ten_requires_a_key() -> None:
     assert any(
         action.cult is Cult.EARTH
         for action in listing(state)
-        if isinstance(action, SendPriest | AdvanceCult)
+        if isinstance(action, AdvanceCult)
     )
 
 
@@ -417,9 +421,30 @@ def test_second_player_cannot_enter_an_occupied_cult_top() -> None:
     other_owner = state.players[other].with_cult(Cult.FIRE, 10)
     state = replace_player(state, other, other_owner)
     assert not any(
-        isinstance(action, SendPriest | AdvanceCult) and action.cult is Cult.FIRE
+        isinstance(action, AdvanceCult) and action.cult is Cult.FIRE
         for action in listing(state)
     )
+    assert any(
+        isinstance(action, SendPriest) and action.cult is Cult.FIRE
+        for action in listing(state)
+    )
+
+
+def test_priest_can_block_an_order_space_on_a_full_track() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    owner = state.players[player].with_cult(Cult.EARTH, 9)
+    owner = replace(owner, resources=replace(owner.resources, priests=1))
+    state = replace_player(state, player, owner)
+    action = next(
+        action
+        for action in listing(state)
+        if isinstance(action, SendPriest) and action.cult is Cult.EARTH
+    )
+    after = GAME.apply(state, player, action).state
+    assert after.players[player].cult(Cult.EARTH) == 9
+    assert after.used_orders[(Cult.EARTH, action.order)] == player
+    assert after.players[player].resources.priests == 0
 
 
 def test_power_actions_spend_bowl_three_power() -> None:
@@ -468,6 +493,22 @@ def test_final_scores_are_computed_from_board_and_resources() -> None:
 # Notation, observation and registration -----------------------------------
 
 
+def test_leftover_bowl_three_power_scores_as_coins() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    state = with_resources(
+        state,
+        player,
+        coins=0,
+        workers=0,
+        priests=0,
+        power1=0,
+        power2=0,
+        power3=9,
+    )
+    assert final_scores(state)[player][1]["resources"] == 3
+
+
 def test_notation_round_trips_for_every_legal_action() -> None:
     state = start(num_players=2, seed=1)
     while not GAME.is_terminal(state):
@@ -475,6 +516,15 @@ def test_notation_round_trips_for_every_legal_action() -> None:
             text = GAME.format_action(action)
             assert GAME.parse_action(text) == action
         state = play(state, notations(state)[0])
+
+
+def test_join_notation_round_trips() -> None:
+    build = BuildDwelling(Hex(0, 0), join_river=True)
+    assert GAME.format_action(build) == "build 0,0 join"
+    assert GAME.parse_action("build 0,0 join") == build
+    upgrade = UpgradeBuilding(Hex(1, 0), BuildingType.TEMPLE, join_river=True)
+    assert GAME.format_action(upgrade) == "upgrade 1,0 temple join"
+    assert GAME.parse_action("upgrade 1,0 temple join") == upgrade
 
 
 def test_parse_rejects_bad_notation() -> None:
@@ -586,6 +636,34 @@ def test_cult_spade_points_follow_the_faction_bonus() -> None:
     assert gained == cost
     gained, _ = cult_spade_points(FactionType.DARKLINGS)
     assert gained == 0
+
+
+def test_giants_forfeit_a_single_cult_spade() -> None:
+    state = play_setup(start(num_players=2, seed=1, rounds=2))
+    spade_tile = ScoringTile(
+        ScoringAction.TRADING_HOUSE, CultBonus(Cult.AIR, 4, "spades")
+    )
+    priest_tile = ScoringTile(
+        ScoringAction.DWELLING, CultBonus(Cult.WATER, 4, "priests")
+    )
+    state = replace(state, scoring=(spade_tile, priest_tile))
+    state = replace(
+        state,
+        players=tuple(
+            replace(player, faction=FactionType.GIANTS, cults=(9, 9, 9, 9))
+            for player in state.players
+        ),
+    )
+    while state.phase == "action" and state.round == 1:
+        state = play(state, "pass")
+    assert state.phase == "cult_spades"
+    (decision,) = GAME.pending_decisions(state)
+    state = replace(
+        state,
+        cult_spades=replace_at(state.cult_spades, decision.player, 1),
+    )
+    assert not any(isinstance(action, UseCultSpade) for action in listing(state))
+    assert SkipCultSpade() in listing(state)
 
 
 def test_priest_supply_caps_cult_bonuses() -> None:
@@ -1085,13 +1163,13 @@ def _mermaid_gap_state(
     return state, player, b2
 
 
-def test_mermaids_may_decline_the_river_town() -> None:
+def test_mermaids_may_join_the_river_town() -> None:
     state, player, target = _mermaid_gap_state()
     assert BuildDwelling(target) in listing(state)
-    assert BuildDwelling(target, join_river=False) in listing(state)
+    assert BuildDwelling(target, join_river=True) in listing(state)
 
-    joined = GAME.apply(state, player, BuildDwelling(target)).state
-    separate = GAME.apply(state, player, BuildDwelling(target, join_river=False)).state
+    separate = GAME.apply(state, player, BuildDwelling(target)).state
+    joined = GAME.apply(state, player, BuildDwelling(target, join_river=True)).state
     assert joined.towns == 1
     assert joined.players[player].keys == 1
     assert separate.towns == 0
@@ -1101,13 +1179,13 @@ def test_mermaids_may_decline_the_river_town() -> None:
     assert not tile.building.in_town
 
 
-def test_mermaids_only_list_separate_when_it_changes_the_town() -> None:
+def test_mermaids_only_list_join_when_it_changes_the_town() -> None:
     state, _player, target = _mermaid_gap_state(weak=True)
     assert BuildDwelling(target) in listing(state)
-    assert BuildDwelling(target, join_river=False) not in listing(state)
+    assert BuildDwelling(target, join_river=True) not in listing(state)
 
 
-def test_only_mermaids_may_decline_the_river_crossing() -> None:
+def test_only_mermaids_may_join_the_river_town() -> None:
     state = play_setup(start(num_players=2, seed=2))
     player = state.active_player
     target = next(
@@ -1117,13 +1195,13 @@ def test_only_mermaids_may_decline_the_river_crossing() -> None:
     )
     (decision,) = GAME.pending_decisions(state)
     space = GAME.legal_actions(state, decision)
-    assert "Only the Mermaids" in space.explain(BuildDwelling(target, join_river=False))
+    assert "Only the Mermaids" in space.explain(BuildDwelling(target, join_river=True))
 
     with_building = action_state(state, player, (target, BuildingType.DWELLING))
     (decision,) = GAME.pending_decisions(with_building)
     space = GAME.legal_actions(with_building, decision)
     assert "Only the Mermaids" in space.explain(
-        UpgradeBuilding(target, BuildingType.TRADING_HOUSE, join_river=False)
+        UpgradeBuilding(target, BuildingType.TRADING_HOUSE, join_river=True)
     )
 
 
@@ -1202,6 +1280,31 @@ def test_dwarves_tunnel_costs_two_workers_and_scores_four_points() -> None:
     after = GAME.apply(state, player, BuildDwelling(target)).state
     assert after.players[player].victory_points - before.victory_points == 4
     assert before.resources.workers - after.players[player].resources.workers == 3
+
+
+def test_dwarves_can_tunnel_to_transform_without_building() -> None:
+    state = start(num_players=2, seed=2)
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.DWARVES),
+    )
+    start_position, target = _terrain_target(state, Terrain.FOREST, 2)
+    state = _neutral_scoring(
+        action_state(state, player, (start_position, BuildingType.DWELLING))
+    )
+    before = state.players[player]
+    tile = state.board.tile(target)
+    assert tile is not None
+    spades = spades_for(before.profile, tile.terrain)
+    expected_workers = spade_cost(before.profile, before.digging, spades).workers + 2
+    after = GAME.apply(state, player, TransformTerrain(target)).state
+    assert after.players[player].victory_points - before.victory_points == 4
+    assert (
+        before.resources.workers - after.players[player].resources.workers
+        == expected_workers
+    )
 
 
 def test_a_dwarves_stronghold_makes_tunneling_cheaper() -> None:

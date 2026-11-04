@@ -117,7 +117,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 5
+    rules_version: ClassVar[int] = 6
 
     # Config ---------------------------------------------------------------
 
@@ -429,7 +429,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         state: TerraMysticaState,
         player: PlayerId,
         position: Hex,
-        join_river: bool = True,
+        join_river: bool = False,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -545,15 +545,19 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you cannot transform a river")
         if tile.building is not None:
             raise IllegalActionError("that tile is occupied")
-        if position not in state.board.reachable_land(player, owner.shipping):
+        reach = effective_reach(state.board, player, profile)
+        if position not in state.board.reachable_land(player, owner.shipping, reach):
             raise IllegalActionError(
                 "the tile must be directly or indirectly adjacent to one of "
                 "your structures"
             )
         if tile.terrain is profile.home_terrain:
             raise IllegalActionError("that tile is already your home terrain")
+        tunneling = reach > 0 and not _adjacent_to_own(state.board, player, position)
         spades = spades_for(profile, tile.terrain)
         cost = spade_cost(profile, owner.digging, spades)
+        if tunneling:
+            cost = _add_costs(cost, effective_reach_cost(state.board, player, profile))
         if not can_pay(owner.resources, cost):
             raise IllegalActionError("you cannot pay for that transformation")
         resources = pay(owner.resources, cost)
@@ -561,16 +565,28 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             position, replace(tile, terrain=profile.home_terrain)
         )
         victory_points = owner.victory_points + spades * profile.spade_vp_bonus
+        if tunneling:
+            victory_points += profile.reach_vp
         if _round_scoring(state) is ScoringAction.SPADE:
             victory_points += spades * SCORING_VALUES[ScoringAction.SPADE]
         owner = replace(owner, resources=resources, victory_points=victory_points)
         state = replace_player(state, player, owner)
         state = replace(state, board=board)
+        route = ""
+        if tunneling:
+            route = (
+                " by tunneling" if profile.reach_cost.workers else " by carpet flight"
+            )
         event = Event(
             "transformed",
             f"{seat_label(player)} transformed {position.notation()} into "
-            f"{profile.home_terrain.value} with {spades} spade(s).",
-            {"player": player, "position": position.notation(), "spades": spades},
+            f"{profile.home_terrain.value} with {spades} spade(s){route}.",
+            {
+                "player": player,
+                "position": position.notation(),
+                "spades": spades,
+                "tunnel": tunneling,
+            },
         )
         return self.advance_turn(state, player, (event,))
 
@@ -580,7 +596,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         player: PlayerId,
         position: Hex,
         target: BuildingType,
-        join_river: bool = True,
+        join_river: bool = False,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -702,8 +718,6 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you have no priest to send")
         if (cult, order) in state.used_orders:
             raise IllegalActionError("that order space is already occupied")
-        if owner.cult(cult) >= _cult_limit_for(state, player, cult):
-            raise IllegalActionError("that cult track cannot advance further")
         resources = replace(owner.resources, priests=owner.resources.priests - 1)
         owner = replace(owner, resources=resources)
         state = replace(state, used_orders={**state.used_orders, (cult, order): player})
@@ -820,6 +834,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         cost = spades_for(owner.profile, tile.terrain)
         if budget <= 0:
             raise IllegalActionError("you have no cult-bonus spades left")
+        if owner.profile.terraform_spades is not None and budget < cost:
+            raise IllegalActionError("the Giants forfeit a single cult-bonus spade")
         spent = min(budget, cost)
         terrain = terrain_toward(tile.terrain, owner.home_terrain, spent)
         board = state.board.replace_tile(position, replace(tile, terrain=terrain))
@@ -1130,8 +1146,13 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
             continue
         if tile.position not in reachable:
             continue
-        if budget > 0:
-            actions.append(UseCultSpade(tile.position))
+        if budget <= 0:
+            continue
+        if owner.profile.terraform_spades is not None and budget < spades_for(
+            owner.profile, tile.terrain
+        ):
+            continue
+        actions.append(UseCultSpade(tile.position))
     actions.append(SkipCultSpade())
     return actions
 
@@ -1233,7 +1254,6 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     profile = owner.profile
     resources = owner.resources
     actions: list[Action] = []
-    reachable = set(state.board.reachable_land(player, owner.shipping))
     build_reachable = set(
         state.board.reachable_land(
             player, owner.shipping, effective_reach(state.board, player, profile)
@@ -1270,17 +1290,22 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                     tile.position,
                     TOWN_SUPPLY - state.towns,
                 ):
-                    actions.append(BuildDwelling(tile.position, join_river=False))
+                    actions.append(BuildDwelling(tile.position, join_river=True))
 
     for tile in state.board.tiles:
         if not tile.is_land or tile.building is not None:
             continue
-        if tile.position not in reachable:
+        if tile.position not in build_reachable:
             continue
         if tile.terrain is profile.home_terrain:
             continue
         spades = spades_for(profile, tile.terrain)
-        if can_pay(resources, spade_cost(profile, owner.digging, spades)):
+        cost = spade_cost(profile, owner.digging, spades)
+        if profile.reach > 0 and not _adjacent_to_own(
+            state.board, player, tile.position
+        ):
+            cost = _add_costs(cost, reach_cost)
+        if can_pay(resources, cost):
             actions.append(TransformTerrain(tile.position))
 
     for position, building in state.board.buildings(player):
@@ -1352,12 +1377,11 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
 
     if owner.resources.priests > 0:
         for cult in CULT_ORDER:
-            if owner.cult(cult) >= _cult_limit_for(state, player, cult):
-                continue
             for order in range(4):
                 if (cult, order) not in state.used_orders:
                     actions.append(SendPriest(cult, order))
-            actions.append(AdvanceCult(cult))
+            if owner.cult(cult) < _cult_limit_for(state, player, cult):
+                actions.append(AdvanceCult(cult))
 
     for kind in POWER_ACTION_KINDS:
         if kind in state.used_power_actions:
@@ -1396,6 +1420,10 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 return "That tile is not reachable."
             if state.cult_spades[player] <= 0:
                 return "You have no cult-bonus spades left."
+            if owner.profile.terraform_spades is not None and state.cult_spades[
+                player
+            ] < spades_for(owner.profile, tile.terrain):
+                return "The Giants forfeit a single cult-bonus spade."
             return "That cult-bonus spade cannot be used there now."
         if isinstance(action, SkipCultSpade):
             return "Skipping is always legal."
@@ -1414,9 +1442,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "You cannot build on a river."
         if tile.building is not None:
             return "That tile is occupied."
-        if not action.join_river:
+        if action.join_river:
             if profile.type is not FactionType.MERMAIDS:
-                return "Only the Mermaids may decline the river crossing."
+                return "Only the Mermaids may join a town across the river."
             if not _build_river_choice(
                 state.board,
                 player,
@@ -1424,7 +1452,7 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 action.position,
                 TOWN_SUPPLY - state.towns,
             ):
-                return "There is no river town to decline here."
+                return "There is no river town to join here."
         if (
             state.board.count(player, BuildingType.DWELLING)
             >= MAX_BUILDINGS[BuildingType.DWELLING]
@@ -1464,13 +1492,19 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "That tile is occupied."
         if tile.terrain is profile.home_terrain:
             return "That tile is already your home terrain."
-        if action.position not in state.board.reachable_land(player, owner.shipping):
+        reach = effective_reach(state.board, player, profile)
+        if action.position not in state.board.reachable_land(
+            player, owner.shipping, reach
+        ):
             return (
                 "The tile must be directly or indirectly adjacent to one of "
                 "your structures."
             )
         spades = spades_for(profile, tile.terrain)
-        if not can_pay(owner.resources, spade_cost(profile, owner.digging, spades)):
+        cost = spade_cost(profile, owner.digging, spades)
+        if reach > 0 and not _adjacent_to_own(state.board, player, action.position):
+            cost = _add_costs(cost, effective_reach_cost(state.board, player, profile))
+        if not can_pay(owner.resources, cost):
             return "You cannot pay for that transformation."
         return "That transformation is not legal now."
     if isinstance(action, UpgradeBuilding):
@@ -1485,9 +1519,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             )
         if state.board.count(player, action.to) >= MAX_BUILDINGS[action.to]:
             return f"You have no {action.to.value} left."
-        if not action.join_river:
+        if action.join_river:
             if profile.type is not FactionType.MERMAIDS:
-                return "Only the Mermaids may decline the river crossing."
+                return "Only the Mermaids may join a town across the river."
             if not _upgrade_river_choice(
                 state.board,
                 player,
@@ -1496,7 +1530,7 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 action.to,
                 TOWN_SUPPLY - state.towns,
             ):
-                return "There is no river town to decline here."
+                return "There is no river town to join here."
         cost = building_cost(
             profile,
             action.to,
@@ -1514,8 +1548,6 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "You have no priest to send."
         if (action.cult, action.order) in state.used_orders:
             return "That order space is already occupied."
-        if owner.cult(action.cult) >= _cult_limit_for(state, player, action.cult):
-            return "That cult track cannot advance further."
         return "You cannot send a priest there now."
     if isinstance(action, AdvanceCult):
         if owner.resources.priests <= 0:
@@ -1580,7 +1612,7 @@ def _town_rewards(
     victory_points: int,
     keys: int,
     *,
-    join_river: bool = True,
+    join_river: bool = False,
 ) -> tuple[Board, Resources, int, int, bool]:
     """Mark a new town and award its points, key and faction bonus."""
     owner = state.players[player]
@@ -1700,7 +1732,7 @@ def _append_upgrade(
     """List an upgrade, plus the Mermaid variant that declines the river skip."""
     actions.append(UpgradeBuilding(position, target))
     if _upgrade_river_choice(board, player, profile, position, target, towns_left):
-        actions.append(UpgradeBuilding(position, target, join_river=False))
+        actions.append(UpgradeBuilding(position, target, join_river=True))
 
 
 def _adjacent_to_own(board: Board, player: PlayerId, position: Hex) -> bool:
