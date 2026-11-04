@@ -18,7 +18,6 @@ from boardgames.games.catan.model import (
     Resource,
     building_counts,
     empty_hand,
-    hand_total,
     hand_with,
     road_count,
 )
@@ -128,10 +127,10 @@ def legal_free_road_edges(state: CatanState, player: PlayerId) -> tuple[int, ...
 def robber_victims(
     state: CatanState, hex_id: int, thief: PlayerId
 ) -> tuple[PlayerId, ...]:
-    """Opponents of `thief` with a building on `hex_id` who hold at least one card."""
+    """Opponents of `thief` with a building on `hex_id`, even with no cards."""
     victims: list[PlayerId] = []
     for player in seats(state.config.num_players):
-        if player == thief or hand_total(state.hands[player]) == 0:
+        if player == thief:
             continue
         if any(building_at(state, vertex) == player for vertex in HEX_VERTICES[hex_id]):
             victims.append(player)

@@ -15,7 +15,7 @@ Players place two settlements and two roads each, in snake order: P1, P2, ... th
 
 ## Turn
 1. **Roll two dice.** A non-7 roll produces resources for every player. A 7 produces nothing: every player holding more than 7 cards discards half their hand, rounded down, and then the active player moves the robber to a different hex.
-2. **Move the robber.** Choose a hex other than the robber's current hex. If one or more other players have a building on that hex and at least one card, choose one of them; you steal one random card. You never steal from yourself. If no other player there has a card, no card is stolen.
+2. **Move the robber.** Choose a hex other than the robber's current hex. If one or more other players have a building on that hex, choose one of them and steal one random card. You never steal from yourself. If the chosen player has no cards, you get nothing.
 3. **Act.** You may build, trade and play one development card, in any order, then end your turn. You may act as many times as your cards allow.
 
 ## Build costs and piece limits
@@ -56,6 +56,8 @@ The game ends as soon as any player has at least the victory-point target. Score
 - After a 7, players discard one card per decision, one player at a time in seat order.
 - Trades between players are always one card for one card.
 - A player may make at most `max_offers_per_turn` trade offers per turn: 3 by default, 0 for no limit.
+- Only the active player proposes trades; the other seats can accept or decline but cannot make their own proposals or counteroffers.
+- If the longest-road holder's road is broken and ties for longest, the card is set aside. The Almanac keeps it with the holder in that case.
 
 ## Notation
 Actions are written exactly as listed, with single spaces.

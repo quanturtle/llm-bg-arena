@@ -42,6 +42,7 @@ from boardgames.games.catan import (
     Roll,
 )
 from boardgames.games.catan.game import (
+    legal_action_list,
     longest_road_holder,
     setup_order,
     update_largest_army,
@@ -747,7 +748,7 @@ def test_discard_amount_after_a_seven() -> None:
     assert transition.state.discard_remaining == (4, 0, 0)
 
 
-def test_robber_skips_empty_hands() -> None:
+def test_robber_lists_opponents_even_with_empty_hands() -> None:
     state = start()
     hex_id = next(hex_id for hex_id in range(19) if hex_id != state.robber)
     buildings: list[Building | None] = [None] * 54
@@ -758,7 +759,25 @@ def test_robber_skips_empty_hands() -> None:
         buildings=tuple(buildings),
         hands=(empty_hand(), empty_hand(), hand_from(wood=1)),
     )
-    assert robber_victims(state, hex_id, P1) == (P3,)
+    assert robber_victims(state, hex_id, P1) == (P2, P3)
+
+
+def test_robbing_a_cardless_player_steals_nothing() -> None:
+    state = start()
+    hex_id = next(hex_id for hex_id in range(19) if hex_id != state.robber)
+    buildings: list[Building | None] = [None] * 54
+    buildings[HEX_VERTICES[hex_id][0]] = Building(P2, "settlement")
+    state = replace(
+        state,
+        buildings=tuple(buildings),
+        hands=(empty_hand(), empty_hand(), hand_from(wood=1)),
+    )
+    action = MoveRobber(hex_id, P2)
+    state = replace(state, phase="move_robber")
+    assert action in legal_action_list(state, P1)
+    moved = GAME.apply(state, P1, action)
+    assert moved.state.hands[P2] == empty_hand()
+    assert moved.state.hands[P1] == empty_hand()
 
 
 def test_a_road_does_not_connect_through_an_opponent_building() -> None:

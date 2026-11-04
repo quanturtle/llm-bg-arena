@@ -24,6 +24,7 @@ from boardgames.core import (
     Rng,
     Scores,
     Transition,
+    checked_apply,
     register_game,
     seat_label,
     seats,
@@ -128,7 +129,7 @@ class Catan:
     """Standard Catan with settlements, cities, roads, trade and development cards."""
 
     id: ClassVar[str] = "catan"
-    rules_version: ClassVar[int] = 1
+    rules_version: ClassVar[int] = 2
 
     def parse_config(self, raw: JsonObject) -> CatanConfig:
         config = dataclass_from_json(CatanConfig, raw)
@@ -265,24 +266,15 @@ class Catan:
     def apply(
         self, state: CatanState, player: PlayerId, action: Action
     ) -> Transition[CatanState]:
-        decision = next(
-            (item for item in self.pending_decisions(state) if item.player == player),
-            None,
-        )
-        if decision is None:
-            raise IllegalActionError(
+        return checked_apply(
+            self,
+            state,
+            player,
+            action,
+            no_decision=(
                 f"{seat_label(player)} has no open decision in phase {state.phase!r}"
-            )
-        space = self.legal_actions(state, decision)
-        try:
-            is_legal = space.is_legal(action)
-        except (TypeError, ValueError, AttributeError) as error:
-            raise IllegalActionError(
-                f"{seat_label(player)} proposed an unknown action: {error}"
-            ) from error
-        if not is_legal:
-            raise IllegalActionError(space.explain(action))
-        return self.apply_legal(state, player, action)
+            ),
+        )
 
     def apply_legal(
         self, state: CatanState, player: PlayerId, action: Action
@@ -1599,9 +1591,9 @@ def explain_robber(
     if victims and victim is None:
         return "You must steal from an eligible player on that hex."
     if victim is not None and victim not in victims:
-        return f"{seat_label(victim)} has no building or cards on h{hex_id}."
+        return f"{seat_label(victim)} has no building on h{hex_id}."
     if not victims and victim is not None:
-        return f"No player on h{hex_id} has a card to steal."
+        return f"No player on h{hex_id} has a building to rob."
     return f"You cannot move the {label} there now."
 
 
