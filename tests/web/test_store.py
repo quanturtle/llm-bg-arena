@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from boardgames.logs.schema import DecisionRecord, MatchFinished, MatchStarted
+from boardgames.logs.schema import (
+    DecisionRecord,
+    LogRecord,
+    MatchFinished,
+    MatchStarted,
+)
+from boardgames.web import store
 from boardgames.web.store import (
     FinishedMatch,
     MatchStore,
@@ -125,6 +131,20 @@ def test_a_log_with_a_player_outside_the_seats_is_unreadable(tmp_path: Path) -> 
     write_records(tmp_path / "changed.jsonl", changed)
     catalog = MatchStore(tmp_path).catalog()
     assert [u.path for u in catalog.unreadable] == ["changed.jsonl"]
+    return
+
+
+def summarize_with_a_bug(records: list[LogRecord]) -> FinishedMatch:
+    raise KeyError("seats")
+
+
+def test_a_bug_while_summarizing_is_not_reported_as_an_unreadable_log(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_match(tmp_path, "good")
+    monkeypatch.setattr(store, "summarize", summarize_with_a_bug)
+    with pytest.raises(KeyError):
+        MatchStore(tmp_path).catalog()
     return
 
 

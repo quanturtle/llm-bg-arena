@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 from pydantic import JsonValue as PlainJson
 
 from boardgames.core import ArenaError
@@ -204,7 +204,7 @@ def seat_summary(
         cost = add_cost(cost, trace.cost_usd)
     score = None
     if finish is not None:
-        score = next(s for s in finish.scores if s.player == player)
+        score = next((s for s in finish.scores if s.player == player), None)
     return SeatSummary(
         player=player,
         agent=seat.agent,
@@ -249,6 +249,11 @@ def summarize(records: list[LogRecord]) -> AnyMatch:
     steps = 0
     for record in records:
         if isinstance(record, DecisionRecord | ForfeitRecord):
+            if record.player not in answers:
+                raise LogFormatError(
+                    f"a record for player {record.player} in a match with "
+                    f"{len(start.seats)} seats"
+                )
             answers[record.player].append(record)
             steps = max(steps, record.step)
     common: dict[str, Any] = {
@@ -309,21 +314,11 @@ type Indexed = AnyMatch | UnreadableLog
 def index_log(path: Path) -> Indexed:
     """Summary of the log at `path`, or why it could not be read.
 
-    A log may be missing, not UTF-8, or hold records that do not fit the game's
-    seats; none of those may take the whole catalog down.
+    A ValidationError means the records do not fit a summary, such as a missing score.
     """
     try:
         return summarize(read_log(path))
-    except (
-        LogFormatError,
-        LogFileError,
-        OSError,
-        UnicodeError,
-        IndexError,
-        KeyError,
-        TypeError,
-        ValueError,
-    ) as error:
+    except (LogFormatError, LogFileError, ValidationError) as error:
         return UnreadableLog(path=path.name, error=str(error))
 
 

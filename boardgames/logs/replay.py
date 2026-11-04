@@ -63,13 +63,16 @@ def read_log(path: Path) -> list[LogRecord]:
     except OSError as error:
         raise LogFileError(f"cannot read {path}: {error.strerror}") from error
     with file:
-        for number, line in enumerate(file, start=1):
-            if not line.strip():
-                continue
-            try:
-                records.append(LOG_RECORD.validate_json(line))
-            except ValidationError as error:
-                raise LogFormatError(f"{path}:{number}: {error}") from error
+        try:
+            for number, line in enumerate(file, start=1):
+                if not line.strip():
+                    continue
+                try:
+                    records.append(LOG_RECORD.validate_json(line))
+                except ValidationError as error:
+                    raise LogFormatError(f"{path}:{number}: {error}") from error
+        except UnicodeDecodeError as error:
+            raise LogFormatError(f"{path} is not UTF-8 text: {error}") from error
     return records
 
 
