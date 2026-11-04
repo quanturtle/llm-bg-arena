@@ -20,6 +20,7 @@ from boardgames.core import (
     Rng,
     Scores,
     Transition,
+    checked_apply,
     register_game,
     seat_label,
     seats,
@@ -45,6 +46,7 @@ from boardgames.games.terra_mystica.constants import (
     STANDARD_TEMPLE_INCOME,
     STANDARD_TRADING_HOUSE_INCOME,
     TERRAIN_WHEEL,
+    TOWN_SUPPLY,
     BuildingType,
     Cost,
     Cult,
@@ -96,6 +98,7 @@ from boardgames.games.terra_mystica.model import (
     spade_cost,
     spades_for,
     spend_power,
+    terrain_toward,
 )
 from boardgames.games.terra_mystica.notation import format_action, parse_action
 from boardgames.games.terra_mystica.scoring import final_scores
@@ -111,7 +114,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 2
+    rules_version: ClassVar[int] = 3
 
     # Config ---------------------------------------------------------------
 
@@ -268,24 +271,15 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     def apply(
         self, state: TerraMysticaState, player: PlayerId, action: Action
     ) -> Transition[TerraMysticaState]:
-        decision = next(
-            (item for item in self.pending_decisions(state) if item.player == player),
-            None,
-        )
-        if decision is None:
-            raise IllegalActionError(
+        return checked_apply(
+            self,
+            state,
+            player,
+            action,
+            no_decision=(
                 f"{seat_label(player)} has no open decision in phase {state.phase!r}"
-            )
-        space = self.legal_actions(state, decision)
-        try:
-            is_legal = space.is_legal(action)
-        except (TypeError, ValueError, AttributeError) as error:
-            raise IllegalActionError(
-                f"{seat_label(player)} proposed an unknown action: {error}"
-            ) from error
-        if not is_legal:
-            raise IllegalActionError(space.explain(action))
-        return self.apply_legal(state, player, action)
+            ),
+        )
 
     # Rules ----------------------------------------------------------------
 
@@ -440,7 +434,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             >= MAX_BUILDINGS[BuildingType.DWELLING]
         ):
             raise IllegalActionError("you have no dwellings left")
-        if position not in state.board.reachable_land(player, owner.shipping):
+        if position not in state.board.reachable_land(
+            player, owner.shipping, owner.profile.reach
+        ):
             raise IllegalActionError(
                 "the tile must be directly or indirectly adjacent to one of "
                 "your structures"
@@ -480,6 +476,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         )
         state = replace_player(state, player, owner)
         state = replace(state, board=board)
+        if founded:
+            state = replace(state, towns=state.towns + 1)
         events = [
             Event(
                 "built",
@@ -515,7 +513,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you cannot transform a river")
         if tile.building is not None:
             raise IllegalActionError("that tile is occupied")
-        if position not in state.board.reachable_land(player, owner.shipping):
+        if position not in state.board.reachable_land(
+            player, owner.shipping, owner.profile.reach
+        ):
             raise IllegalActionError(
                 "the tile must be directly or indirectly adjacent to one of "
                 "your structures"
@@ -589,6 +589,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         )
         state = replace_player(state, player, owner)
         state = replace(state, board=board)
+        if founded:
+            state = replace(state, towns=state.towns + 1)
         events = [
             Event(
                 "upgraded",
@@ -775,38 +777,41 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("choose an empty land tile")
         if tile.terrain is owner.home_terrain:
             raise IllegalActionError("that tile is already your home terrain")
-        if position not in state.board.reachable_land(player, owner.shipping):
+        if position not in state.board.reachable_land(
+            player, owner.shipping, owner.profile.reach
+        ):
             raise IllegalActionError("that tile is not reachable")
         cost = spades_for(owner.profile, tile.terrain)
-        if cost > budget:
-            raise IllegalActionError("you do not have enough cult-bonus spades")
-        board = state.board.replace_tile(
-            position, replace(tile, terrain=owner.home_terrain)
-        )
+        if budget <= 0:
+            raise IllegalActionError("you have no cult-bonus spades left")
+        spent = min(budget, cost)
+        terrain = terrain_toward(tile.terrain, owner.home_terrain, spent)
+        board = state.board.replace_tile(position, replace(tile, terrain=terrain))
         points = (
             0
             if owner.profile.uses_priests_for_spades
-            else cost * owner.profile.spade_vp_bonus
+            else spent * owner.profile.spade_vp_bonus
         )
         owner = replace(owner, victory_points=owner.victory_points + points)
         state = replace_player(
             replace(
                 state,
                 board=board,
-                cult_spades=replace_at(state.cult_spades, player, budget - cost),
+                cult_spades=replace_at(state.cult_spades, player, budget - spent),
             ),
             player,
             owner,
         )
         event = Event(
             "cult_spade_used",
-            f"{seat_label(player)} used {cost} cult-bonus spade(s) at "
-            f"{position.notation()}.",
+            f"{seat_label(player)} used {spent} cult-bonus spade(s) at "
+            f"{position.notation()} and made it {terrain.value}.",
             {
                 "player": player,
                 "position": position.notation(),
-                "spades": cost,
-                "remaining": budget - cost,
+                "spades": spent,
+                "remaining": budget - spent,
+                "terrain": terrain.value,
                 "victory_points": points,
             },
         )
@@ -1080,7 +1085,9 @@ def _cap_priests(
 def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     owner = state.players[player]
     budget = state.cult_spades[player]
-    reachable = set(state.board.reachable_land(player, owner.shipping))
+    reachable = set(
+        state.board.reachable_land(player, owner.shipping, owner.profile.reach)
+    )
     actions: list[Action] = []
     for tile in state.board.tiles:
         if not tile.is_land or tile.building is not None:
@@ -1089,7 +1096,7 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
             continue
         if tile.position not in reachable:
             continue
-        if spades_for(owner.profile, tile.terrain) <= budget:
+        if budget > 0:
             actions.append(UseCultSpade(tile.position))
     actions.append(SkipCultSpade())
     return actions
@@ -1192,7 +1199,9 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     profile = owner.profile
     resources = owner.resources
     actions: list[Action] = []
-    reachable = set(state.board.reachable_land(player, owner.shipping))
+    reachable = set(
+        state.board.reachable_land(player, owner.shipping, owner.profile.reach)
+    )
     can_build_dwelling = can_place_building(state.board, player, BuildingType.DWELLING)
 
     if can_build_dwelling:
@@ -1298,11 +1307,11 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             if tile.terrain is owner.home_terrain:
                 return "That tile is already your home terrain."
             if action.position not in state.board.reachable_land(
-                player, owner.shipping
+                player, owner.shipping, owner.profile.reach
             ):
                 return "That tile is not reachable."
-            if spades_for(owner.profile, tile.terrain) > state.cult_spades[player]:
-                return "You do not have enough cult-bonus spades."
+            if state.cult_spades[player] <= 0:
+                return "You have no cult-bonus spades left."
             return "That cult-bonus spade cannot be used there now."
         if isinstance(action, SkipCultSpade):
             return "Skipping is always legal."
@@ -1326,7 +1335,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             >= MAX_BUILDINGS[BuildingType.DWELLING]
         ):
             return "You have no dwellings left."
-        if action.position not in state.board.reachable_land(player, owner.shipping):
+        if action.position not in state.board.reachable_land(
+            player, owner.shipping, owner.profile.reach
+        ):
             return (
                 "The tile must be directly or indirectly adjacent to one of "
                 "your structures."
@@ -1353,7 +1364,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "That tile is occupied."
         if tile.terrain is profile.home_terrain:
             return "That tile is already your home terrain."
-        if action.position not in state.board.reachable_land(player, owner.shipping):
+        if action.position not in state.board.reachable_land(
+            player, owner.shipping, owner.profile.reach
+        ):
             return (
                 "The tile must be directly or indirectly adjacent to one of "
                 "your structures."
@@ -1458,10 +1471,18 @@ def _town_rewards(
     keys: int,
 ) -> tuple[Board, Resources, int, int, bool]:
     """Mark a new town and award its points, key and faction bonus."""
-    board, founded = settle_town(board, position, player)
+    owner = state.players[player]
+    board, founded = settle_town(
+        board,
+        position,
+        player,
+        shipping=owner.shipping,
+        reach=owner.profile.reach,
+        towns_left=TOWN_SUPPLY - state.towns,
+    )
     if not founded:
         return board, resources, victory_points, keys, False
-    profile = state.players[player].profile
+    profile = owner.profile
     victory_points += 5 + profile.town_vp_bonus
     keys += 1
     resources = _add_income(resources, Income(workers=profile.town_workers_bonus))

@@ -63,15 +63,21 @@ from boardgames.games.terra_mystica.model import (
     cult_limit,
     gain_power,
     income_with_power,
+    replace_at,
     replace_player,
     settle_town,
     shipping_points,
     spade_cost,
     spades_for,
     spend_power,
+    terrain_toward,
     town_ready,
 )
-from boardgames.games.terra_mystica.scoring import final_scores, split_rank_points
+from boardgames.games.terra_mystica.scoring import (
+    final_scores,
+    largest_area,
+    split_rank_points,
+)
 from boardgames.logs.replay import replay_match
 from tests.arena.support import FakeClock, MemorySink, random_agents
 from tests.invariants.playthrough import random_playthrough
@@ -975,6 +981,86 @@ def test_towns_require_power_and_are_marked_once() -> None:
     weak_component = weak.connected(weak_positions[0], player)
     assert not town_ready(weak, weak_component)
     assert not settle_town(weak, weak_positions[0], player)[1]
+
+
+def test_town_supply_stops_after_ten_towns() -> None:
+    board = Board.base()
+    player = P1
+    position = next(tile.position for tile in board.tiles if tile.is_land)
+    assert not settle_town(board, position, player, towns_left=0)[1]
+
+
+def test_dwarves_and_fakirs_reach_across_two_and_three_spaces() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    occupied = state.board.occupied(player)[0]
+    two_away = next(
+        tile.position
+        for tile in state.board.tiles
+        if tile.is_land
+        and occupied.distance(tile.position) == 2
+        and tile.position not in state.board.reachable_from(occupied, 0)
+    )
+    assert two_away in state.board.reachable_from(occupied, 0, 2)
+    three_away = next(
+        tile.position
+        for tile in state.board.tiles
+        if tile.is_land
+        and occupied.distance(tile.position) == 3
+        and tile.position not in state.board.reachable_from(occupied, 0)
+    )
+    assert three_away not in state.board.reachable_from(occupied, 0, 2)
+    assert three_away in state.board.reachable_from(occupied, 0, 3)
+
+
+def test_dwarves_area_scoring_connects_through_their_reach() -> None:
+    board = Board.base()
+    player = P1
+    positions = [tile.position for tile in board.tiles if tile.is_land]
+    start = positions[0]
+    other = next(position for position in positions if start.distance(position) == 2)
+    board = board.place(start, Building(BuildingType.DWELLING, player))
+    board = board.place(other, Building(BuildingType.DWELLING, player))
+    assert largest_area(board, player, shipping=0, reach=0) == 1
+    assert largest_area(board, player, shipping=0, reach=2) == 2
+
+
+def test_cult_spades_can_transform_a_tile_part_of_the_way() -> None:
+    state = play_setup(start(num_players=2, seed=1, rounds=2))
+    spade_tile = ScoringTile(
+        ScoringAction.TRADING_HOUSE, CultBonus(Cult.AIR, 4, "spades")
+    )
+    priest_tile = ScoringTile(
+        ScoringAction.DWELLING, CultBonus(Cult.WATER, 4, "priests")
+    )
+    state = replace(state, scoring=(spade_tile, priest_tile))
+    state = replace(
+        state,
+        players=tuple(replace(player, cults=(9, 9, 9, 9)) for player in state.players),
+    )
+    while state.phase == "action" and state.round == 1:
+        state = play(state, "pass")
+    assert state.phase == "cult_spades"
+    (decision,) = GAME.pending_decisions(state)
+    player = decision.player
+    owner = state.players[player]
+    state = replace(state, cult_spades=replace_at(state.cult_spades, player, 1))
+    for action in listing(state):
+        if not isinstance(action, UseCultSpade):
+            continue
+        tile = state.board.tile(action.position)
+        assert tile is not None
+        if spades_for(owner.profile, tile.terrain) > 1:
+            break
+    else:
+        raise AssertionError("no reachable tile needs more than one spade")
+    before = tile.terrain
+    state = GAME.apply(state, player, action).state
+    after = state.board.tile(action.position)
+    assert after is not None
+    assert after.terrain is terrain_toward(before, owner.home_terrain, 1)
+    assert after.terrain is not owner.home_terrain
+    assert state.cult_spades[player] == 0
 
 
 def test_town_upgrade_awards_points_key_and_round_tile_vp() -> None:

@@ -21,7 +21,12 @@ def final_scores(
         for seat, points in awards.items():
             cult[seat] += points
     sizes = {
-        seat: largest_area(state.board, seat, state.players[seat].shipping)
+        seat: largest_area(
+            state.board,
+            seat,
+            state.players[seat].shipping,
+            state.players[seat].profile.reach,
+        )
         for seat in all_seats
     }
     area = {seat: 0 for seat in all_seats}
@@ -73,9 +78,11 @@ def split_rank_points(
     return awards
 
 
-def largest_area(board: Board, player: PlayerId, shipping: int) -> int:
+def largest_area(board: Board, player: PlayerId, shipping: int, reach: int = 0) -> int:
     """The size of the player's largest connected area."""
     largest = 0
     for position in board.occupied(player):
-        largest = max(largest, len(board.connected_area(position, player, shipping)))
+        largest = max(
+            largest, len(board.connected_area(position, player, shipping, reach))
+        )
     return largest

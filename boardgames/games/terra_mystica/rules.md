@@ -13,9 +13,13 @@ build on your home terrain, so you must transform neighbouring terrain to expand
 
 This implementation uses the standard 113-tile base map, all fourteen base-game
 factions and their starting resources, building costs and cost/track exceptions.
-Not yet implemented: bonus cards, favor tiles, leeching power from opponents,
-bridges, power conversions and faction special actions. The core economy,
-terraforming, cults, towns and scoring are playable.
+Dwarves may tunnel two spaces and Fakirs may fly three spaces, so both can build
+and score across rivers. Not yet implemented: bonus cards, favor tiles, leeching
+power from opponents, bridges, power conversions and the other faction special
+actions. In particular, building a stronghold grants no one-time reward: the
+Cultists' +7 VP, the Alchemists' +12 power, the Mermaids' +1 shipping, the
+Halflings' 3 spades and the Darklings' priest ordination are all absent. The core
+economy, terraforming, cults, towns and scoring are playable.
 
 ## Round structure
 Each round has an income phase, an action phase and cleanup.
@@ -33,9 +37,10 @@ Each round has an income phase, an action phase and cleanup.
 
 ## Actions
 - **Build a dwelling** on a tile reachable from one of your structures, directly
-  or across up to your shipping value in river spaces. If the tile is not your
-  home terrain you must pay spades to transform it first. Spades cost workers at
-  your digging rate (or priests for the Darklings).
+  or across up to your shipping value in river spaces. Dwarves instead reach two
+  spaces and Fakirs three, ignoring rivers. If the tile is not your home terrain
+  you must pay spades to transform it first. Spades cost workers at your digging
+  rate (or priests for the Darklings).
 - **Transform terrain** into your home terrain without building.
 - **Upgrade a structure**: dwelling to trading house; trading house to temple or
   stronghold; temple to sanctuary. A trading house costs less when an opponent's
@@ -58,8 +63,9 @@ Each round has an income phase, an action phase and cleanup.
 ## Towns and keys
 Four connected structures with total power 7 form a town (three with a sanctuary).
 Building or upgrading into a town awards 5 victory points, a key and the faction's
-town bonus. A key lets one cult marker enter space 10. Structures already in a
-town are marked and cannot found another town; building next to a town expands it.
+town bonus. The base game has 10 town tiles, so at most 10 towns exist. A key lets
+one cult marker enter space 10. Structures already in a town are marked and cannot
+found another town; building next to a town expands it.
 
 ## Scoring tiles
 Each round tile scores one action: dwellings, trading houses, strongholds,
@@ -67,7 +73,9 @@ sanctuaries, spades or towns. Two tiles each pay 5 points for a stronghold or a
 sanctuary, and the spade tile is never placed in rounds 5 or 6. The points are awarded
 immediately when the matching action is taken. Each tile also shows a cult bonus, paid at the end of that round. A
 cult-bonus spade budget belongs to the player it is announced for; the text and
-observation show it until that player uses or skips it. Priests are limited to
+observation show it until that player uses or skips it. A cult-bonus spade may
+transform a tile part of the way, stopping at any terrain on the wheel; the
+player spends up to the budget and keeps whatever is left. Priests are limited to
 each faction's supply of seven; priests sent to cult order spaces still count
 against that supply.
 

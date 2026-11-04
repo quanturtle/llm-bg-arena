@@ -143,6 +143,7 @@ class FactionProfile:
     shipping_start: int = 0
     shipping_max: int = 3
     can_ship: bool = True
+    reach: int = 0
     digging_start: int = 0
     digging_max: int = 2
     can_dig: bool = True
@@ -190,6 +191,7 @@ MAX_BUILDINGS: dict[BuildingType, int] = {
     BuildingType.SANCTUARY: 1,
 }
 
+TOWN_SUPPLY = 10
 CULT_ORDER_STEPS: tuple[int, ...] = (3, 2, 2, 2)
 CULT_POWER_THRESHOLDS: dict[int, int] = {3: 1, 5: 2, 7: 2, 10: 3}
 PRIEST_SUPPLY = 7
@@ -414,6 +416,7 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         starting_resources=Resources(coins=15, workers=3, power1=5, power2=7),
         starting_cults=(0, 0, 2, 0),
         can_ship=False,
+        reach=2,
         trading_house_income=DWARF_TRADING_HOUSE_INCOME,
     ),
     FactionProfile(
@@ -434,6 +437,7 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         starting_resources=Resources(coins=15, workers=3, power1=7, power2=5),
         starting_cults=(1, 0, 0, 1),
         can_ship=False,
+        reach=3,
         digging_max=1,
         costs=BuildingCosts(
             dwelling=Cost(coins=2, workers=1),

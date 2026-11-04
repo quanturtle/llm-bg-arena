@@ -51,6 +51,12 @@ class Hex:
     def notation(self) -> str:
         return f"{self.q},{self.r}"
 
+    def distance(self, other: "Hex") -> int:
+        """Hex distance, counting each edge as one step."""
+        dq = self.q - other.q
+        dr = self.r - other.r
+        return (abs(dq) + abs(dr) + abs(dq + dr)) // 2
+
 
 @dataclass(frozen=True)
 class Building:
@@ -147,8 +153,12 @@ class Board:
                 result.append(neighbour)
         return tuple(result)
 
-    def reachable_from(self, start: Hex, shipping: int) -> set[Hex]:
-        """Land hexes reachable from one structure, crossing rivers up to `shipping`."""
+    def reachable_from(self, start: Hex, shipping: int, reach: int = 0) -> set[Hex]:
+        """Land hexes reachable from one structure, crossing rivers up to `shipping`.
+
+        `reach` is a faction's tunneling or carpet range: every land hex within
+        that many steps, regardless of rivers.
+        """
         reachable: set[Hex] = set()
         for neighbour in start.neighbours():
             tile = self.tile(neighbour)
@@ -158,26 +168,34 @@ class Board:
                 reachable.add(neighbour)
             elif shipping > 0:
                 self._river_targets(neighbour, shipping, reachable)
+        if reach > 0:
+            reachable.update(
+                tile.position
+                for tile in self.tiles
+                if tile.is_land and start.distance(tile.position) <= reach
+            )
         return reachable
 
-    def reachable_land(self, player: PlayerId, shipping: int) -> tuple[Hex, ...]:
+    def reachable_land(
+        self, player: PlayerId, shipping: int, reach: int = 0
+    ) -> tuple[Hex, ...]:
         """Empty-or-not land hexes reachable from the player's structures."""
         reachable: set[Hex] = set()
         for start in self.occupied(player):
-            reachable |= self.reachable_from(start, shipping)
+            reachable |= self.reachable_from(start, shipping, reach)
         return tuple(tile.position for tile in self.tiles if tile.position in reachable)
 
     def connected_area(
-        self, start: Hex, player: PlayerId, shipping: int
+        self, start: Hex, player: PlayerId, shipping: int, reach: int = 0
     ) -> tuple[Hex, ...]:
-        """The player's area through `start`, including shipping crossings."""
+        """The player's area through `start`, including shipping and faction reach."""
         found: list[Hex] = []
         queue: list[Hex] = [start]
         seen: set[Hex] = {start}
         while queue:
             position = queue.pop(0)
             found.append(position)
-            reachable = self.reachable_from(position, shipping)
+            reachable = self.reachable_from(position, shipping, reach)
             for other in self.occupied(player):
                 if other not in seen and other in reachable:
                     seen.add(other)
@@ -286,6 +304,7 @@ class TerraMysticaState:
     cult_spades: tuple[int, ...]
     used_power_actions: frozenset[PowerActionKind]
     used_orders: Mapping[tuple[Cult, int], PlayerId]
+    towns: int = 0
     end_reason: str | None = None
 
 
@@ -497,6 +516,19 @@ def terrain_distance(source: Terrain, target: Terrain) -> int:
     return min(difference, len(TERRAIN_WHEEL) - difference)
 
 
+def terrain_toward(source: Terrain, target: Terrain, steps: int) -> Terrain:
+    """Move `steps` along the shortest wheel path from `source` toward `target`."""
+    if source is Terrain.RIVER or target is Terrain.RIVER:
+        raise ValueError("rivers are not part of the terrain wheel")
+    distance = terrain_distance(source, target)
+    if steps >= distance:
+        return target
+    start = TERRAIN_WHEEL.index(source)
+    end = TERRAIN_WHEEL.index(target)
+    step = 1 if (end - start) % len(TERRAIN_WHEEL) <= len(TERRAIN_WHEEL) // 2 else -1
+    return TERRAIN_WHEEL[(start + step * steps) % len(TERRAIN_WHEEL)]
+
+
 def spades_for(profile: FactionProfile, terrain: Terrain) -> int:
     """Spades needed to turn `terrain` into the faction's home terrain."""
     if terrain is profile.home_terrain:
@@ -620,9 +652,19 @@ def mark_town(board: Board, positions: tuple[Hex, ...]) -> Board:
     return board
 
 
-def settle_town(board: Board, position: Hex, player: PlayerId) -> tuple[Board, bool]:
+def settle_town(
+    board: Board,
+    position: Hex,
+    player: PlayerId,
+    *,
+    shipping: int = 0,
+    reach: int = 0,
+    towns_left: int | None = None,
+) -> tuple[Board, bool]:
     """Mark a new or expanded town; True when a new town was founded."""
-    component = board.connected(position, player)
+    if towns_left is not None and towns_left <= 0:
+        return board, False
+    component = board.connected_area(position, player, shipping, reach)
     already = any(
         (tile := board.tile(hex_position)) is not None
         and tile.building is not None
