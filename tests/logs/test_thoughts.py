@@ -19,6 +19,7 @@ def test_thoughts_log_writes_reasoning_tool_calls_and_notes_per_decision() -> No
         MatchStarted(
             match_id="m",
             game_id="tic_tac_toe",
+            rules_version=1,
             config={},
             seed=3,
             seats=[

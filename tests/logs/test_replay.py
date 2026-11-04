@@ -205,17 +205,6 @@ def test_read_log_rejects_a_malformed_line(tmp_path: Path) -> None:
     return
 
 
-def test_log_from_before_rules_versions_reads_as_version_one(tmp_path: Path) -> None:
-    path = tmp_path / "old.jsonl"
-    start = record_match(TicTacToe(), TicTacToeConfig(), random_agents(2))[0]
-    old_line = start.model_dump_json(exclude={"rules_version"})
-    path.write_text(old_line + "\n", encoding="utf-8")
-    read = read_log(path)[0]
-    assert isinstance(read, MatchStarted)
-    assert read.rules_version == 1
-    return
-
-
 def test_cli_replay_reports_a_match(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

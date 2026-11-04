@@ -134,6 +134,7 @@ def test_seats_are_found_by_player_number_not_position() -> None:
     start = MatchStarted(
         match_id="m",
         game_id="tic_tac_toe",
+        rules_version=1,
         config={},
         seed=1,
         seats=seats,

@@ -34,8 +34,7 @@ class MatchStarted(Record):
     log_version: int = LOG_VERSION
     match_id: str
     game_id: str
-    # logs written before rules versions existed count as version 1
-    rules_version: int = 1
+    rules_version: int
     config: dict[str, PlainJson]
     seed: int
     seats: list[SeatRecord]
