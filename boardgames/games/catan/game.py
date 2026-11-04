@@ -399,18 +399,6 @@ class Catan:
                         {"player": player, "gains": hand_json(gains)},
                     )
                 )
-        if not setup_road_edges(new_state, vertex):
-            events.append(
-                Event(
-                    "setup_road_skipped",
-                    f"No empty path touches v{vertex}; the setup road is skipped.",
-                    {"player": player, "vertex": vertex},
-                )
-            )
-            skipped_state, next_events = advance_setup(
-                replace(new_state, setup_vertex=None)
-            )
-            return Transition(skipped_state, tuple([*events, *next_events]))
         return Transition(new_state, tuple(events))
 
     def place_setup_road(
