@@ -21,7 +21,7 @@ from pydantic import BaseModel, ConfigDict
 from boardgames.arena.clock import Clock, SystemClock
 from boardgames.arena.control import PauseGate
 from boardgames.arena.lineup import (
-    DEFAULT_CACHE_DIR,
+    DEFAULT_REPLIES,
     PreparedMatch,
     new_match_id,
     open_match_files,
@@ -30,6 +30,7 @@ from boardgames.arena.lineup import (
 )
 from boardgames.arena.match_config import parse_match_config
 from boardgames.core import ArenaError, ConfigError
+from boardgames.llm.cache import ResponseStore
 from boardgames.llm.model import ChatModel
 from boardgames.logs.sink import RecordSink
 
@@ -86,24 +87,22 @@ class MatchLauncher:
         *,
         clock: Clock | None = None,
         id_factory: Callable[[], str] = new_match_id,
-        cache_dir: Path = DEFAULT_CACHE_DIR,
-        prepare: Callable[..., PreparedMatch] = prepare_match,
+        replies: ResponseStore = DEFAULT_REPLIES,
         open_files: Callable[
             [PreparedMatch], AbstractContextManager[RecordSink]
         ] = open_match_files,
     ) -> None:
         """`model` serves every seat; with None (no API key) each start raises.
 
-        The clock, match ids, cache folder, preparation and log files are injectable
-        so tests can replace every filesystem and time dependency.
+        The clock, match ids, reply cache and log files are injectable, so tests
+        can replace every filesystem and time dependency.
         """
         self._runs_dir = runs_dir
         self._model = model
         self._examples_dir = examples_dir
         self._clock = clock or SystemClock()
         self._id_factory = id_factory
-        self._cache_dir = cache_dir
-        self._prepare = prepare
+        self._replies = replies
         self._open_files = open_files
         self._launched: dict[str, Running] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -127,13 +126,13 @@ class MatchLauncher:
             raise ConfigError(f"the config is not valid YAML: {error}") from error
         config = parse_match_config(raw, "config")
         running = Running(
-            self._prepare(
+            prepare_match(
                 config,
                 self._model,
                 self._runs_dir,
                 use_config_log=False,
                 id_factory=self._id_factory,
-                cache_dir=self._cache_dir,
+                replies=self._replies,
                 clock=self._clock,
             )
         )
@@ -147,11 +146,7 @@ class MatchLauncher:
         """Play the match and keep how it ended; a failure is kept for the viewer."""
         try:
             await run_prepared(
-                running.prepared,
-                None,
-                running.gate,
-                clock=self._clock,
-                open_files=self._open_files,
+                running.prepared, None, running.gate, open_files=self._open_files
             )
         except asyncio.CancelledError:
             running.ending = "stopped"

@@ -26,7 +26,11 @@ from boardgames.arena.match_config import (
 )
 from boardgames.arena.runner import ALWAYS_RUNNING, MatchResult, play_match
 from boardgames.core import AnyGame, ConfigError, GameConfig, create_game
-from boardgames.llm.cache import CachedChatModel, DirectoryResponseStore
+from boardgames.llm.cache import (
+    CachedChatModel,
+    DirectoryResponseStore,
+    ResponseStore,
+)
 from boardgames.llm.model import ChatModel, ModelSettings
 from boardgames.llm.openrouter_model import OpenRouterChatModel
 from boardgames.llm.parsing import ActionExtractor
@@ -35,6 +39,7 @@ from boardgames.logs.sink import Broadcast, JsonlFile, RecordSink
 from boardgames.logs.thoughts import ThoughtsFile, thoughts_path
 
 DEFAULT_CACHE_DIR = Path(".arena_cache")
+DEFAULT_REPLIES = DirectoryResponseStore(DEFAULT_CACHE_DIR)
 API_KEY_VARIABLE = "OPENROUTER_API_KEY"
 
 
@@ -63,12 +68,12 @@ def openrouter_model(api_key: str) -> ChatModel:
 
 
 def with_cache(
-    model: ChatModel, use_cache: bool, cache_dir: Path = DEFAULT_CACHE_DIR
+    model: ChatModel, use_cache: bool, replies: ResponseStore = DEFAULT_REPLIES
 ) -> ChatModel:
-    """`model` behind the reply cache when the match asks for it."""
+    """`model` behind the reply cache `replies` when the match asks for it."""
     if not use_cache:
         return model
-    return CachedChatModel(model, DirectoryResponseStore(cache_dir))
+    return CachedChatModel(model, replies)
 
 
 def derive_seed(match_seed: int, seat: int) -> int:
@@ -124,17 +129,16 @@ def prepare_match(
     log: Path | None = None,
     thoughts: Path | None = None,
     use_config_log: bool = True,
-    match_id: str | None = None,
     id_factory: Callable[[], str] = new_match_id,
-    cache_dir: Path = DEFAULT_CACHE_DIR,
+    replies: ResponseStore = DEFAULT_REPLIES,
     clock: Clock | None = None,
 ) -> PreparedMatch:
     """Agents and log paths for a config; the keyword arguments override defaults.
 
     `model` serves every seat; None (no API key) is a ConfigError. With
     `use_config_log` false the file's `log` is ignored, so a server always writes
-    into `runs_dir`. Tests may supply the id, both file paths, the cache folder
-    and the clock.
+    into `runs_dir`. Tests may supply the ids, both file paths, the reply cache
+    and the clock, which the prepared match keeps for its run.
     """
     game = create_game(config.game)
     game_config = game.parse_config(config.config)
@@ -143,14 +147,14 @@ def prepare_match(
     if model is None:
         first = llm_agent_settings(seats[0], 0).model.model
         raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {first!r}")
-    stack = with_cache(model, config.cache, cache_dir)
+    stack = with_cache(model, config.cache, replies)
     agents = [
         agent_for_seat(seat, name, match_seed, index, stack)
         for index, (seat, name) in enumerate(
             zip(seats, player_names(seats), strict=True)
         )
     ]
-    match_id = match_id or id_factory()
+    match_id = id_factory()
     default_log = runs_dir / f"{game.id}-{match_seed}-{match_id}.jsonl"
     file_log = config.log if use_config_log else None
     log_path = log or file_log or default_log
@@ -181,13 +185,11 @@ async def run_prepared(
     prepared: PreparedMatch,
     console: TextIO | None,
     control: MatchControl = ALWAYS_RUNNING,
-    clock: Clock | None = None,
     open_files: Callable[
         [PreparedMatch], AbstractContextManager[RecordSink]
     ] = open_match_files,
 ) -> MatchResult:
     """Play a prepared match into the sink `open_files` gives, and into `console`."""
-    clock = clock or prepared.clock
     with open_files(prepared) as files:
         sinks: list[RecordSink] = [files]
         if console is not None:
@@ -199,6 +201,6 @@ async def run_prepared(
             prepared.agents,
             match_id=prepared.match_id,
             sink=Broadcast(sinks),
-            clock=clock,
+            clock=prepared.clock,
             control=control,
         )

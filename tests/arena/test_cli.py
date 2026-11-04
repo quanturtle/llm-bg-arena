@@ -14,6 +14,7 @@ from boardgames.arena.lineup import (
     prepare_match,
 )
 from boardgames.arena.match_config import LlmSeat, parse_match_config
+from boardgames.llm.cache import DirectoryResponseStore
 from tests.arena.support import FakeClock
 from tests.llm.fakes import FirstListedMove
 
@@ -126,20 +127,18 @@ def test_llm_seat_builds_an_llm_agent_with_its_settings() -> None:
     return
 
 
-def test_prepare_match_accepts_paths_cache_and_clock(tmp_path: Path) -> None:
-    config = parse_match_config(
-        {"game": "tic_tac_toe", "cache": True}, "test"
-    )
+def test_prepare_match_accepts_ids_paths_replies_and_clock(tmp_path: Path) -> None:
+    config = parse_match_config({"game": "tic_tac_toe", "cache": True}, "test")
     log = tmp_path / "match.jsonl"
     thoughts = tmp_path / "thoughts.md"
     prepared = prepare_match(
         config,
         FirstListedMove(),
         tmp_path / "runs",
-        match_id="chosen",
+        id_factory=lambda: "chosen",
         log=log,
         thoughts=thoughts,
-        cache_dir=tmp_path / "cache",
+        replies=DirectoryResponseStore(tmp_path / "cache"),
         clock=FakeClock(),
     )
     assert prepared.match_id == "chosen"
