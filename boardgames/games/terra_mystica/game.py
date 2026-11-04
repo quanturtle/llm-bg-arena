@@ -852,7 +852,10 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         next_player = _next_cult_spade_player(state)
         if next_player is None:
             return _start_next_round(state, events)
-        return Transition(replace(state, active_player=next_player), events)
+        if next_player == state.active_player:
+            return Transition(state, events)
+        event = _cult_spade_event(state, next_player, _round_tile(state).bonus)
+        return Transition(replace(state, active_player=next_player), (*events, event))
 
     def advance_turn(
         self,
@@ -989,17 +992,7 @@ def end_round(
         next_player = _next_cult_spade_player(state)
         if next_player is None:
             return _start_next_round(state, events)
-        event = Event(
-            "cult_bonus",
-            f"{seat_label(next_player)} may use {budgets[next_player]} "
-            f"cult-bonus spade(s).",
-            {
-                "player": next_player,
-                "cult": bonus.cult.value,
-                "reward": bonus.reward,
-                "amount": budgets[next_player],
-            },
-        )
+        event = _cult_spade_event(state, next_player, bonus)
         return Transition(replace(state, active_player=next_player), (*events, event))
     bonus_events: list[Event] = []
     for seat in new_order:
@@ -1067,6 +1060,22 @@ def _apply_cult_bonus(
         },
     )
     return state, event
+
+
+def _cult_spade_event(
+    state: TerraMysticaState, player: PlayerId, bonus: CultBonus
+) -> Event:
+    return Event(
+        "cult_bonus",
+        f"{seat_label(player)} may use {state.cult_spades[player]} "
+        "cult-bonus spade(s).",
+        {
+            "player": player,
+            "cult": bonus.cult.value,
+            "reward": bonus.reward,
+            "amount": state.cult_spades[player],
+        },
+    )
 
 
 def _next_cult_spade_player(state: TerraMysticaState) -> PlayerId | None:

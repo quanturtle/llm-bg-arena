@@ -59,6 +59,8 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
             )
         ],
         "passed": sorted(state.passed),
+        "pass_order": list(state.pass_order),
+        "used_power_actions": sorted(state.used_power_actions),
         "setup_queue": list(state.setup_queue),
         "players": [player_data(state, seat) for seat in players],
         "board": [
@@ -134,6 +136,11 @@ def render_text(observation: Observation) -> str:
     lines.append(scoring_line(data))
     lines.append(cult_bonuses_line(data))
     lines.append(orders_line(data))
+    lines.append(passed_line(data))
+    lines.append(power_actions_line(data))
+    spades = cult_spades_line(data)
+    if spades:
+        lines.append(spades)
     lines.extend(player_lines(data))
     lines.extend(board_lines(data))
     if observation.viewer is not None:
@@ -196,6 +203,31 @@ def orders_line(data: JsonObject) -> str:
     return "Claimed cult order spaces: " + ", ".join(parts) + "."
 
 
+def passed_line(data: JsonObject) -> str:
+    order = _ints(data, "pass_order")
+    if not order:
+        return "Passed: none."
+    return (
+        "Passed in order: "
+        + ", ".join(seat_label(PlayerId(seat)) for seat in order)
+        + "."
+    )
+
+
+def power_actions_line(data: JsonObject) -> str:
+    actions = _strings(data, "used_power_actions")
+    return "Power actions used this round: " + (", ".join(actions) or "none") + "."
+
+
+def cult_spades_line(data: JsonObject) -> str:
+    if _str(data, "phase") != "cult_spades":
+        return ""
+    active = _int(data, "active")
+    budgets = _ints(data, "cult_spades")
+    budget = budgets[active] if active < len(budgets) else 0
+    return f"{seat_label(PlayerId(active))} has {budget} cult-bonus spade(s)."
+
+
 def player_lines(data: JsonObject) -> list[str]:
     lines: list[str] = []
     for player in _objects(data, "players"):
@@ -216,7 +248,8 @@ def player_lines(data: JsonObject) -> list[str]:
             f"{_int(player, 'priests')}p, "
             f"power {'/'.join(str(value) for value in power)}, "
             f"cults {cult_text}, shipping {_int(player, 'shipping')}, "
-            f"digging {_int(player, 'digging')}, keys {_int(player, 'keys')}. "
+            f"digging {_int(player, 'digging')}, keys {_int(player, 'keys')}, "
+            f"home {_str(player, 'home_terrain')}. "
             f"Buildings: {', '.join(buildings) or 'none'}."
         )
     return lines

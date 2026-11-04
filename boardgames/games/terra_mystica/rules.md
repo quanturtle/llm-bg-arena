@@ -23,8 +23,8 @@ Each round has an income phase, an action phase and cleanup.
   houses, priests from temples and sanctuaries, plus the faction's base worker
   income and stronghold income. The standard base income is 1 worker (Engineers
   have none, Swarmlings have 2).
-- Actions: players take one action at a time until they pass. The first player to
-  pass starts the next round.
+- Actions: players take one action at a time until they pass. The pass order is
+  recorded, and the first player to pass starts the next round.
 - Cleanup: the current round tile's cult bonus is paid in the next round's play
   order, then the next round's income is collected. If the bonus is spades, its
   owner chooses which reachable tiles to transform or skips them. There is no
