@@ -1,5 +1,10 @@
 """Agents: random, LLM and other players behind one interface."""
 
+from boardgames.agents.attempt import (
+    AttemptRecord,
+    AttemptRejection,
+    AttemptToolCall,
+)
 from boardgames.agents.base import (
     ActionText,
     Agent,
@@ -16,6 +21,9 @@ __all__ = [
     "ActionText",
     "Agent",
     "AgentChoice",
+    "AttemptRecord",
+    "AttemptRejection",
+    "AttemptToolCall",
     "Chosen",
     "DecisionRequest",
     "DecisionTrace",

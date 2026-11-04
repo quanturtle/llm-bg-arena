@@ -2,7 +2,7 @@ import json
 from io import StringIO
 from pathlib import Path
 
-from boardgames.agents import DecisionTrace
+from boardgames.agents import AttemptRecord, DecisionTrace
 from boardgames.logs.schema import (
     DecisionRecord,
     MatchFinished,
@@ -36,13 +36,15 @@ def test_thoughts_log_writes_reasoning_tool_calls_and_notes_per_decision() -> No
         reasoning="Center is strongest.",
         memory="took center",
         attempts=[
-            {
-                "tool_calls": [
-                    {"name": "get_rules", "arguments": "", "result": "Rules."}
-                ],
-                "rejection": {"kind": "illegal", "feedback": "b2 is taken."},
-                "answer": "b2",
-            }
+            AttemptRecord.model_validate(
+                {
+                    "tool_calls": [
+                        {"name": "get_rules", "arguments": "", "result": "Rules."}
+                    ],
+                    "rejection": {"kind": "illegal", "feedback": "b2 is taken."},
+                    "answer": "b2",
+                }
+            )
         ],
         illegal_attempts=1,
         api_retries=0,

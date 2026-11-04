@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
+from boardgames.agents.attempt import AttemptRecord
 from boardgames.core import (
     ActionSpace,
     Decision,
@@ -14,6 +15,7 @@ from boardgames.core import (
 )
 
 type FallbackPolicy = Literal["forfeit", "random", "default"]
+type TraceAttempt = AttemptRecord | JsonObject
 
 
 class ActionText[A](Protocol):
@@ -62,7 +64,7 @@ class DecisionTrace:
 
     reasoning: str | None = None
     memory: str | None = None
-    attempts: tuple[JsonObject, ...] = ()
+    attempts: tuple[TraceAttempt, ...] = ()
     illegal_attempts: int = 0
     api_retries: int = 0
     fallback: FallbackPolicy | None = None
@@ -75,7 +77,12 @@ class DecisionTrace:
         return {
             "reasoning": self.reasoning,
             "memory": self.memory,
-            "attempts": list(self.attempts),
+            "attempts": [
+                attempt.model_dump(mode="json")
+                if isinstance(attempt, AttemptRecord)
+                else attempt
+                for attempt in self.attempts
+            ],
             "illegal_attempts": self.illegal_attempts,
             "api_retries": self.api_retries,
             "fallback": self.fallback,

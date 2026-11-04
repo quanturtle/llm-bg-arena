@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from pydantic import JsonValue as PlainJson
 
-from boardgames.agents import DecisionTrace
+from boardgames.agents import AttemptRecord, DecisionTrace, FallbackPolicy
 from boardgames.core import Event, JsonObject, JsonValue, clean_json
 
 LOG_VERSION = 1
@@ -51,10 +51,10 @@ class EventRecord(Record):
 class TraceRecord(Record):
     reasoning: str | None
     memory: str | None
-    attempts: list[dict[str, PlainJson]]
+    attempts: list[AttemptRecord]
     illegal_attempts: int
     api_retries: int
-    fallback: Literal["forfeit", "random", "default"] | None
+    fallback: FallbackPolicy | None
     prompt_tokens: int
     completion_tokens: int
     cost_usd: float | None

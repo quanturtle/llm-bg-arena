@@ -11,6 +11,7 @@ call is recorded in the decision trace.
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from boardgames.agents.attempt import AttemptRecord
 from boardgames.agents.base import (
     AgentChoice,
     Chosen,
@@ -20,7 +21,7 @@ from boardgames.agents.base import (
     Forfeited,
 )
 from boardgames.agents.random_agent import uniform_action
-from boardgames.core import JsonObject, JsonValue, Rng
+from boardgames.core import JsonValue, Rng
 from boardgames.llm.model import (
     ChatModel,
     Completion,
@@ -86,7 +87,7 @@ class Attempt[A]:
 
     resolution: Resolved[A] | Rejected | None
     reply: ParsedReply | None
-    record: dict[str, JsonValue]
+    record: AttemptRecord
     completions: tuple[Completion, ...]
     rejections: int
 
@@ -249,10 +250,12 @@ class LlmAgent:
             completions.append(extraction.completion)
             if extraction.action is not None:
                 resolution = Resolved(extraction.action, "extractor")
-        record = {
-            "messages": messages_json(new_messages),
-            **attempt_record(completion, parsed, resolution, completions[1:]),
-        }
+        record = AttemptRecord.model_validate(
+            {
+                "messages": messages_json(new_messages),
+                **attempt_record(completion, parsed, resolution, completions[1:]),
+            }
+        )
         rejections = 1 if isinstance(resolution, Rejected) else 0
         return Attempt(resolution, parsed, record, tuple(completions), rejections)
 
@@ -338,11 +341,13 @@ def tool_round_attempt[A](
         {"name": call.name, "arguments": call.arguments, "result": result.text}
         for call, result in zip(completion.tool_calls, results, strict=True)
     ]
-    record: dict[str, JsonValue] = {
-        "messages": messages_json(new_messages),
-        **attempt_record(completion, reply, resolution, ()),
-        "tool_calls": calls,
-    }
+    record = AttemptRecord.model_validate(
+        {
+            "messages": messages_json(new_messages),
+            **attempt_record(completion, reply, resolution, ()),
+            "tool_calls": calls,
+        }
+    )
     return Attempt(resolution, reply, record, (completion,), rejections)
 
 
@@ -381,7 +386,9 @@ def decision_trace[A](
     """Totals over every model and extractor call of a decision."""
     completions = [c for attempt in attempts for c in attempt.completions]
     costs = [c.cost_usd for c in completions]
-    records: tuple[JsonObject, ...] = tuple(attempt.record for attempt in attempts)
+    records: tuple[AttemptRecord, ...] = tuple(
+        attempt.record for attempt in attempts
+    )
     return DecisionTrace(
         reasoning=reasoning,
         memory=memory,

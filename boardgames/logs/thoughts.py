@@ -5,11 +5,11 @@ each tool call with its result, rejected answers with the feedback, the notes
 the model kept, and tokens and cost. Decisions without a model are one line.
 """
 
-from collections.abc import Mapping
 from pathlib import Path
 from types import TracebackType
 from typing import Self, TextIO
 
+from boardgames.agents import AttemptRecord, AttemptToolCall
 from boardgames.core import PlayerId, clean_text, seat_label
 from boardgames.logs.schema import (
     DecisionRecord,
@@ -132,33 +132,29 @@ def trace_text(trace: TraceRecord) -> str:
     return "\n".join(parts) + "\n"
 
 
-def attempt_text(attempt: Mapping[str, object]) -> list[str]:
+def attempt_text(attempt: AttemptRecord) -> list[str]:
     """The model's own reasoning, its tool calls and any rejection of one call."""
     parts: list[str] = []
-    model_reasoning = attempt.get("model_reasoning")
-    if isinstance(model_reasoning, str) and model_reasoning.strip():
-        parts.append(f"**Model reasoning**\n\n{model_reasoning.strip()}\n")
-    calls = attempt.get("tool_calls")
-    if isinstance(calls, list) and calls:
-        lines = [tool_call_line(call) for call in calls]
+    if attempt.model_reasoning and attempt.model_reasoning.strip():
+        parts.append(f"**Model reasoning**\n\n{attempt.model_reasoning.strip()}\n")
+    if attempt.tool_calls:
+        lines = [tool_call_line(call) for call in attempt.tool_calls]
         parts.append("**Tool calls**\n\n" + "\n".join(lines) + "\n")
-    rejection = attempt.get("rejection")
-    if isinstance(rejection, dict):
-        answer = attempt.get("answer")
-        shown = f"`{answer}`" if isinstance(answer, str) else "the reply"
-        parts.append(f"**Rejected** {shown}: {rejection.get('feedback')}\n")
+    if attempt.rejection is not None:
+        shown = f"`{attempt.answer}`" if attempt.answer is not None else "the reply"
+        parts.append(
+            f"**Rejected** {shown}: {attempt.rejection.feedback}\n"
+        )
     return parts
 
 
-def tool_call_line(call: object) -> str:
+def tool_call_line(call: AttemptToolCall) -> str:
     """One bullet per tool call, with its result cut to RESULT_CHARS."""
-    if not isinstance(call, dict):
-        return f"- {call!r}"
-    result = str(call.get("result", ""))
+    result = call.result
     if len(result) > RESULT_CHARS:
         result = result[:RESULT_CHARS] + " […]"
     result = result.replace("\n", "\n  ")
-    return f"- `{call.get('name')}` {call.get('arguments')}\n  {result}"
+    return f"- `{call.name}` {call.arguments}\n  {result}"
 
 
 def finish_text(record: MatchFinished, agents: dict[int, str]) -> str:
