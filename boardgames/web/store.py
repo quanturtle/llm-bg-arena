@@ -115,26 +115,6 @@ class FinishedMatch(MatchSummary):
     finished_at: str
     seats: Sequence[FinishedSeatSummary]
 
-    @model_validator(mode="before")
-    @classmethod
-    def _finished_seats(cls, data: Any) -> Any:
-        """Accept plain seats built by callers, as long as they have a result."""
-        if not isinstance(data, dict):
-            return data
-        seats = data.get("seats")
-        if not isinstance(seats, Sequence) or isinstance(seats, str):
-            return data
-        return {
-            **data,
-            "seats": [
-                seat.model_dump()
-                if isinstance(seat, SeatSummary)
-                and not isinstance(seat, FinishedSeatSummary)
-                else seat
-                for seat in seats
-            ],
-        }
-
 
 class RunningMatch(MatchSummary):
     status: Literal["running"] = "running"
