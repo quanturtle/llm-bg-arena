@@ -859,9 +859,9 @@ def end_round(
             },
         )
         return Transition(state, (*events, game_over))
-    new_order = state.pass_order + tuple(
-        seat for seat in state.order if seat not in state.pass_order
-    )
+    first = state.pass_order[0]
+    start = state.order.index(first)
+    new_order = (*state.order[start:], *state.order[:start])
     state = replace(
         state,
         order=new_order,
