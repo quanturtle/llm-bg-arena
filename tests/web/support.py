@@ -7,6 +7,8 @@ from pathlib import Path
 from boardgames.agents import (
     Agent,
     AgentChoice,
+    AttemptRecord,
+    AttemptRejection,
     Chosen,
     DecisionRequest,
     DecisionTrace,
@@ -41,7 +43,11 @@ class CostlyAgent:
         trace = DecisionTrace(
             reasoning=f"I pick {request.action_text.format_action(choice.action)}",
             memory="notes",
-            attempts=({"rejection": {"kind": "illegal", "feedback": "taken"}},),
+            attempts=(
+                AttemptRecord(
+                    rejection=AttemptRejection(kind="illegal", feedback="taken")
+                ),
+            ),
             illegal_attempts=1,
             api_retries=2,
             prompt_tokens=100,

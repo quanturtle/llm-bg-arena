@@ -5,7 +5,13 @@ from typing import Any
 
 import pytest
 
-from boardgames.agents import AgentChoice, Chosen, DecisionRequest, Forfeited
+from boardgames.agents import (
+    AgentChoice,
+    AttemptRejection,
+    Chosen,
+    DecisionRequest,
+    Forfeited,
+)
 from boardgames.agents.llm_agent import LlmAgent, LlmAgentSettings
 from boardgames.arena.runner import play_match
 from boardgames.games.puerto_rico import Pass
@@ -59,7 +65,7 @@ def test_legal_answer_is_chosen_with_its_trace() -> None:
     assert (trace.reasoning, trace.memory) == ("center", "took center")
     assert (trace.prompt_tokens, trace.completion_tokens) == (100, 20)
     assert trace.cost_usd == pytest.approx(0.001)
-    assert trace.attempts[0]["resolved_by"] == "strict"
+    assert trace.attempts[0].resolved_by == "strict"
     assert model.calls[0].tools[0].name == "submit_action"
     return
 
@@ -73,7 +79,7 @@ def test_illegal_answer_is_retried_with_the_rule() -> None:
     retry = model.calls[1].messages
     assert [m.role for m in retry] == ["system", "user", "assistant", "user"]
     assert "b2 is already taken by X." in retry[-1].content
-    assert len(choice.trace.attempts[1]["messages"]) == 2  # type: ignore[arg-type]
+    assert len(choice.trace.attempts[1].messages) == 2
     return
 
 
@@ -81,10 +87,9 @@ def test_bad_tool_arguments_are_retried() -> None:
     llm, _ = agent([reply(tool_arguments="{oops"), answer("a1")])
     choice = decide(llm, tic_tac_toe_request([]))
     assert isinstance(choice, Chosen)
-    assert choice.trace.attempts[0]["rejection"] == {
-        "kind": "format",
-        "feedback": "The tool arguments were not valid JSON.",
-    }
+    assert choice.trace.attempts[0].rejection == AttemptRejection(
+        kind="format", feedback="The tool arguments were not valid JSON."
+    )
     return
 
 
@@ -154,7 +159,7 @@ def test_extractor_rescues_an_unmatched_reply() -> None:
     choice = decide(llm, tic_tac_toe_request([]))
     assert isinstance(choice, Chosen)
     assert choice.action == Mark(1, 1)
-    assert choice.trace.attempts[0]["resolved_by"] == "extractor"
+    assert choice.trace.attempts[0].resolved_by == "extractor"
     assert choice.trace.prompt_tokens == 200
     return
 
@@ -254,7 +259,7 @@ def test_llm_match_is_logged_and_replays() -> None:
     llm_turns = [d for d in decisions if d.player == 0]
     assert [d.action for d in llm_turns] == ["a1", "b1", "c1"]
     assert llm_turns[1].trace.illegal_attempts == 1
-    assert llm_turns[0].trace.attempts[0]["messages"]
+    assert llm_turns[0].trace.attempts[0].messages
     assert replay_match(sink.records).steps == 5
     return
 
@@ -292,8 +297,7 @@ def test_tools_mode_explores_then_commits() -> None:
     assert choice.action == Mark(1, 1)
     assert (choice.trace.reasoning, llm.memory) == ("center", "c")
     assert choice.trace.illegal_attempts == 0
-    attempts: list[Any] = list(choice.trace.attempts)
-    names = [c["name"] for a in attempts for c in a["tool_calls"]]
+    names = [c.name for a in choice.trace.attempts for c in a.tool_calls or ()]
     assert names == ["list_legal_actions", "check_action", "take_action"]
     assert model.calls[0].tool_choice == "auto"
     assert "# Legal actions" not in model.calls[0].messages[1].content
@@ -315,7 +319,7 @@ def test_tools_mode_feeds_a_rejected_action_back_and_counts_it() -> None:
     assert isinstance(choice, Chosen)
     assert choice.action == Mark(0, 0)
     assert choice.trace.illegal_attempts == 1
-    assert choice.trace.attempts[0]["rejection"] is not None
+    assert choice.trace.attempts[0].rejection is not None
     feedback = model.calls[1].messages[-1]
     assert feedback.role == "tool"
     assert feedback.content.startswith("Not accepted:")

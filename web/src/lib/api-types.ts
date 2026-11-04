@@ -430,7 +430,6 @@ export interface components {
          * @description One model call, as the log stores it.
          *
          *     Fields have defaults so logs from before a field existed still load.
-         *     Dict-style access keeps older readers and tests working.
          */
         AttemptRecord: {
             /** Messages */

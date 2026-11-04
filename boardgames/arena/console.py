@@ -75,9 +75,8 @@ class ConsoleLog:
             reasoning = " ".join(trace.reasoning.split())[:REASONING_CHARS]
             self._print(f"      reasoning: {reasoning}")
         for attempt in trace.attempts:
-            rejection = attempt.get("rejection")
-            if isinstance(rejection, dict):
-                self._print(f"      rejected: {rejection.get('feedback')}")
+            if attempt.rejection is not None:
+                self._print(f"      rejected: {attempt.rejection.feedback}")
         if trace.fallback:
             self._print(f"      fallback: {trace.fallback}")
         return

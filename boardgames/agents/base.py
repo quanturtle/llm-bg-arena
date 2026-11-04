@@ -9,13 +9,11 @@ from boardgames.core import (
     ActionSpace,
     Decision,
     Event,
-    JsonObject,
     JsonValue,
     Observation,
 )
 
 type FallbackPolicy = Literal["forfeit", "random", "default"]
-type TraceAttempt = AttemptRecord | JsonObject
 
 
 class ActionText[A](Protocol):
@@ -64,7 +62,7 @@ class DecisionTrace:
 
     reasoning: str | None = None
     memory: str | None = None
-    attempts: tuple[TraceAttempt, ...] = ()
+    attempts: tuple[AttemptRecord, ...] = ()
     illegal_attempts: int = 0
     api_retries: int = 0
     fallback: FallbackPolicy | None = None
@@ -77,12 +75,7 @@ class DecisionTrace:
         return {
             "reasoning": self.reasoning,
             "memory": self.memory,
-            "attempts": [
-                attempt.model_dump(mode="json")
-                if isinstance(attempt, AttemptRecord)
-                else attempt
-                for attempt in self.attempts
-            ],
+            "attempts": [attempt.model_dump(mode="json") for attempt in self.attempts],
             "illegal_attempts": self.illegal_attempts,
             "api_retries": self.api_retries,
             "fallback": self.fallback,
