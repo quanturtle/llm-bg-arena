@@ -509,6 +509,45 @@ def test_cult_spade_bonus_is_a_player_choice() -> None:
     assert state.phase == "action"
 
 
+def cult_spade_points(faction: FactionType) -> tuple[int, int]:
+    """Points and spades for the first cult-bonus spade a faction uses."""
+    spade_tile = ScoringTile(
+        ScoringAction.TRADING_HOUSE, CultBonus(Cult.AIR, 4, "spades")
+    )
+    priest_tile = ScoringTile(
+        ScoringAction.DWELLING, CultBonus(Cult.WATER, 4, "priests")
+    )
+    state = play_setup(start(num_players=2, seed=1, rounds=2))
+    state = replace(state, scoring=(spade_tile, priest_tile))
+    state = replace(
+        state,
+        players=tuple(
+            replace(player, faction=faction, cults=(9, 9, 9, 9))
+            for player in state.players
+        ),
+    )
+    while state.phase == "action" and state.round == 1:
+        state = play(state, "pass")
+    (decision,) = GAME.pending_decisions(state)
+    spade = next(
+        action for action in listing(state) if isinstance(action, UseCultSpade)
+    )
+    tile = state.board.tile(spade.position)
+    assert tile is not None
+    player = state.players[decision.player]
+    cost = spades_for(player.profile, tile.terrain)
+    before = player.victory_points
+    state = GAME.apply(state, decision.player, spade).state
+    return state.players[decision.player].victory_points - before, cost
+
+
+def test_cult_spade_points_follow_the_faction_bonus() -> None:
+    gained, cost = cult_spade_points(FactionType.HALFLINGS)
+    assert gained == cost
+    gained, _ = cult_spade_points(FactionType.DARKLINGS)
+    assert gained == 0
+
+
 def test_priest_supply_caps_cult_bonuses() -> None:
     state = play_setup(start(num_players=2, seed=1, rounds=2))
     priest_tile = ScoringTile(

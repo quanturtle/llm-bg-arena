@@ -802,10 +802,20 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         board = state.board.replace_tile(
             position, replace(tile, terrain=owner.home_terrain)
         )
-        state = replace(
-            state,
-            board=board,
-            cult_spades=replace_at(state.cult_spades, player, budget - cost),
+        points = (
+            0
+            if owner.profile.uses_priests_for_spades
+            else cost * owner.profile.spade_vp_bonus
+        )
+        owner = replace(owner, victory_points=owner.victory_points + points)
+        state = replace_player(
+            replace(
+                state,
+                board=board,
+                cult_spades=replace_at(state.cult_spades, player, budget - cost),
+            ),
+            player,
+            owner,
         )
         event = Event(
             "cult_spade_used",
@@ -816,6 +826,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 "position": position.notation(),
                 "spades": cost,
                 "remaining": budget - cost,
+                "victory_points": points,
             },
         )
         return self._advance_cult_spades(state, (event,))
