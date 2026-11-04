@@ -63,10 +63,13 @@ town are marked and cannot found another town; building next to a town expands i
 
 ## Scoring tiles
 Each round tile scores one action: dwellings, trading houses, strongholds,
-sanctuaries, spades or towns. The points are awarded immediately when the
-matching action is taken. Each tile also shows a cult bonus, paid at the end of
-that round. Priests are limited to each faction's supply of seven; priests sent
-to cult order spaces still count against that supply.
+sanctuaries, spades or towns. Two tiles each pay 5 points for a stronghold or a
+sanctuary, and the spade tile is never placed in rounds 5 or 6. The points are awarded
+immediately when the matching action is taken. Each tile also shows a cult bonus, paid at the end of that round. A
+cult-bonus spade budget belongs to the player it is announced for; the text and
+observation show it until that player uses or skips it. Priests are limited to
+each faction's supply of seven; priests sent to cult order spaces still count
+against that supply.
 
 ## Final scoring
 - Each cult track: 8/4/2 points for first/second/third, split evenly on ties.

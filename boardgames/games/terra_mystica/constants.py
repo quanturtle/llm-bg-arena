@@ -65,8 +65,7 @@ class ScoringAction(Enum):
 
     DWELLING = "dwelling"
     TRADING_HOUSE = "trading_house"
-    STRONGHOLD = "stronghold"
-    SANCTUARY = "sanctuary"
+    STRONGHOLD_OR_SANCTUARY = "stronghold_or_sanctuary"
     SPADE = "spade"
     TOWN = "town"
 
@@ -200,8 +199,7 @@ AREA_FINAL_POINTS: tuple[int, ...] = (18, 12, 6)
 SCORING_VALUES: dict[ScoringAction, int] = {
     ScoringAction.DWELLING: 2,
     ScoringAction.TRADING_HOUSE: 3,
-    ScoringAction.STRONGHOLD: 5,
-    ScoringAction.SANCTUARY: 5,
+    ScoringAction.STRONGHOLD_OR_SANCTUARY: 5,
     ScoringAction.SPADE: 2,
     ScoringAction.TOWN: 5,
 }
@@ -233,8 +231,12 @@ SCORING_TILES: tuple[ScoringTile, ...] = (
     ScoringTile(ScoringAction.DWELLING, CultBonus(Cult.FIRE, 4, "power", 4)),
     ScoringTile(ScoringAction.TRADING_HOUSE, CultBonus(Cult.AIR, 4, "spades")),
     ScoringTile(ScoringAction.TRADING_HOUSE, CultBonus(Cult.WATER, 4, "spades")),
-    ScoringTile(ScoringAction.STRONGHOLD, CultBonus(Cult.AIR, 2, "workers")),
-    ScoringTile(ScoringAction.SANCTUARY, CultBonus(Cult.FIRE, 2, "workers")),
+    ScoringTile(
+        ScoringAction.STRONGHOLD_OR_SANCTUARY, CultBonus(Cult.AIR, 2, "workers")
+    ),
+    ScoringTile(
+        ScoringAction.STRONGHOLD_OR_SANCTUARY, CultBonus(Cult.FIRE, 2, "workers")
+    ),
     ScoringTile(ScoringAction.SPADE, CultBonus(Cult.EARTH, 1, "coins")),
     ScoringTile(ScoringAction.TOWN, CultBonus(Cult.EARTH, 4, "spades")),
 )

@@ -139,7 +139,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             options = FACTIONS_BY_TERRAIN[terrain]
             choice, rng = rng.below(len(options))
             factions.append(options[choice])
-        scoring_order, rng = rng.shuffled(SCORING_TILES)
+        while True:
+            scoring_order, rng = rng.shuffled(SCORING_TILES)
+            late = scoring_order[4 : min(config.rounds, 6)]
+            if not any(tile.action is ScoringAction.SPADE for tile in late):
+                break
         scoring = scoring_order[: config.rounds]
 
         profiles = [FACTION_BY_TYPE[faction] for faction in factions]
@@ -464,16 +468,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 victory_points += spades * SCORING_VALUES[ScoringAction.SPADE]
         if _round_scoring(state) is ScoringAction.DWELLING:
             victory_points += SCORING_VALUES[ScoringAction.DWELLING]
-        board, founded = settle_town(board, position, player)
-        keys = owner.keys
-        if founded:
-            victory_points += 5 + profile.town_vp_bonus
-            keys += 1
-            resources = _add_income(
-                resources, Income(workers=profile.town_workers_bonus)
-            )
-            if _round_scoring(state) is ScoringAction.TOWN:
-                victory_points += SCORING_VALUES[ScoringAction.TOWN]
+        board, resources, victory_points, keys, founded = _town_rewards(
+            state, player, board, position, resources, victory_points, owner.keys
+        )
         owner = replace(
             owner,
             resources=resources,
@@ -577,28 +574,12 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         building = replace(tile.building, type=target, in_town=tile.building.in_town)
         board = state.board.replace_tile(position, replace(tile, building=building))
         victory_points = owner.victory_points
-        if target is BuildingType.TRADING_HOUSE and (
-            _round_scoring(state) is ScoringAction.TRADING_HOUSE
-        ):
-            victory_points += SCORING_VALUES[ScoringAction.TRADING_HOUSE]
-        if target is BuildingType.STRONGHOLD and (
-            _round_scoring(state) is ScoringAction.STRONGHOLD
-        ):
-            victory_points += SCORING_VALUES[ScoringAction.STRONGHOLD]
-        if target is BuildingType.SANCTUARY and (
-            _round_scoring(state) is ScoringAction.SANCTUARY
-        ):
-            victory_points += SCORING_VALUES[ScoringAction.SANCTUARY]
-        board, founded = settle_town(board, position, player)
-        keys = owner.keys
-        if founded:
-            victory_points += 5 + profile.town_vp_bonus
-            keys += 1
-            resources = _add_income(
-                resources, Income(workers=profile.town_workers_bonus)
-            )
-            if _round_scoring(state) is ScoringAction.TOWN:
-                victory_points += SCORING_VALUES[ScoringAction.TOWN]
+        scored = _scored_upgrade(_round_scoring(state), target)
+        if scored is not None:
+            victory_points += SCORING_VALUES[scored]
+        board, resources, victory_points, keys, founded = _town_rewards(
+            state, player, board, position, resources, victory_points, owner.keys
+        )
         owner = replace(
             owner,
             resources=resources,
@@ -634,8 +615,6 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         cost = shipping_cost()
-        if not can_pay(owner.resources, cost):
-            raise IllegalActionError("you cannot pay for a shipping step")
         owner = replace(
             owner,
             resources=pay(owner.resources, cost),
@@ -656,8 +635,6 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         cost = owner.profile.digging_cost
-        if not can_pay(owner.resources, cost):
-            raise IllegalActionError("you cannot pay for a digging step")
         owner = replace(
             owner,
             resources=pay(owner.resources, cost),
@@ -1274,17 +1251,9 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
         ):
             actions.append(UpgradeBuilding(position, BuildingType.SANCTUARY))
 
-    if (
-        profile.can_ship
-        and owner.shipping < profile.shipping_max
-        and can_pay(resources, shipping_cost())
-    ):
+    if _shipping_reason(state, player) is None:
         actions.append(AdvanceShipping())
-    if (
-        profile.can_dig
-        and owner.digging < profile.digging_max
-        and can_pay(resources, profile.digging_cost)
-    ):
+    if _digging_reason(state, player) is None:
         actions.append(AdvanceDigging())
 
     if owner.resources.priests > 0:
@@ -1351,6 +1320,11 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "You cannot build on a river."
         if tile.building is not None:
             return "That tile is occupied."
+        if (
+            state.board.count(player, BuildingType.DWELLING)
+            >= MAX_BUILDINGS[BuildingType.DWELLING]
+        ):
+            return "You have no dwellings left."
         if action.position not in state.board.reachable_land(player, owner.shipping):
             return (
                 "The tile must be directly or indirectly adjacent to one of "
@@ -1408,21 +1382,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "You cannot afford that upgrade."
         return "That upgrade is not legal now."
     if isinstance(action, AdvanceShipping):
-        if not profile.can_ship:
-            return "Your faction has no shipping track."
-        if owner.shipping >= profile.shipping_max:
-            return "Your shipping track is already at its maximum."
-        if not can_pay(owner.resources, shipping_cost()):
-            return "Shipping costs 1 priest and 4 coins."
-        return "You cannot advance shipping now."
+        return _shipping_reason(state, player) or "You cannot advance shipping now."
     if isinstance(action, AdvanceDigging):
-        if not profile.can_dig:
-            return "Your faction cannot improve its digging."
-        if owner.digging >= profile.digging_max:
-            return "Your digging track is already at its maximum."
-        if not can_pay(owner.resources, profile.digging_cost):
-            return "You cannot pay for a digging step."
-        return "You cannot advance digging now."
+        return _digging_reason(state, player) or "You cannot advance digging now."
     if isinstance(action, SendPriest):
         if owner.resources.priests <= 0:
             return "You have no priest to send."
@@ -1461,6 +1423,63 @@ def _cult_top_occupied(state: TerraMysticaState, player: PlayerId, cult: Cult) -
 
 def _cult_limit_for(state: TerraMysticaState, player: PlayerId, cult: Cult) -> int:
     return cult_limit(state.players[player], _cult_top_occupied(state, player, cult))
+
+
+def _shipping_reason(state: TerraMysticaState, player: PlayerId) -> str | None:
+    owner = state.players[player]
+    if not owner.profile.can_ship:
+        return "Your faction has no shipping track."
+    if owner.shipping >= owner.profile.shipping_max:
+        return "Your shipping track is already at its maximum."
+    if not can_pay(owner.resources, shipping_cost()):
+        return "Shipping costs 1 priest and 4 coins."
+    return None
+
+
+def _digging_reason(state: TerraMysticaState, player: PlayerId) -> str | None:
+    owner = state.players[player]
+    if not owner.profile.can_dig:
+        return "Your faction cannot improve its digging."
+    if owner.digging >= owner.profile.digging_max:
+        return "Your digging track is already at its maximum."
+    if not can_pay(owner.resources, owner.profile.digging_cost):
+        return "You cannot pay for a digging step."
+    return None
+
+
+def _town_rewards(
+    state: TerraMysticaState,
+    player: PlayerId,
+    board: Board,
+    position: Hex,
+    resources: Resources,
+    victory_points: int,
+    keys: int,
+) -> tuple[Board, Resources, int, int, bool]:
+    """Mark a new town and award its points, key and faction bonus."""
+    board, founded = settle_town(board, position, player)
+    if not founded:
+        return board, resources, victory_points, keys, False
+    profile = state.players[player].profile
+    victory_points += 5 + profile.town_vp_bonus
+    keys += 1
+    resources = _add_income(resources, Income(workers=profile.town_workers_bonus))
+    if _round_scoring(state) is ScoringAction.TOWN:
+        victory_points += SCORING_VALUES[ScoringAction.TOWN]
+    return board, resources, victory_points, keys, True
+
+
+def _scored_upgrade(
+    action: ScoringAction, target: BuildingType
+) -> ScoringAction | None:
+    """The round scoring action an upgrade satisfies, if any."""
+    if target is BuildingType.TRADING_HOUSE and action is ScoringAction.TRADING_HOUSE:
+        return action
+    if target in (BuildingType.STRONGHOLD, BuildingType.SANCTUARY) and (
+        action is ScoringAction.STRONGHOLD_OR_SANCTUARY
+    ):
+        return action
+    return None
 
 
 def _valid_upgrade(source: BuildingType, target: BuildingType) -> bool:
