@@ -1047,16 +1047,18 @@ def test_mermaids_may_join_one_river_space_for_a_town() -> None:
     assert settle_town(board, position, P1, towns_left=TOWN_SUPPLY, cross_river=True)[1]
 
 
-def _mermaid_gap_state() -> tuple[TerraMysticaState, PlayerId, Hex]:
+def _mermaid_gap_state(
+    *, weak: bool = False
+) -> tuple[TerraMysticaState, PlayerId, Hex]:
     state = start(num_players=2, seed=2)
     player = state.order[0]
     board = Board.base()
     a, a2, b, b2 = _town_gap_layout(board, river_between=True)
-    for position, kind in (
-        (a, BuildingType.STRONGHOLD),
-        (a2, BuildingType.TRADING_HOUSE),
-        (b, BuildingType.TEMPLE),
-    ):
+    buildings = [(a, BuildingType.STRONGHOLD)]
+    if not weak:
+        buildings.append((a2, BuildingType.TRADING_HOUSE))
+    buildings.append((b, BuildingType.TEMPLE))
+    for position, kind in buildings:
         board = board.place(position, Building(kind, player))
     state = replace_player(
         state,
@@ -1097,6 +1099,32 @@ def test_mermaids_may_decline_the_river_town() -> None:
     tile = separate.board.tile(target)
     assert tile is not None and tile.building is not None
     assert not tile.building.in_town
+
+
+def test_mermaids_only_list_separate_when_it_changes_the_town() -> None:
+    state, _player, target = _mermaid_gap_state(weak=True)
+    assert BuildDwelling(target) in listing(state)
+    assert BuildDwelling(target, join_river=False) not in listing(state)
+
+
+def test_only_mermaids_may_decline_the_river_crossing() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    target = next(
+        tile.position
+        for tile in state.board.tiles
+        if tile.is_land and tile.building is None
+    )
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    assert "Only the Mermaids" in space.explain(BuildDwelling(target, join_river=False))
+
+    with_building = action_state(state, player, (target, BuildingType.DWELLING))
+    (decision,) = GAME.pending_decisions(with_building)
+    space = GAME.legal_actions(with_building, decision)
+    assert "Only the Mermaids" in space.explain(
+        UpgradeBuilding(target, BuildingType.TRADING_HOUSE, join_river=False)
+    )
 
 
 def test_dwarves_and_fakirs_reach_across_two_and_three_spaces() -> None:

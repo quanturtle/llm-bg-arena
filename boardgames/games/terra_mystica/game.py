@@ -117,7 +117,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 4
+    rules_version: ClassVar[int] = 5
 
     # Config ---------------------------------------------------------------
 
@@ -1263,7 +1263,13 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 total = _add_costs(total, reach_cost)
             if can_pay(resources, total):
                 actions.append(BuildDwelling(tile.position))
-                if _river_choice(state.board, player, profile, tile.position):
+                if _build_river_choice(
+                    state.board,
+                    player,
+                    profile,
+                    tile.position,
+                    TOWN_SUPPLY - state.towns,
+                ):
                     actions.append(BuildDwelling(tile.position, join_river=False))
 
     for tile in state.board.tiles:
@@ -1294,6 +1300,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                     profile,
                     position,
                     BuildingType.TRADING_HOUSE,
+                    TOWN_SUPPLY - state.towns,
                 )
         if (
             building.type is BuildingType.TRADING_HOUSE
@@ -1307,6 +1314,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 profile,
                 position,
                 BuildingType.TEMPLE,
+                TOWN_SUPPLY - state.towns,
             )
         if (
             building.type is BuildingType.TRADING_HOUSE
@@ -1320,6 +1328,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 profile,
                 position,
                 BuildingType.STRONGHOLD,
+                TOWN_SUPPLY - state.towns,
             )
         if (
             building.type is BuildingType.TEMPLE
@@ -1333,6 +1342,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 profile,
                 position,
                 BuildingType.SANCTUARY,
+                TOWN_SUPPLY - state.towns,
             )
 
     if _shipping_reason(state, player) is None:
@@ -1404,6 +1414,17 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "You cannot build on a river."
         if tile.building is not None:
             return "That tile is occupied."
+        if not action.join_river:
+            if profile.type is not FactionType.MERMAIDS:
+                return "Only the Mermaids may decline the river crossing."
+            if not _build_river_choice(
+                state.board,
+                player,
+                profile,
+                action.position,
+                TOWN_SUPPLY - state.towns,
+            ):
+                return "There is no river town to decline here."
         if (
             state.board.count(player, BuildingType.DWELLING)
             >= MAX_BUILDINGS[BuildingType.DWELLING]
@@ -1464,6 +1485,18 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             )
         if state.board.count(player, action.to) >= MAX_BUILDINGS[action.to]:
             return f"You have no {action.to.value} left."
+        if not action.join_river:
+            if profile.type is not FactionType.MERMAIDS:
+                return "Only the Mermaids may decline the river crossing."
+            if not _upgrade_river_choice(
+                state.board,
+                player,
+                profile,
+                action.position,
+                action.to,
+                TOWN_SUPPLY - state.towns,
+            ):
+                return "There is no river town to decline here."
         cost = building_cost(
             profile,
             action.to,
@@ -1593,15 +1626,66 @@ def _valid_upgrade(source: BuildingType, target: BuildingType) -> bool:
     )
 
 
-def _river_choice(
-    board: Board, player: PlayerId, profile: FactionProfile, position: Hex
+def _town_outcome(
+    board: Board,
+    position: Hex,
+    player: PlayerId,
+    cross_river: bool,
+    towns_left: int,
+) -> tuple[Board, bool]:
+    return settle_town(
+        board,
+        position,
+        player,
+        cross_river=cross_river,
+        towns_left=towns_left,
+    )
+
+
+def _build_river_choice(
+    board: Board,
+    player: PlayerId,
+    profile: FactionProfile,
+    position: Hex,
+    towns_left: int,
 ) -> bool:
-    """Whether a Mermaid may choose between joining and not joining across a river."""
+    """Whether joining across the river would change a Mermaid build's town."""
     if profile.type is not FactionType.MERMAIDS:
         return False
-    direct = set(board.connected(position, player))
-    across = set(board.connected_area(position, player, 1))
-    return direct != across
+    if set(board.connected(position, player)) == set(
+        board.connected_area(position, player, 1)
+    ):
+        return False
+    built = board.place(position, Building(BuildingType.DWELLING, player))
+    return _town_outcome(built, position, player, True, towns_left) != _town_outcome(
+        built, position, player, False, towns_left
+    )
+
+
+def _upgrade_river_choice(
+    board: Board,
+    player: PlayerId,
+    profile: FactionProfile,
+    position: Hex,
+    target: BuildingType,
+    towns_left: int,
+) -> bool:
+    """Whether joining across the river would change a Mermaid upgrade's town."""
+    if profile.type is not FactionType.MERMAIDS:
+        return False
+    if set(board.connected(position, player)) == set(
+        board.connected_area(position, player, 1)
+    ):
+        return False
+    tile = board.tile(position)
+    if tile is None or tile.building is None:
+        return False
+    upgraded = board.replace_tile(
+        position, replace(tile, building=replace(tile.building, type=target))
+    )
+    return _town_outcome(upgraded, position, player, True, towns_left) != _town_outcome(
+        upgraded, position, player, False, towns_left
+    )
 
 
 def _append_upgrade(
@@ -1611,10 +1695,11 @@ def _append_upgrade(
     profile: FactionProfile,
     position: Hex,
     target: BuildingType,
+    towns_left: int,
 ) -> None:
     """List an upgrade, plus the Mermaid variant that declines the river skip."""
     actions.append(UpgradeBuilding(position, target))
-    if _river_choice(board, player, profile, position):
+    if _upgrade_river_choice(board, player, profile, position, target, towns_left):
         actions.append(UpgradeBuilding(position, target, join_river=False))
 
 
