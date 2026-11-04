@@ -130,6 +130,13 @@ def test_cache_key_changes_with_the_tools_and_the_choice() -> None:
     return
 
 
+def test_a_cached_reply_reads_back_without_lone_surrogates(tmp_path: Path) -> None:
+    store = DirectoryResponseStore(tmp_path)
+    store.put("k", {"text": "nice \ud83d"})
+    assert store.get("k") == {"text": "nice �"}
+    return
+
+
 def test_cache_round_trips_several_tool_calls(tmp_path: Path) -> None:
     calls = (ToolCall("c1", "get_state", "{}"), ToolCall("c2", "check_action", "{}"))
     inner = QueuedChatModel([tool_calls_reply(calls)])

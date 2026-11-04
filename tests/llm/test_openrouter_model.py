@@ -175,6 +175,15 @@ def test_completion_from_reads_tool_arguments_usage_cost_and_reasoning() -> None
     return
 
 
+def test_a_lone_surrogate_in_the_reply_body_is_replaced() -> None:
+    body = json.dumps(reply_payload(content="nice \ud83d")).encode()
+    completion = complete(
+        model_with(lambda request: httpx2.Response(200, content=body))
+    )
+    assert completion.text == "nice �"
+    return
+
+
 def test_a_null_tool_call_id_keeps_the_reply_and_its_cost() -> None:
     payload = reply_payload(content=None)
     payload["choices"][0]["message"]["tool_calls"] = [  # type: ignore[index]
