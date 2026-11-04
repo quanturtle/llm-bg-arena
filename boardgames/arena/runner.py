@@ -8,7 +8,8 @@ waits while the match is paused; a cancelled match ends with match_stopped.
 
 import asyncio
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
+from functools import partial
 
 from boardgames.agents import (
     Agent,
@@ -100,6 +101,39 @@ class Answer[A]:
 
 
 @dataclass(frozen=True)
+class UnfinishedDecision[A]:
+    """A decision a failure or a stop cut short, with the model calls it paid for."""
+
+    request: DecisionRequest[A]
+    trace: DecisionTrace
+
+
+@dataclass
+class RoundLedger[S, A]:
+    """A round in flight, read when a failure or a stop cuts it short.
+
+    `progress` moves with each logged answer; agents report into `unfinished`.
+    """
+
+    progress: Progress[S]
+    observed_at: int
+    asked_at: float
+    unfinished: list[UnfinishedDecision[A]] = field(default_factory=list)
+
+    def watch(self, request: DecisionRequest[A]) -> DecisionRequest[A]:
+        """`request`, reporting its paid calls to this round if it is cut short."""
+        return replace(
+            request, record_unfinished=partial(self.keep_unfinished, request)
+        )
+
+    def keep_unfinished(
+        self, request: DecisionRequest[A], trace: DecisionTrace
+    ) -> None:
+        self.unfinished.append(UnfinishedDecision(request, trace))
+        return
+
+
+@dataclass(frozen=True)
 class MatchContext[S, A, C: GameConfig]:
     """What stays fixed during a match."""
 
@@ -187,52 +221,55 @@ async def play_rounds[S, A, C: GameConfig](
 ) -> tuple[Progress[S], tuple[PlayerId, ...]]:
     """Rounds until the end or a forfeit, waiting while paused.
 
-    A cancellation or a failure, such as a model that stays unavailable, logs
-    match_stopped at the last complete step and propagates; a round cut short
-    leaves no record, since its answers are applied only once all are in.
+    A cancellation or a failure, such as a model that stays unavailable, logs the
+    paid calls of decisions it cut short and match_stopped at the last logged
+    step, then propagates.
     """
     forfeited: tuple[PlayerId, ...] = ()
+    ledger: RoundLedger[S, A] = RoundLedger(
+        progress, progress.step, context.clock.monotonic()
+    )
     try:
         while not context.game.is_terminal(progress.state) and not forfeited:
             await control.wait_until_resumed()
-            progress, forfeited = await play_round(context, progress)
+            ledger = RoundLedger(progress, progress.step, context.clock.monotonic())
+            progress, forfeited = await play_round(context, ledger)
     except BaseException as error:
-        progress = getattr(error, "round_progress", progress)
-        record_failed_decision(context, error, progress)
-        stopped = MatchStopped(steps=progress.step, stopped_at=context.clock.now_iso())
+        record_unfinished_decisions(context, ledger, error)
+        stopped = MatchStopped(
+            steps=ledger.progress.step, stopped_at=context.clock.now_iso()
+        )
         context.sink.write(stopped)
         raise
     return progress, forfeited
 
 
 async def play_round[S, A, C: GameConfig](
-    context: MatchContext[S, A, C], progress: Progress[S]
+    context: MatchContext[S, A, C], ledger: RoundLedger[S, A]
 ) -> tuple[Progress[S], tuple[PlayerId, ...]]:
-    """Ask every open decision at once, then apply the answers in seat order."""
+    """Ask every open decision at once, then apply the answers in seat order.
+
+    Each answer is logged as it applies, so `ledger.progress` moves with it.
+    """
+    progress = ledger.progress
     decisions = context.game.pending_decisions(progress.state)
     if not decisions:
         raise GameStuckError(f"no open decision at step {progress.step}")
-    requests = [request_for(context, progress, decision) for decision in decisions]
+    requests = [
+        ledger.watch(request_for(context, progress, decision)) for decision in decisions
+    ]
     progress = mark_seen(progress, decisions)
-    observed_at = progress.step
-    try:
-        answers = await decide_together(context, decisions, requests)
-    except BaseException as error:
-        error.__dict__["round_progress"] = progress
-        error.__dict__["decision_observed_at"] = observed_at
-        raise
+    ledger.progress = progress
+    answers = await decide_together(context, decisions, requests)
     forfeited: list[PlayerId] = []
     for request, (choice, latency) in zip(requests, answers, strict=True):
-        answer = Answer(request, observed_at, latency)
-        try:
-            if isinstance(choice, Forfeited):
-                record_forfeit(context, progress, answer, choice)
-                forfeited.append(request.decision.player)
-            else:
-                progress = apply_choice(context, progress, answer, choice)
-        except BaseException as error:
-            error.__dict__["round_progress"] = progress
-            raise
+        answer = Answer(request, ledger.observed_at, latency)
+        if isinstance(choice, Forfeited):
+            record_forfeit(context, progress, answer, choice)
+            forfeited.append(request.decision.player)
+        else:
+            progress = apply_choice(context, progress, answer, choice)
+            ledger.progress = progress
     return progress, tuple(forfeited)
 
 
@@ -291,45 +328,29 @@ async def timed_decide[A](
 ) -> tuple[AgentChoice[A], float]:
     """The agent's choice and how many seconds it took."""
     started = clock.monotonic()
-    try:
-        choice = await agent.decide(request)
-    except BaseException as error:
-        error.__dict__["decision_request"] = request
-        error.__dict__["decision_latency"] = clock.monotonic() - started
-        raise
+    choice = await agent.decide(request)
     return choice, clock.monotonic() - started
 
 
-def record_failed_decision[S, A, C: GameConfig](
-    context: MatchContext[S, A, C],
-    error: BaseException,
-    progress: Progress[S],
+def record_unfinished_decisions[S, A, C: GameConfig](
+    context: MatchContext[S, A, C], ledger: RoundLedger[S, A], error: BaseException
 ) -> None:
-    """Keep the paid attempts of a decision that failed or was cancelled.
-
-    The agent attaches its partial trace to the exception; without one, the
-    decision made no model call and there is nothing to log.
-    """
-    trace = getattr(error, "decision_trace", None)
-    request = getattr(error, "decision_request", None)
-    if not isinstance(trace, DecisionTrace) or not isinstance(
-        request, DecisionRequest
-    ):
-        return
-    observed_at = getattr(error, "decision_observed_at", progress.step)
-    latency = getattr(error, "decision_latency", 0.0)
-    context.sink.write(
-        ForfeitRecord(
-            step=progress.step,
-            observed_at_step=observed_at,
-            player=request.decision.player,
-            kind=request.decision.kind,
-            reason=f"the decision failed: {error}",
-            observation_digest=request.observation.digest(),
-            latency_seconds=latency,
-            trace=trace_record(trace),
+    """Log the paid model calls of each decision that `error` cut short."""
+    latency = context.clock.monotonic() - ledger.asked_at
+    for unfinished in ledger.unfinished:
+        request = unfinished.request
+        context.sink.write(
+            ForfeitRecord(
+                step=ledger.progress.step,
+                observed_at_step=ledger.observed_at,
+                player=request.decision.player,
+                kind=request.decision.kind,
+                reason=f"the decision failed: {error}",
+                observation_digest=request.observation.digest(),
+                latency_seconds=latency,
+                trace=trace_record(unfinished.trace),
+            )
         )
-    )
     return
 
 

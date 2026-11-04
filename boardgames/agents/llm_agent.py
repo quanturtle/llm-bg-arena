@@ -176,8 +176,8 @@ class LlmAgent:
                         messages, reply_text(completion), feedback
                     )
             return self._fall_back(request, attempts)
-        except BaseException as error:
-            self._attach_partial_trace(error, attempts)
+        except BaseException:
+            self._report_unfinished(request, attempts)
             raise
 
     async def _decide_with_tools[A](
@@ -218,8 +218,8 @@ class LlmAgent:
                 trace = decision_trace(attempts, reasoning, self._memory, None)
                 return Chosen(progress.chosen.action, trace)
             return self._fall_back(request, attempts)
-        except BaseException as error:
-            self._attach_partial_trace(error, attempts)
+        except BaseException:
+            self._report_unfinished(request, attempts)
             raise
 
     async def _interpret[A](
@@ -256,13 +256,13 @@ class LlmAgent:
         rejections = 1 if isinstance(resolution, Rejected) else 0
         return Attempt(resolution, parsed, record, tuple(completions), rejections)
 
-    def _attach_partial_trace[A](
-        self, error: BaseException, attempts: list[Attempt[A]]
+    def _report_unfinished[A](
+        self, request: DecisionRequest[A], attempts: list[Attempt[A]]
     ) -> None:
-        """Keep what earlier calls cost on the exception, for the runner's log."""
+        """Hand the calls a cut-short decision already paid for to the runner."""
         if attempts:
-            error.__dict__["decision_trace"] = decision_trace(
-                attempts, None, self._memory, None
+            request.record_unfinished(
+                decision_trace(attempts, None, self._memory, None)
             )
         return
 

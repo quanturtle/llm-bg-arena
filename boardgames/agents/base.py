@@ -1,6 +1,7 @@
 """The agent interface: every player type answers a DecisionRequest the same way."""
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 from boardgames.core import (
@@ -25,6 +26,11 @@ class ActionText[A](Protocol):
     def describe_action(self, observation: Observation, action: A) -> str: ...
 
 
+def ignore_unfinished(trace: "DecisionTrace") -> None:
+    """Drop the trace of a decision cut short, for requests made outside a match."""
+    return
+
+
 @dataclass(frozen=True)
 class DecisionRequest[A]:
     """What an agent may use to choose, built only from the player's own view.
@@ -40,6 +46,11 @@ class DecisionRequest[A]:
     recent_events: tuple[Event, ...]
     rules: str
     action_text: ActionText[A]
+    # takes the model calls already paid for when a failure or a stop cuts the
+    # decision short, so the runner can log their cost
+    record_unfinished: Callable[["DecisionTrace"], None] = field(
+        default=ignore_unfinished, compare=False, repr=False
+    )
 
 
 @dataclass(frozen=True)
