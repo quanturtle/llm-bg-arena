@@ -293,6 +293,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     def scores(self, state: PuertoRicoState) -> Scores:
         points: dict[PlayerId, float] = {}
         breakdown: dict[PlayerId, dict[str, float]] = {}
+        tiebreakers: dict[PlayerId, tuple[float, ...]] = {}
         for seat in range(state.config.num_players):
             player = state.players[seat]
             player_id = PlayerId(seat)
@@ -306,7 +307,10 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 ),
                 "bonus": end_game_bonus(player),
             }
-        return Scores(points, breakdown)
+            tiebreakers[player_id] = tuple(
+                float(value) for value in tiebreak_key(state, player_id)
+            )
+        return Scores(points, breakdown, tiebreakers)
 
     def public_scores(self, state: PuertoRicoState) -> Scores:
         """VP chips stay hidden until the game ends and reveals them."""
@@ -316,7 +320,13 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             {
                 PlayerId(seat): float(public_points(player))
                 for seat, player in enumerate(state.players)
-            }
+            },
+            tiebreakers={
+                PlayerId(seat): tuple(
+                    float(value) for value in tiebreak_key(state, PlayerId(seat))
+                )
+                for seat in range(state.config.num_players)
+            },
         )
 
     def observe(self, state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
@@ -1074,13 +1084,23 @@ def check_end_game(state: PuertoRicoState) -> PuertoRicoState:
     )
 
 
+def tiebreak_key(state: PuertoRicoState, seat: PlayerId) -> tuple[int, int]:
+    """Tie-break order after points: doubloons plus goods, then the governor."""
+    player = state.players[seat]
+    wealth = player.doubloons + goods_total(player.goods)
+    distance = (state.order.index(seat) - state.order.index(state.governor)) % len(
+        state.order
+    )
+    return wealth, -distance
+
+
 def compute_winner(state: PuertoRicoState) -> PlayerId:
-    """Highest score; ties go to the wealthier player, then to order."""
+    """Highest score; ties go to the wealthier player, then to the governor."""
     best: PlayerId | None = None
-    best_key: tuple[int, int] | None = None
+    best_key: tuple[int, int, int] | None = None
     for seat in state.order:
         player = state.players[seat]
-        key = (total_points(player), player.doubloons + goods_total(player.goods))
+        key = (total_points(player), *tiebreak_key(state, seat))
         if best_key is None or key > best_key:
             best = seat
             best_key = key
