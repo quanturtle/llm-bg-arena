@@ -13,6 +13,7 @@ from boardgames.games.terra_mystica.constants import (
     MAX_BUILDINGS,
     POWER_VALUES,
     TERRAIN_WHEEL,
+    TOWN_SUPPLY,
     BuildingType,
     Cost,
     Cult,
@@ -548,6 +549,28 @@ def spade_cost(profile: FactionProfile, digging: int, spades: int) -> Cost:
     return Cost(workers=spades * workers_per_spade)
 
 
+def effective_reach(board: Board, player: PlayerId, profile: FactionProfile) -> int:
+    """The faction's tunneling or carpet range, including a stronghold bonus."""
+    if profile.reach <= 0:
+        return 0
+    has_stronghold = board.count(player, BuildingType.STRONGHOLD) > 0
+    if has_stronghold and profile.reach_with_stronghold > profile.reach:
+        return profile.reach_with_stronghold
+    return profile.reach
+
+
+def effective_reach_cost(
+    board: Board, player: PlayerId, profile: FactionProfile
+) -> Cost:
+    """What one tunnel or carpet flight costs, after a stronghold discount."""
+    if profile.reach <= 0:
+        return Cost()
+    has_stronghold = board.count(player, BuildingType.STRONGHOLD) > 0
+    if has_stronghold and profile.reach_cost_with_stronghold is not None:
+        return profile.reach_cost_with_stronghold
+    return profile.reach_cost
+
+
 def building_cost(
     profile: FactionProfile, building: BuildingType, adjacent_opponent: bool
 ) -> Cost:
@@ -652,19 +675,49 @@ def mark_town(board: Board, positions: tuple[Hex, ...]) -> Board:
     return board
 
 
+def town_count(board: Board) -> int:
+    """How many separate groups of town-marked structures the board holds."""
+    seen: set[Hex] = set()
+    count = 0
+    for tile in board.tiles:
+        if tile.building is None or not tile.building.in_town or tile.position in seen:
+            continue
+        count += 1
+        queue = [tile.position]
+        seen.add(tile.position)
+        while queue:
+            position = queue.pop()
+            for neighbour in position.neighbours():
+                other = board.tile(neighbour)
+                if (
+                    other is not None
+                    and other.building is not None
+                    and other.building.in_town
+                    and neighbour not in seen
+                ):
+                    seen.add(neighbour)
+                    queue.append(neighbour)
+    return count
+
+
 def settle_town(
     board: Board,
     position: Hex,
     player: PlayerId,
     *,
-    shipping: int = 0,
-    reach: int = 0,
+    cross_river: bool = False,
     towns_left: int | None = None,
 ) -> tuple[Board, bool]:
-    """Mark a new or expanded town; True when a new town was founded."""
-    if towns_left is not None and towns_left <= 0:
-        return board, False
-    component = board.connected_area(position, player, shipping, reach)
+    """Mark a new or expanded town; True when a new town was founded.
+
+    Towns need direct adjacency. Mermaids are the exception: they may join one
+    river space, so `cross_river` uses shipping for a single river crossing.
+    """
+    component = (
+        board.connected_area(position, player, 1)
+        if cross_river
+        else board.connected(position, player)
+    )
     already = any(
         (tile := board.tile(hex_position)) is not None
         and tile.building is not None
@@ -673,6 +726,10 @@ def settle_town(
     )
     if already:
         return mark_town(board, component), False
+    if towns_left is None:
+        towns_left = TOWN_SUPPLY - town_count(board)
+    if towns_left <= 0:
+        return board, False
     if town_ready(board, component):
         return mark_town(board, component), True
     return board, False

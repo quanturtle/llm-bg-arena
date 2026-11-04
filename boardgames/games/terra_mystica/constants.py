@@ -144,6 +144,10 @@ class FactionProfile:
     shipping_max: int = 3
     can_ship: bool = True
     reach: int = 0
+    reach_with_stronghold: int = 0
+    reach_cost: Cost = Cost()
+    reach_cost_with_stronghold: Cost | None = None
+    reach_vp: int = 0
     digging_start: int = 0
     digging_max: int = 2
     can_dig: bool = True
@@ -417,6 +421,10 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         starting_cults=(0, 0, 2, 0),
         can_ship=False,
         reach=2,
+        reach_with_stronghold=2,
+        reach_cost=Cost(workers=2),
+        reach_cost_with_stronghold=Cost(workers=1),
+        reach_vp=4,
         trading_house_income=DWARF_TRADING_HOUSE_INCOME,
     ),
     FactionProfile(
@@ -437,7 +445,11 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         starting_resources=Resources(coins=15, workers=3, power1=7, power2=5),
         starting_cults=(1, 0, 0, 1),
         can_ship=False,
-        reach=3,
+        reach=2,
+        reach_with_stronghold=3,
+        reach_cost=Cost(priests=1),
+        reach_cost_with_stronghold=Cost(priests=1),
+        reach_vp=4,
         digging_max=1,
         costs=BuildingCosts(
             dwelling=Cost(coins=2, workers=1),

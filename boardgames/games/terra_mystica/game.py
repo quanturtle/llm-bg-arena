@@ -87,6 +87,8 @@ from boardgames.games.terra_mystica.model import (
     can_spend_power,
     cult_bonus_json,
     cult_limit,
+    effective_reach,
+    effective_reach_cost,
     gain_power,
     income_with_power,
     pay,
@@ -114,7 +116,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 3
+    rules_version: ClassVar[int] = 4
 
     # Config ---------------------------------------------------------------
 
@@ -434,13 +436,13 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             >= MAX_BUILDINGS[BuildingType.DWELLING]
         ):
             raise IllegalActionError("you have no dwellings left")
-        if position not in state.board.reachable_land(
-            player, owner.shipping, owner.profile.reach
-        ):
+        reach = effective_reach(state.board, player, profile)
+        if position not in state.board.reachable_land(player, owner.shipping, reach):
             raise IllegalActionError(
                 "the tile must be directly or indirectly adjacent to one of "
                 "your structures"
             )
+        tunneling = reach > 0 and not _adjacent_to_own(state.board, player, position)
         spades = spades_for(profile, tile.terrain)
         terrain_cost = spade_cost(profile, owner.digging, spades)
         build_cost = building_cost(
@@ -448,9 +450,14 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             BuildingType.DWELLING,
             bool(state.board.adjacent_opponents(position, player)),
         )
-        total = _add_costs(terrain_cost, build_cost)
+        reach_cost = (
+            effective_reach_cost(state.board, player, profile) if tunneling else Cost()
+        )
+        total = _add_costs(_add_costs(terrain_cost, build_cost), reach_cost)
         if not can_pay(owner.resources, total):
-            raise IllegalActionError("you cannot pay for that transform and build")
+            raise IllegalActionError(
+                "you cannot pay for that transform, build and tunnel"
+            )
         resources = pay(owner.resources, total)
         board = state.board
         if spades:
@@ -463,6 +470,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             victory_points += spades * profile.spade_vp_bonus
             if _round_scoring(state) is ScoringAction.SPADE:
                 victory_points += spades * SCORING_VALUES[ScoringAction.SPADE]
+        if tunneling:
+            victory_points += profile.reach_vp
         if _round_scoring(state) is ScoringAction.DWELLING:
             victory_points += SCORING_VALUES[ScoringAction.DWELLING]
         board, resources, victory_points, keys, founded = _town_rewards(
@@ -478,16 +487,23 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         state = replace(state, board=board)
         if founded:
             state = replace(state, towns=state.towns + 1)
+        route = ""
+        if tunneling:
+            route = (
+                " by tunneling" if profile.reach_cost.workers else " by carpet flight"
+            )
         events = [
             Event(
                 "built",
                 f"{seat_label(player)} built a dwelling at {position.notation()}"
+                + route
                 + (f" after using {spades} spade(s)." if spades else "."),
                 {
                     "player": player,
                     "position": position.notation(),
                     "building": "dwelling",
                     "spades": spades,
+                    "tunnel": tunneling,
                 },
             )
         ]
@@ -513,9 +529,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you cannot transform a river")
         if tile.building is not None:
             raise IllegalActionError("that tile is occupied")
-        if position not in state.board.reachable_land(
-            player, owner.shipping, owner.profile.reach
-        ):
+        if position not in state.board.reachable_land(player, owner.shipping):
             raise IllegalActionError(
                 "the tile must be directly or indirectly adjacent to one of "
                 "your structures"
@@ -777,9 +791,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("choose an empty land tile")
         if tile.terrain is owner.home_terrain:
             raise IllegalActionError("that tile is already your home terrain")
-        if position not in state.board.reachable_land(
-            player, owner.shipping, owner.profile.reach
-        ):
+        if position not in state.board.reachable_land(player, owner.shipping):
             raise IllegalActionError("that tile is not reachable")
         cost = spades_for(owner.profile, tile.terrain)
         if budget <= 0:
@@ -1085,9 +1097,7 @@ def _cap_priests(
 def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     owner = state.players[player]
     budget = state.cult_spades[player]
-    reachable = set(
-        state.board.reachable_land(player, owner.shipping, owner.profile.reach)
-    )
+    reachable = set(state.board.reachable_land(player, owner.shipping))
     actions: list[Action] = []
     for tile in state.board.tiles:
         if not tile.is_land or tile.building is not None:
@@ -1199,16 +1209,20 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     profile = owner.profile
     resources = owner.resources
     actions: list[Action] = []
-    reachable = set(
-        state.board.reachable_land(player, owner.shipping, owner.profile.reach)
+    reachable = set(state.board.reachable_land(player, owner.shipping))
+    build_reachable = set(
+        state.board.reachable_land(
+            player, owner.shipping, effective_reach(state.board, player, profile)
+        )
     )
+    reach_cost = effective_reach_cost(state.board, player, profile)
     can_build_dwelling = can_place_building(state.board, player, BuildingType.DWELLING)
 
     if can_build_dwelling:
         for tile in state.board.tiles:
             if not tile.is_land or tile.building is not None:
                 continue
-            if tile.position not in reachable:
+            if tile.position not in build_reachable:
                 continue
             spades = spades_for(profile, tile.terrain)
             terrain_cost = spade_cost(profile, owner.digging, spades)
@@ -1217,7 +1231,13 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 BuildingType.DWELLING,
                 bool(state.board.adjacent_opponents(tile.position, player)),
             )
-            if can_pay(resources, _add_costs(terrain_cost, build_cost)):
+            tunneling = profile.reach > 0 and not _adjacent_to_own(
+                state.board, player, tile.position
+            )
+            total = _add_costs(terrain_cost, build_cost)
+            if tunneling:
+                total = _add_costs(total, reach_cost)
+            if can_pay(resources, total):
                 actions.append(BuildDwelling(tile.position))
 
     for tile in state.board.tiles:
@@ -1307,7 +1327,7 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             if tile.terrain is owner.home_terrain:
                 return "That tile is already your home terrain."
             if action.position not in state.board.reachable_land(
-                player, owner.shipping, owner.profile.reach
+                player, owner.shipping
             ):
                 return "That tile is not reachable."
             if state.cult_spades[player] <= 0:
@@ -1335,8 +1355,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             >= MAX_BUILDINGS[BuildingType.DWELLING]
         ):
             return "You have no dwellings left."
+        reach = effective_reach(state.board, player, profile)
         if action.position not in state.board.reachable_land(
-            player, owner.shipping, owner.profile.reach
+            player, owner.shipping, reach
         ):
             return (
                 "The tile must be directly or indirectly adjacent to one of "
@@ -1351,8 +1372,12 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 bool(state.board.adjacent_opponents(action.position, player)),
             ),
         )
+        if reach > 0 and not _adjacent_to_own(state.board, player, action.position):
+            total = _add_costs(
+                total, effective_reach_cost(state.board, player, profile)
+            )
         if not can_pay(owner.resources, total):
-            return "You cannot pay for that transform and build."
+            return "You cannot pay for that transform, build and tunnel."
         return "That dwelling cannot be built now."
     if isinstance(action, TransformTerrain):
         tile = state.board.tile(action.position)
@@ -1364,9 +1389,7 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "That tile is occupied."
         if tile.terrain is profile.home_terrain:
             return "That tile is already your home terrain."
-        if action.position not in state.board.reachable_land(
-            player, owner.shipping, owner.profile.reach
-        ):
+        if action.position not in state.board.reachable_land(player, owner.shipping):
             return (
                 "The tile must be directly or indirectly adjacent to one of "
                 "your structures."
@@ -1476,8 +1499,7 @@ def _town_rewards(
         board,
         position,
         player,
-        shipping=owner.shipping,
-        reach=owner.profile.reach,
+        cross_river=owner.profile.type is FactionType.MERMAIDS,
         towns_left=TOWN_SUPPLY - state.towns,
     )
     if not founded:
@@ -1512,6 +1534,16 @@ def _valid_upgrade(source: BuildingType, target: BuildingType) -> bool:
             and target in (BuildingType.TEMPLE, BuildingType.STRONGHOLD)
         )
         or (source is BuildingType.TEMPLE and target is BuildingType.SANCTUARY)
+    )
+
+
+def _adjacent_to_own(board: Board, player: PlayerId, position: Hex) -> bool:
+    """Whether one of the player's structures shares an edge with `position`."""
+    return any(
+        (tile := board.tile(neighbour)) is not None
+        and tile.building is not None
+        and tile.building.owner == player
+        for neighbour in position.neighbours()
     )
 
 

@@ -13,13 +13,15 @@ build on your home terrain, so you must transform neighbouring terrain to expand
 
 This implementation uses the standard 113-tile base map, all fourteen base-game
 factions and their starting resources, building costs and cost/track exceptions.
-Dwarves may tunnel two spaces and Fakirs may fly three spaces, so both can build
-and score across rivers. Not yet implemented: bonus cards, favor tiles, leeching
-power from opponents, bridges, power conversions and the other faction special
-actions. In particular, building a stronghold grants no one-time reward: the
-Cultists' +7 VP, the Alchemists' +12 power, the Mermaids' +1 shipping, the
-Halflings' 3 spades and the Darklings' priest ordination are all absent. The core
-economy, terraforming, cults, towns and scoring are playable.
+Dwarves may tunnel two spaces and Fakirs may fly two spaces (three with a
+stronghold), so both can build and score across rivers. Not yet implemented:
+bonus cards, favor tiles, leeching power from opponents, bridges, power
+conversions and the other faction special actions. In particular, building a
+stronghold grants no one-time reward; the Dwarves' cheaper tunnel and the Fakirs'
+extra flight range are the only stronghold effects implemented. The Cultists'
++7 VP, the Alchemists' +12 power, the Mermaids' +1 shipping, the Halflings' 3
+spades and the Darklings' priest ordination are absent. The core economy,
+terraforming, cults, towns and scoring are playable.
 
 ## Round structure
 Each round has an income phase, an action phase and cleanup.
@@ -38,9 +40,11 @@ Each round has an income phase, an action phase and cleanup.
 ## Actions
 - **Build a dwelling** on a tile reachable from one of your structures, directly
   or across up to your shipping value in river spaces. Dwarves instead reach two
-  spaces and Fakirs three, ignoring rivers. If the tile is not your home terrain
-  you must pay spades to transform it first. Spades cost workers at your digging
-  rate (or priests for the Darklings).
+  spaces and Fakirs two (three with a stronghold), ignoring rivers. A tunnel
+  costs the Dwarves 2 workers, or 1 with a stronghold; a carpet flight costs the
+  Fakirs 1 priest. Either scores 4 victory points. If the tile is not your home
+  terrain you must pay spades to transform it first. Spades cost workers at your
+  digging rate (or priests for the Darklings).
 - **Transform terrain** into your home terrain without building.
 - **Upgrade a structure**: dwelling to trading house; trading house to temple or
   stronghold; temple to sanctuary. A trading house costs less when an opponent's
@@ -61,11 +65,13 @@ Each round has an income phase, an action phase and cleanup.
 - **Pass** to stop acting for the round.
 
 ## Towns and keys
-Four connected structures with total power 7 form a town (three with a sanctuary).
-Building or upgrading into a town awards 5 victory points, a key and the faction's
-town bonus. The base game has 10 town tiles, so at most 10 towns exist. A key lets
-one cult marker enter space 10. Structures already in a town are marked and cannot
-found another town; building next to a town expands it.
+Four directly adjacent structures with total power 7 form a town (three with a
+sanctuary). Indirect adjacency, including across rivers or by tunneling, does
+not join a town; the Mermaids are the one exception and may cross one river
+space. Building or upgrading into a town awards 5 victory points, a key and the
+faction's town bonus. The base game has 10 town tiles, so at most 10 towns exist.
+A key lets one cult marker enter space 10. Structures already in a town are
+marked and cannot found another town; building next to a town expands it.
 
 ## Scoring tiles
 Each round tile scores one action: dwellings, trading houses, strongholds,
@@ -81,7 +87,8 @@ against that supply.
 
 ## Final scoring
 - Each cult track: 8/4/2 points for first/second/third, split evenly on ties.
-- Largest connected area: 18/12/6 points, split evenly on ties.
+- Largest connected area: 18/12/6 points, split evenly on ties. Shipping, Dwarves'
+  tunneling and Fakirs' carpet flight all connect structures for this score.
 - Leftover resources: 1 point per 3 coins, workers and priests (Alchemists get 1
   point per 2).
 

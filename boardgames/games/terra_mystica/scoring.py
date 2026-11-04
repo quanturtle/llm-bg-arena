@@ -5,7 +5,11 @@ from boardgames.games.terra_mystica.constants import (
     AREA_FINAL_POINTS,
     CULT_FINAL_POINTS,
 )
-from boardgames.games.terra_mystica.model import Board, TerraMysticaState
+from boardgames.games.terra_mystica.model import (
+    Board,
+    TerraMysticaState,
+    effective_reach,
+)
 
 
 def final_scores(
@@ -25,7 +29,7 @@ def final_scores(
             state.board,
             seat,
             state.players[seat].shipping,
-            state.players[seat].profile.reach,
+            effective_reach(state.board, seat, state.players[seat].profile),
         )
         for seat in all_seats
     }

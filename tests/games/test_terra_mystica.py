@@ -50,6 +50,7 @@ from boardgames.games.terra_mystica.constants import (
     Resources,
     ScoringAction,
     ScoringTile,
+    Terrain,
 )
 from boardgames.games.terra_mystica.game import (
     end_round,
@@ -990,6 +991,61 @@ def test_town_supply_stops_after_ten_towns() -> None:
     assert not settle_town(board, position, player, towns_left=0)[1]
 
 
+def _town_gap_layout(board: Board, *, river_between: bool) -> tuple[Hex, Hex, Hex, Hex]:
+    """Two adjacent pairs, two spaces apart, with a land or river gap."""
+
+    def land(position: Hex) -> bool:
+        tile = board.tile(position)
+        return tile is not None and tile.is_land
+
+    for a in (tile.position for tile in board.tiles if tile.is_land):
+        for a2 in (neighbour for neighbour in a.neighbours() if land(neighbour)):
+            for b in (tile.position for tile in board.tiles if tile.is_land):
+                if a.distance(b) != 2 or b in a2.neighbours() or b == a2:
+                    continue
+                middle = [
+                    neighbour
+                    for neighbour in a.neighbours()
+                    if neighbour in b.neighbours()
+                ]
+                is_river = all(
+                    not land(neighbour) and board.tile(neighbour) is not None
+                    for neighbour in middle
+                )
+                if is_river is not river_between:
+                    continue
+                for b2 in (
+                    neighbour for neighbour in b.neighbours() if land(neighbour)
+                ):
+                    if b2 in (a, a2) or b2 in a.neighbours() or b2 in a2.neighbours():
+                        continue
+                    return a, a2, b, b2
+    raise AssertionError("no two-group layout found")
+
+
+def _town_gap_board(river_between: bool) -> tuple[Board, Hex]:
+    board = Board.base()
+    a, a2, b, b2 = _town_gap_layout(board, river_between=river_between)
+    for position, kind in (
+        (a, BuildingType.STRONGHOLD),
+        (a2, BuildingType.TRADING_HOUSE),
+        (b, BuildingType.TEMPLE),
+        (b2, BuildingType.DWELLING),
+    ):
+        board = board.place(position, Building(kind, P1))
+    return board, b2
+
+
+def test_towns_ignore_indirect_adjacency() -> None:
+    board, position = _town_gap_board(river_between=False)
+    assert not settle_town(board, position, P1)[1]
+
+
+def test_mermaids_may_join_one_river_space_for_a_town() -> None:
+    board, position = _town_gap_board(river_between=True)
+    assert settle_town(board, position, P1, cross_river=True)[1]
+
+
 def test_dwarves_and_fakirs_reach_across_two_and_three_spaces() -> None:
     state = play_setup(start(num_players=2, seed=2))
     player = state.active_player
@@ -1011,6 +1067,120 @@ def test_dwarves_and_fakirs_reach_across_two_and_three_spaces() -> None:
     )
     assert three_away not in state.board.reachable_from(occupied, 0, 2)
     assert three_away in state.board.reachable_from(occupied, 0, 3)
+
+
+def _neutral_scoring(state: TerraMysticaState) -> TerraMysticaState:
+    tile = ScoringTile(ScoringAction.TRADING_HOUSE, CultBonus(Cult.AIR, 4, "priests"))
+    return replace(state, scoring=(tile, tile))
+
+
+def _terrain_target(
+    state: TerraMysticaState, terrain: Terrain, distance: int
+) -> tuple[Hex, Hex]:
+    starts = [tile.position for tile in state.board.tiles if tile.is_land]
+    targets = [
+        tile.position
+        for tile in state.board.tiles
+        if tile.is_land and tile.terrain is terrain
+    ]
+    for start in starts:
+        for target in targets:
+            if start.distance(target) == distance:
+                return start, target
+    raise AssertionError(f"no {terrain.value} tile {distance} from a start")
+
+
+def _same_terrain_pair(
+    state: TerraMysticaState, terrain: Terrain, distance: int
+) -> tuple[Hex, Hex]:
+    positions = [
+        tile.position
+        for tile in state.board.tiles
+        if tile.is_land and tile.terrain is terrain
+    ]
+    for start in positions:
+        for target in positions:
+            if start.distance(target) == distance:
+                return start, target
+    raise AssertionError(f"no {terrain.value} pair {distance} apart")
+
+
+def test_dwarves_tunnel_costs_two_workers_and_scores_four_points() -> None:
+    state = start(num_players=2, seed=2)
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.DWARVES),
+    )
+    start_position, target = _same_terrain_pair(state, Terrain.MOUNTAIN, 2)
+    state = _neutral_scoring(
+        action_state(state, player, (start_position, BuildingType.DWELLING))
+    )
+    before = state.players[player]
+    after = GAME.apply(state, player, BuildDwelling(target)).state
+    assert after.players[player].victory_points - before.victory_points == 4
+    assert before.resources.workers - after.players[player].resources.workers == 3
+
+
+def test_a_dwarves_stronghold_makes_tunneling_cheaper() -> None:
+    state = start(num_players=2, seed=2)
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.DWARVES),
+    )
+    start_position, target = _same_terrain_pair(state, Terrain.MOUNTAIN, 2)
+    state = _neutral_scoring(
+        action_state(state, player, (start_position, BuildingType.STRONGHOLD))
+    )
+    before = state.players[player]
+    after = GAME.apply(state, player, BuildDwelling(target)).state
+    assert after.players[player].victory_points - before.victory_points == 4
+    assert before.resources.workers - after.players[player].resources.workers == 2
+
+
+def _fakir_state() -> tuple[TerraMysticaState, PlayerId]:
+    state = start(num_players=2, seed=2)
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.FAKIRS),
+    )
+    return state, player
+
+
+def test_fakirs_flight_costs_a_priest() -> None:
+    state, player = _fakir_state()
+    start_position, two_away = _terrain_target(state, Terrain.DESERT, 2)
+    state = action_state(state, player, (start_position, BuildingType.DWELLING))
+    state = with_resources(state, player, priests=5)
+    state = _neutral_scoring(state)
+    before = state.players[player]
+    after = GAME.apply(state, player, BuildDwelling(two_away)).state
+    assert after.players[player].victory_points - before.victory_points == 4
+    assert before.resources.priests - after.players[player].resources.priests == 1
+
+
+def test_a_fakirs_stronghold_extends_flight_range() -> None:
+    state, player = _fakir_state()
+    start_position, three_away = _terrain_target(state, Terrain.DESERT, 3)
+    without_stronghold = action_state(
+        state, player, (start_position, BuildingType.DWELLING)
+    )
+    assert BuildDwelling(three_away) not in listing(without_stronghold)
+
+    with_stronghold = action_state(
+        state, player, (start_position, BuildingType.STRONGHOLD)
+    )
+    with_stronghold = with_resources(with_stronghold, player, priests=5)
+    with_stronghold = _neutral_scoring(with_stronghold)
+    before = with_stronghold.players[player]
+    after = GAME.apply(with_stronghold, player, BuildDwelling(three_away)).state
+    assert after.players[player].victory_points - before.victory_points == 4
+    assert before.resources.priests - after.players[player].resources.priests == 1
 
 
 def test_dwarves_area_scoring_connects_through_their_reach() -> None:
