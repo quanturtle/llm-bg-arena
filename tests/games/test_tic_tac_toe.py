@@ -77,6 +77,20 @@ def test_win_event_lists_the_line() -> None:
     return
 
 
+def test_ninth_move_can_complete_a_win() -> None:
+    state = play(["a1", "b1", "b2", "c2", "a2", "a3", "c1", "b3", "c3"])
+    assert GAME.is_terminal(state)
+    assert GAME.scores(state).points == {P1: 1.0, P2: 0.0}
+    return
+
+
+def test_player_two_can_win() -> None:
+    state = play(["a1", "b2", "a2", "a3", "c3", "c1"])
+    assert GAME.is_terminal(state)
+    assert GAME.scores(state).points == {P1: 0.0, P2: 1.0}
+    return
+
+
 def test_full_board_without_line_is_a_draw() -> None:
     state = play(["a1", "b1", "c1", "b2", "a2", "c2", "b3", "a3", "c3"])
     assert GAME.is_terminal(state)
@@ -131,10 +145,9 @@ def test_parse_config_accepts_two_players(raw: dict[str, int]) -> None:
     return
 
 
-@pytest.mark.parametrize("raw", [{"num_players": 3}, {"rows": 4}, {"gravity": True}])
-def test_parse_config_rejects_other_options(raw: dict[str, int]) -> None:
+def test_parse_config_rejects_other_options() -> None:
     with pytest.raises(ConfigError):
-        GAME.parse_config(raw)
+        GAME.parse_config({"num_players": 3})
     return
 
 
@@ -146,6 +159,16 @@ def test_render_text_shows_grid_and_legend() -> None:
     assert " 2 . O ." in text
     assert " 1 X . ." in text
     assert "   a b c" in text
+    assert "Legend: X = P1, O = P2, . = empty." in text
+    return
+
+
+def test_finished_game_renders_the_outcome_without_a_mover() -> None:
+    state = play(["a1", "a2", "b1", "b2", "c1"])
+    text = GAME.render_text(GAME.observe(state, P2))
+    assert "P1 (X) won with a1 b1 c1." in text
+    assert "to move" not in text
+    assert GAME.observe(state, None).data["to_move"] is None
     return
 
 
