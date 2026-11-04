@@ -388,7 +388,7 @@ def leaderboard_route(
 ) -> Leaderboard:
     """Agents ranked by Elo at one game, or by win rate across all games.
 
-    `prompt` keeps only matches played with that prompt version; 0 means unversioned."""
+    `prompt` keeps only matches played with that prompt version; 0, no model seat."""
     if game is not None:
         create_game(game)
     return leaderboard(store_of(request).catalog().matches, game, prompt)
