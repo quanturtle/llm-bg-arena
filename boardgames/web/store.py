@@ -196,7 +196,7 @@ def seat_summary(
     finish: MatchFinished | None,
 ) -> SeatSummary:
     """Aggregate one seat's decisions, forfeit and final score."""
-    seat = start.seats[player]
+    seat = next(seat for seat in start.seats if seat.player == player)
     traces = [answer.trace for answer in answers]
     cost: float | None = 0.0
     for trace in traces:

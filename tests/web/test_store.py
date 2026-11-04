@@ -8,6 +8,7 @@ from boardgames.logs.schema import (
     LogRecord,
     MatchFinished,
     MatchStarted,
+    SeatRecord,
 )
 from boardgames.web import store
 from boardgames.web.store import (
@@ -121,6 +122,21 @@ def test_a_log_with_a_player_outside_the_seats_is_unreadable(tmp_path: Path) -> 
     write_records(tmp_path / "changed.jsonl", changed)
     catalog = MatchStore(tmp_path).catalog()
     assert [u.path for u in catalog.unreadable] == ["changed.jsonl"]
+    return
+
+
+def test_seats_are_found_by_player_number_not_position() -> None:
+    seats = [SeatRecord(player=p, agent=f"a{p}", settings={}) for p in (1, 2)]
+    start = MatchStarted(
+        match_id="m",
+        game_id="tic_tac_toe",
+        config={},
+        seed=1,
+        seats=seats,
+        started_at="t",
+    )
+    summary = summarize([start])
+    assert [(s.player, s.agent) for s in summary.seats] == [(1, "a1"), (2, "a2")]
     return
 
 
