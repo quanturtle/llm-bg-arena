@@ -61,4 +61,7 @@ def test_forfeits_are_kept() -> None:
     records = play_records(TicTacToe(), TicTacToeConfig(), agents, 1, "m")
     timeline = build_timeline(records)
     assert [f.player for f in timeline.frames[-1].forfeits] == [1]
+    assert [score.rank for score in timeline.frames[-1].scores] == [
+        seat.rank for seat in timeline.match.seats
+    ]
     return

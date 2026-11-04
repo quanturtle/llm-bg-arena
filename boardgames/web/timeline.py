@@ -274,6 +274,21 @@ def build_timeline(records: Sequence[LogRecord]) -> Timeline:
         for step in range(replayed.last_step + 1)
     ]
     is_ended = any(isinstance(r, MatchFinished | MatchStopped) for r in records)
+    finish = next((r for r in records if isinstance(r, MatchFinished)), None)
+    if finish is not None and frames:
+        frames[-1] = frames[-1].model_copy(
+            update={
+                "scores": [
+                    ScoreView(
+                        player=score.player,
+                        points=score.points,
+                        rank=score.rank,
+                        breakdown=score.breakdown,
+                    )
+                    for score in finish.scores
+                ]
+            }
+        )
     summarized = list(records) if is_ended else complete.records
     return Timeline(
         match=summarize(summarized),
