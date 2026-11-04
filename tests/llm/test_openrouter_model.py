@@ -234,6 +234,21 @@ def test_rate_limit_is_transient_and_bad_key_is_rejected() -> None:
     return
 
 
+def test_timeout_bounds_the_whole_call_not_each_read() -> None:
+    class SlowTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(
+            self, request: httpx.Request
+        ) -> httpx.Response:
+            await asyncio.sleep(0.2)
+            return httpx.Response(200, json=reply_payload(), request=request)
+
+    model = OpenRouterChatModel("test-key", transport=SlowTransport())
+    settings = ModelSettings(model="m", timeout_seconds=0.05)
+    with pytest.raises(TransientModelError, match=r"no reply within 0\.05s"):
+        asyncio.run(model.complete(MESSAGES, settings, (), "auto"))
+    return
+
+
 def test_connection_failure_is_transient() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused")

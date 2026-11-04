@@ -5,6 +5,7 @@ and returns the dollar cost of each call. Only the HTTP call does I/O: building
 the request and reading the response are pure functions.
 """
 
+import asyncio
 from collections.abc import Sequence
 from typing import Literal
 
@@ -102,14 +103,15 @@ class OpenRouterChatModel:
     ) -> Completion:
         body = request_body(messages, settings, tools, tool_choice)
         try:
-            async with httpx.AsyncClient(
-                base_url=self._base_url,
-                headers=self._headers,
-                transport=self._transport,
-                timeout=settings.timeout_seconds,
-            ) as client:
-                response = await client.post("/chat/completions", json=body)
-        except httpx.TimeoutException as error:
+            async with asyncio.timeout(settings.timeout_seconds):
+                async with httpx.AsyncClient(
+                    base_url=self._base_url,
+                    headers=self._headers,
+                    transport=self._transport,
+                    timeout=settings.timeout_seconds,
+                ) as client:
+                    response = await client.post("/chat/completions", json=body)
+        except (TimeoutError, httpx.TimeoutException) as error:
             raise TransientModelError(
                 f"{settings.model}: no reply within {settings.timeout_seconds}s"
             ) from error
