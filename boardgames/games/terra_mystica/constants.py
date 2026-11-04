@@ -131,8 +131,6 @@ class FactionProfile:
     type: FactionType
     name: str
     home_terrain: Terrain
-    color: str
-    description: str
     starting_resources: Resources
     starting_cults: CultPositions
     costs: BuildingCosts = BuildingCosts(
@@ -333,8 +331,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.ALCHEMISTS,
         name="Alchemists",
         home_terrain=Terrain.SWAMP,
-        color="black",
-        description="Philosophers who trade victory points and coins.",
         starting_resources=Resources(coins=15, workers=3, power1=5, power2=7),
         starting_cults=(1, 1, 0, 0),
         trading_house_income=NOMAD_TRADING_HOUSE_INCOME,
@@ -345,8 +341,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.AUREN,
         name="Auren",
         home_terrain=Terrain.FOREST,
-        color="green",
-        description="Forest folk who advance on the cult tracks.",
         starting_resources=Resources(coins=15, workers=3, power1=5, power2=7),
         starting_cults=(0, 1, 0, 1),
         costs=BuildingCosts(
@@ -361,8 +355,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.CHAOS_MAGICIANS,
         name="Chaos Magicians",
         home_terrain=Terrain.WASTELAND,
-        color="red",
-        description="Mages who begin with a single dwelling.",
         starting_resources=Resources(coins=15, workers=4, power1=5, power2=7),
         starting_cults=(2, 0, 0, 0),
         starting_dwellings=1,
@@ -379,8 +371,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.CULTISTS,
         name="Cultists",
         home_terrain=Terrain.PLAINS,
-        color="brown",
-        description="Devout people who spread their faith.",
         starting_resources=Resources(coins=15, workers=3, power1=5, power2=7),
         starting_cults=(1, 0, 1, 0),
         costs=BuildingCosts(
@@ -395,8 +385,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.DARKLINGS,
         name="Darklings",
         home_terrain=Terrain.SWAMP,
-        color="black",
-        description="Shadow folk who pay priests to terraform.",
         starting_resources=Resources(
             coins=15, workers=1, priests=1, power1=5, power2=7
         ),
@@ -417,8 +405,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.DWARVES,
         name="Dwarves",
         home_terrain=Terrain.MOUNTAIN,
-        color="grey",
-        description="Miners who tunnel through mountains.",
         starting_resources=Resources(coins=15, workers=3, power1=5, power2=7),
         starting_cults=(0, 0, 2, 0),
         can_ship=False,
@@ -428,8 +414,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.ENGINEERS,
         name="Engineers",
         home_terrain=Terrain.MOUNTAIN,
-        color="grey",
-        description="Builders with cheap structures and bridges.",
         starting_resources=Resources(coins=10, workers=2, power1=3, power2=9),
         starting_cults=(0, 0, 0, 0),
         costs=ENGINEER_COSTS,
@@ -441,8 +425,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.FAKIRS,
         name="Fakirs",
         home_terrain=Terrain.DESERT,
-        color="yellow",
-        description="Mystics who fly on carpets.",
         starting_resources=Resources(coins=15, workers=3, power1=7, power2=5),
         starting_cults=(1, 0, 0, 1),
         can_ship=False,
@@ -460,8 +442,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.GIANTS,
         name="Giants",
         home_terrain=Terrain.WASTELAND,
-        color="red",
-        description="Giant folk with fixed terraforming costs.",
         starting_resources=Resources(coins=15, workers=3, power1=5, power2=7),
         starting_cults=(1, 0, 0, 1),
         terraform_spades=2,
@@ -471,8 +451,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.HALFLINGS,
         name="Halflings",
         home_terrain=Terrain.PLAINS,
-        color="brown",
-        description="Farmers who gain victory points for digging.",
         starting_resources=Resources(coins=15, workers=3, power1=3, power2=9),
         starting_cults=(0, 0, 1, 1),
         digging_cost=Cost(workers=2, coins=1, priests=1),
@@ -489,8 +467,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.MERMAIDS,
         name="Mermaids",
         home_terrain=Terrain.LAKE,
-        color="blue",
-        description="Water creatures who sail far along rivers.",
         starting_resources=Resources(coins=15, workers=3, power1=3, power2=9),
         starting_cults=(0, 2, 0, 0),
         shipping_start=1,
@@ -508,8 +484,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.NOMADS,
         name="Nomads",
         home_terrain=Terrain.DESERT,
-        color="yellow",
-        description="Desert wanderers who start with three dwellings.",
         starting_resources=Resources(coins=15, workers=2, power1=5, power2=7),
         starting_cults=(1, 0, 1, 0),
         starting_dwellings=3,
@@ -526,8 +500,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.SWARMLINGS,
         name="Swarmlings",
         home_terrain=Terrain.LAKE,
-        color="blue",
-        description="A numerous people with expensive buildings.",
         starting_resources=Resources(coins=20, workers=8, power1=3, power2=9),
         starting_cults=(1, 1, 1, 1),
         costs=SWARMLING_COSTS,
@@ -541,15 +513,12 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         type=FactionType.WITCHES,
         name="Witches",
         home_terrain=Terrain.FOREST,
-        color="green",
-        description="Forest dwellers who score extra for towns.",
         starting_resources=Resources(coins=15, workers=3, power1=5, power2=7),
         starting_cults=(0, 0, 0, 2),
         town_vp_bonus=5,
     ),
 )
 
-FACTIONS: tuple[FactionType, ...] = tuple(profile.type for profile in FACTION_PROFILES)
 FACTION_BY_TYPE: dict[FactionType, FactionProfile] = {
     profile.type: profile for profile in FACTION_PROFILES
 }
