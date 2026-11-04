@@ -27,6 +27,7 @@ from boardgames.arena.lineup import (
     run_prepared,
 )
 from boardgames.arena.match_config import load_match_config
+from boardgames.arena.viewer import build_viewer, run_build_command, viewer_is_stale
 from boardgames.core import ArenaError, ConfigError
 from boardgames.games import game_ids
 from boardgames.llm.catalog import OpenRouterCatalog
@@ -38,7 +39,8 @@ from boardgames.web.store import MatchStore
 
 DEFAULT_LOG_DIR = Path("runs")
 DEFAULT_EXAMPLES_DIR = Path("examples")
-DEFAULT_VIEWER_DIR = Path("web/out")
+VIEWER_SOURCES = Path("web")
+DEFAULT_VIEWER_DIR = VIEWER_SOURCES / "out"
 VIEWER_BUILD_COMMAND = "pnpm --dir web install && pnpm --dir web build"
 # 8000 is where local model servers listen, and coding tools probe it for /v1/models
 DEFAULT_PORT = 8765
@@ -104,7 +106,7 @@ def add_serve_command(commands: Commands) -> None:
         "--viewer",
         type=Path,
         default=DEFAULT_VIEWER_DIR,
-        help=f"built web viewer (default web/out, from: {VIEWER_BUILD_COMMAND})",
+        help="built web viewer (default web/out, rebuilt when web/ changes)",
     )
     parser.add_argument("--host", default="127.0.0.1", help="bind address")
     parser.add_argument(
@@ -181,10 +183,18 @@ def viewer_build(directory: Path) -> Path:
     return directory
 
 
+def current_viewer(directory: Path) -> Path:
+    """The viewer build to serve; the default one is rebuilt when web/ changed."""
+    if directory == DEFAULT_VIEWER_DIR and viewer_is_stale(VIEWER_SOURCES):
+        print("Building the viewer; it rebuilds only when web/ changes.", flush=True)
+        build_viewer(VIEWER_SOURCES, run_build_command)
+    return viewer_build(directory)
+
+
 def serve(args: argparse.Namespace) -> None:
     """Serve the web viewer until interrupted; matches started there run in-process."""
     game_ids()
-    viewer = viewer_build(args.viewer)
+    viewer = current_viewer(args.viewer)
     launcher = MatchLauncher(args.runs, chat_model_from_environment(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
     app = create_app(MatchStore(args.runs), launcher, OpenRouterCatalog(), viewer)
