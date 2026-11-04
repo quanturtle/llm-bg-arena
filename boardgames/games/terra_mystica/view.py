@@ -22,6 +22,7 @@ from boardgames.games.terra_mystica.model import (
     TransformTerrain,
     UpgradeBuilding,
 )
+from boardgames.games.terra_mystica.scoring import final_scores
 
 TERRAIN_LETTERS = {
     "plains": "P",
@@ -70,8 +71,6 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "you": None if viewer is None else viewer,
     }
     if state.phase == "game_over":
-        from boardgames.games.terra_mystica.game import final_scores
-
         final = final_scores(state)
         data["final_scores"] = [
             {

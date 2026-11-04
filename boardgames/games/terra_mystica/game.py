@@ -30,8 +30,6 @@ from boardgames.core.records import (
     to_json_object,
 )
 from boardgames.games.terra_mystica.constants import (
-    AREA_FINAL_POINTS,
-    CULT_FINAL_POINTS,
     CULT_ORDER,
     CULT_ORDER_STEPS,
     FACTION_BY_TYPE,
@@ -73,7 +71,10 @@ from boardgames.games.terra_mystica.model import (
     building_cost,
     building_counts,
     can_pay,
+    can_place_building,
+    cult_limit,
     income_with_power,
+    pay,
     replace_player,
     settle_town,
     shipping_cost,
@@ -83,6 +84,7 @@ from boardgames.games.terra_mystica.model import (
     spend_power,
 )
 from boardgames.games.terra_mystica.notation import format_action, parse_action
+from boardgames.games.terra_mystica.scoring import final_scores
 from boardgames.games.terra_mystica.view import (
     describe_action,
     observe,
@@ -403,7 +405,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         total = _add_costs(terrain_cost, build_cost)
         if not can_pay(owner.resources, total):
             raise IllegalActionError("you cannot pay for that transform and build")
-        resources = _pay(owner.resources, total)
+        resources = pay(owner.resources, total)
         board = state.board
         if spades:
             board = board.replace_tile(
@@ -481,7 +483,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         cost = spade_cost(profile, owner.digging, spades)
         if not can_pay(owner.resources, cost):
             raise IllegalActionError("you cannot pay for that transformation")
-        resources = _pay(owner.resources, cost)
+        resources = pay(owner.resources, cost)
         board = state.board.replace_tile(
             position, replace(tile, terrain=profile.home_terrain)
         )
@@ -526,7 +528,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         )
         if not can_pay(owner.resources, cost):
             raise IllegalActionError("you cannot afford that upgrade")
-        resources = _pay(owner.resources, cost)
+        resources = pay(owner.resources, cost)
         building = replace(tile.building, type=target, in_town=tile.building.in_town)
         board = state.board.replace_tile(position, replace(tile, building=building))
         victory_points = owner.victory_points
@@ -591,7 +593,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you cannot pay for a shipping step")
         owner = replace(
             owner,
-            resources=_pay(owner.resources, cost),
+            resources=pay(owner.resources, cost),
             shipping=owner.shipping + 1,
             victory_points=owner.victory_points + shipping_points(owner.shipping + 1),
         )
@@ -612,7 +614,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you cannot pay for a digging step")
         owner = replace(
             owner,
-            resources=_pay(owner.resources, cost),
+            resources=pay(owner.resources, cost),
             digging=owner.digging + 1,
             victory_points=owner.victory_points + 6,
         )
@@ -952,7 +954,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     resources = owner.resources
     actions: list[Action] = []
     reachable = set(state.board.reachable_land(player, owner.shipping))
-    can_build_dwelling = _can_build(state, player, BuildingType.DWELLING)
+    can_build_dwelling = can_place_building(state.board, player, BuildingType.DWELLING)
 
     if can_build_dwelling:
         for tile in state.board.tiles:
@@ -982,8 +984,8 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
             actions.append(TransformTerrain(tile.position))
 
     for position, building in state.board.buildings(player):
-        if building.type is BuildingType.DWELLING and _can_build(
-            state, player, BuildingType.TRADING_HOUSE
+        if building.type is BuildingType.DWELLING and can_place_building(
+            state.board, player, BuildingType.TRADING_HOUSE
         ):
             cost = building_cost(
                 profile,
@@ -994,19 +996,19 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 actions.append(UpgradeBuilding(position, BuildingType.TRADING_HOUSE))
         if (
             building.type is BuildingType.TRADING_HOUSE
-            and _can_build(state, player, BuildingType.TEMPLE)
+            and can_place_building(state.board, player, BuildingType.TEMPLE)
             and can_pay(resources, profile.costs.temple)
         ):
             actions.append(UpgradeBuilding(position, BuildingType.TEMPLE))
         if (
             building.type is BuildingType.TRADING_HOUSE
-            and _can_build(state, player, BuildingType.STRONGHOLD)
+            and can_place_building(state.board, player, BuildingType.STRONGHOLD)
             and can_pay(resources, profile.costs.stronghold)
         ):
             actions.append(UpgradeBuilding(position, BuildingType.STRONGHOLD))
         if (
             building.type is BuildingType.TEMPLE
-            and _can_build(state, player, BuildingType.SANCTUARY)
+            and can_place_building(state.board, player, BuildingType.SANCTUARY)
             and can_pay(resources, profile.costs.sanctuary)
         ):
             actions.append(UpgradeBuilding(position, BuildingType.SANCTUARY))
@@ -1167,78 +1169,6 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
     return "That action is not legal now."
 
 
-def final_scores(
-    state: TerraMysticaState,
-) -> dict[PlayerId, tuple[int, dict[str, float]]]:
-    """Final points: current VP, cult tracks, area and leftover resources."""
-    all_seats = seats(len(state.players))
-    base = {seat: state.players[seat].victory_points for seat in all_seats}
-    cult = {seat: 0 for seat in all_seats}
-    for cult_index in range(4):
-        entries = [(seat, state.players[seat].cults[cult_index]) for seat in all_seats]
-        awards = split_rank_points(entries, CULT_FINAL_POINTS)
-        for seat, points in awards.items():
-            cult[seat] += points
-    area = {seat: 0 for seat in all_seats}
-    sizes = {
-        seat: _largest_area(state.board, seat, state.players[seat].shipping)
-        for seat in all_seats
-    }
-    awards = split_rank_points(
-        [(seat, size) for seat, size in sizes.items()], AREA_FINAL_POINTS
-    )
-    for seat, points in awards.items():
-        area[seat] += points
-    resources = {
-        seat: (
-            state.players[seat].resources.coins
-            + state.players[seat].resources.workers
-            + state.players[seat].resources.priests
-        )
-        // state.players[seat].profile.final_coin_divisor
-        for seat in all_seats
-    }
-    return {
-        seat: (
-            base[seat] + cult[seat] + area[seat] + resources[seat],
-            {
-                "base": base[seat],
-                "cult": cult[seat],
-                "area": area[seat],
-                "resources": resources[seat],
-            },
-        )
-        for seat in all_seats
-    }
-
-
-def split_rank_points(
-    entries: list[tuple[PlayerId, int]], tiers: tuple[int, ...]
-) -> dict[PlayerId, int]:
-    """Split each tier's points evenly among tied players, rounding down."""
-    awards = {seat: 0 for seat, _ in entries}
-    positions = sorted({value for _, value in entries if value > 0}, reverse=True)
-    place = 1
-    for value in positions:
-        group = [seat for seat, position in entries if position == value]
-        count = len(group)
-        tier_values = tiers[place - 1 : place - 1 + count]
-        award = sum(tier_values) // count if count else 0
-        for seat in group:
-            awards[seat] += award
-        place += count
-        if place > len(tiers):
-            break
-    return awards
-
-
-def _largest_area(board: Board, player: PlayerId, shipping: int) -> int:
-    largest = 0
-    for position in board.occupied(player):
-        largest = max(largest, len(board.connected_area(position, player, shipping)))
-    return largest
-
-
 def _round_scoring(state: TerraMysticaState) -> ScoringAction:
     return state.scoring[state.round - 1]
 
@@ -1251,10 +1181,7 @@ def _cult_top_occupied(state: TerraMysticaState, player: PlayerId, cult: Cult) -
 
 
 def _cult_limit_for(state: TerraMysticaState, player: PlayerId, cult: Cult) -> int:
-    owner = state.players[player]
-    if owner.keys > 0 and not _cult_top_occupied(state, player, cult):
-        return 10
-    return 9
+    return cult_limit(state.players[player], _cult_top_occupied(state, player, cult))
 
 
 def _valid_upgrade(source: BuildingType, target: BuildingType) -> bool:
@@ -1268,12 +1195,6 @@ def _valid_upgrade(source: BuildingType, target: BuildingType) -> bool:
     )
 
 
-def _can_build(
-    state: TerraMysticaState, player: PlayerId, building: BuildingType
-) -> bool:
-    return state.board.count(player, building) < MAX_BUILDINGS[building]
-
-
 def _add_costs(first: Cost, second: Cost) -> Cost:
     return Cost(
         coins=first.coins + second.coins,
@@ -1281,20 +1202,6 @@ def _add_costs(first: Cost, second: Cost) -> Cost:
         priests=first.priests + second.priests,
         power=first.power + second.power,
     )
-
-
-def _pay(resources: Resources, cost: Cost) -> Resources:
-    paid = replace(
-        resources,
-        coins=resources.coins - cost.coins,
-        workers=resources.workers - cost.workers,
-        priests=resources.priests - cost.priests,
-    )
-    if cost.power:
-        spent = spend_power(paid, cost.power)
-        assert spent is not None
-        return spent
-    return paid
 
 
 def _add_income(resources: Resources, income: Income) -> Resources:

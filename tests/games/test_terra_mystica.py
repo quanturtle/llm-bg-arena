@@ -37,7 +37,7 @@ from boardgames.games.terra_mystica.constants import (
     FactionType,
     Resources,
 )
-from boardgames.games.terra_mystica.game import final_scores, initial_setup_queue
+from boardgames.games.terra_mystica.game import initial_setup_queue
 from boardgames.games.terra_mystica.model import (
     PlayerState,
     advance_cult,
@@ -48,6 +48,7 @@ from boardgames.games.terra_mystica.model import (
     spades_for,
     spend_power,
 )
+from boardgames.games.terra_mystica.scoring import final_scores
 from boardgames.logs.replay import replay_match
 from tests.arena.support import FakeClock, MemorySink, random_agents
 from tests.invariants.playthrough import random_playthrough

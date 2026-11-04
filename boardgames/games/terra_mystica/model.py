@@ -510,9 +510,9 @@ def cult_gain_power(old: int, new: int) -> int:
     )
 
 
-def cult_limit(player: PlayerState) -> int:
+def cult_limit(player: PlayerState, top_occupied: bool = False) -> int:
     """The furthest cult space the player may reach right now."""
-    return 10 if player.keys > 0 else 9
+    return 10 if player.keys > 0 and not top_occupied else 9
 
 
 def advance_cult(
