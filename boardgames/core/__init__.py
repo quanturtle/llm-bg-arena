@@ -16,6 +16,8 @@ from boardgames.core.json_data import (
     JsonObject,
     JsonValue,
     canonical_json,
+    clean_json,
+    clean_text,
     json_digest,
 )
 from boardgames.core.observation import Observation
@@ -55,6 +57,8 @@ __all__ = [
     "Transition",
     "UnknownGameError",
     "canonical_json",
+    "clean_json",
+    "clean_text",
     "create_game",
     "json_digest",
     "register_game",

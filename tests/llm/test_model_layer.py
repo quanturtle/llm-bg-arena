@@ -130,6 +130,14 @@ def test_cache_key_changes_with_the_tools_and_the_choice() -> None:
     return
 
 
+def test_cache_key_accepts_a_lone_surrogate() -> None:
+    key = cache_key(
+        [Message("assistant", "nice \ud83d")], SETTINGS, (), "auto"
+    )
+    assert len(key) == 64
+    return
+
+
 def test_cache_round_trips_several_tool_calls(tmp_path: Path) -> None:
     calls = (ToolCall("c1", "get_state", "{}"), ToolCall("c2", "check_action", "{}"))
     inner = QueuedChatModel([tool_calls_reply(calls)])

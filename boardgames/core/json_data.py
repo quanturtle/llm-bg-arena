@@ -10,9 +10,30 @@ type JsonValue = (
 type JsonObject = Mapping[str, JsonValue]
 
 
+def clean_text(value: str) -> str:
+    """Replace lone UTF-16 surrogates, which no UTF-8 file can hold."""
+    return "".join(
+        "\ufffd" if 0xD800 <= ord(character) <= 0xDFFF else character
+        for character in value
+    )
+
+
+def clean_json(value: JsonValue) -> JsonValue:
+    """`value` with lone surrogates in every string replaced."""
+    if isinstance(value, str):
+        return clean_text(value)
+    if isinstance(value, Mapping):
+        return {clean_text(key): clean_json(item) for key, item in value.items()}
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
+        return [clean_json(item) for item in value]
+    return value
+
+
 def canonical_json(value: JsonValue) -> str:
     """Encode with sorted keys and no whitespace, so equal values give equal text."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        clean_json(value), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
 
 
 def json_digest(value: JsonValue) -> str:

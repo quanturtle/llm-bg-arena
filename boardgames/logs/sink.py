@@ -1,11 +1,12 @@
 """Where log records go: a JSONL file, the console, or several at once."""
 
+import json
 from collections.abc import Sequence
 from pathlib import Path
 from types import TracebackType
 from typing import Protocol, Self
 
-from boardgames.core import ArenaError
+from boardgames.core import ArenaError, clean_json
 from boardgames.logs.schema import LogRecord
 
 
@@ -36,7 +37,12 @@ class JsonlFile:
         return
 
     def write(self, record: LogRecord) -> None:
-        self._file.write(record.model_dump_json() + "\n")
+        line = json.dumps(
+            clean_json(record.model_dump()),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        self._file.write(line + "\n")
         self._file.flush()
         return
 

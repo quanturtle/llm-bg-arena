@@ -1,5 +1,8 @@
+import json
 from io import StringIO
+from pathlib import Path
 
+from boardgames.agents import DecisionTrace
 from boardgames.logs.schema import (
     DecisionRecord,
     MatchFinished,
@@ -7,7 +10,9 @@ from boardgames.logs.schema import (
     ScoreRecord,
     SeatRecord,
     TraceRecord,
+    trace_record,
 )
+from boardgames.logs.sink import JsonlFile
 from boardgames.logs.thoughts import ThoughtsLog
 
 
@@ -77,4 +82,46 @@ def test_thoughts_log_writes_reasoning_tool_calls_and_notes_per_decision() -> No
     assert "_120 tokens, $0.0010_" in text
     assert "**Winner: P1 haiku, 1 point.**" in text
     assert "- #1 P1 haiku: 1 points" in text
+    return
+
+
+def test_a_lone_surrogate_is_replaced_in_traces_and_thoughts() -> None:
+    surrogate = "nice \ud83d"
+    record = trace_record(DecisionTrace(reasoning=surrogate))
+    assert record.reasoning == "nice \ufffd"
+    stream = StringIO()
+    ThoughtsLog(stream)._write(surrogate)
+    assert stream.getvalue() == "nice \ufffd"
+    return
+
+
+def test_a_lone_surrogate_can_be_written_to_a_jsonl_log(tmp_path: Path) -> None:
+    record = DecisionRecord(
+        step=1,
+        observed_at_step=0,
+        player=0,
+        kind="mark",
+        prompt="Choose.",
+        observation_digest="d",
+        observation={},
+        action="a1",
+        action_json={},
+        latency_seconds=0.1,
+        trace=TraceRecord(
+            reasoning="nice \ud83d",
+            memory=None,
+            attempts=[],
+            illegal_attempts=0,
+            api_retries=0,
+            fallback=None,
+            prompt_tokens=0,
+            completion_tokens=0,
+            cost_usd=0.0,
+        ),
+    )
+    path = tmp_path / "match.jsonl"
+    with JsonlFile(path) as sink:
+        sink.write(record)
+    written = json.loads(path.read_text(encoding="utf-8"))
+    assert written["trace"]["reasoning"] == "nice \ufffd"
     return
