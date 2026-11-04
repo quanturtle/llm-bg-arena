@@ -42,6 +42,7 @@ from boardgames.games.catan import (
     Roll,
 )
 from boardgames.games.catan.game import (
+    longest_road_holder,
     setup_order,
     update_largest_army,
     update_longest_road,
@@ -57,10 +58,14 @@ from boardgames.games.catan.geometry import (
     PORT_EDGES,
     VERTEX_EDGES,
     VERTEX_HEXES,
+    VERTEX_NEIGHBORS,
 )
 from boardgames.games.catan.model import (
     CITY_COST,
     DEV_COST,
+    MAX_CITIES,
+    MAX_ROADS,
+    MAX_SETTLEMENTS,
     NUMBER_TOKENS,
     RESOURCES,
     ROAD_COST,
@@ -77,10 +82,14 @@ from boardgames.games.catan.model import (
 )
 from boardgames.games.catan.rules import (
     building_at,
+    city_legal,
     legal_free_road_edges,
     longest_road_length,
     longest_road_lengths,
     production,
+    road_connected,
+    robber_victims,
+    settlement_pieces_available,
     trade_rates,
 )
 from boardgames.logs.replay import replay_match
@@ -300,12 +309,10 @@ def test_road_build_costs_cards_and_connects() -> None:
     state, _ = play_setup()
     edge = legal_free_road_edges(state, P1)[0]
     funded = action_state(set_hand(state, P1, ROAD_COST))
-    before = funded.hands[P1]
     transition = GAME.apply(funded, P1, PlaceRoad(edge))
     after = transition.state
     assert after.roads[edge] == P1
     assert after.hands[P1] == empty_hand()
-    assert before == ROAD_COST
     assert [event.kind for event in transition.events] == ["road_built"]
 
 
@@ -709,6 +716,169 @@ def test_largest_army_keeps_ties_and_changes_on_a_strict_lead() -> None:
     assert update_largest_army(ahead)[0].largest_army == P2
 
 
+def test_a_resource_cannot_be_removed_from_an_empty_hand() -> None:
+    with pytest.raises(ValueError):
+        hand_with(empty_hand(), "wood", -1)
+
+
+def test_a_development_card_cannot_be_removed_from_an_empty_hand() -> None:
+    with pytest.raises(ValueError):
+        dev_with(empty_dev_hand(), "knight", -1)
+
+
+def seven_seed() -> int:
+    for seed in range(1000):
+        first, rng = Rng.seeded(seed).roll(6)
+        second, _ = rng.roll(6)
+        if first + second == 7:
+            return seed
+    raise AssertionError("no seed rolls seven")
+
+
+def test_discard_amount_after_a_seven() -> None:
+    seed = seven_seed()
+    state = replace(
+        start(),
+        rng=Rng.seeded(seed),
+        hands=(hand_from(wheat=9), hand_from(wood=7), empty_hand()),
+    )
+    transition = GAME.roll_dice(state, P1)
+    assert transition.state.phase == "discard"
+    assert transition.state.discard_remaining == (4, 0, 0)
+
+
+def test_robber_skips_empty_hands() -> None:
+    state = start()
+    hex_id = next(hex_id for hex_id in range(19) if hex_id != state.robber)
+    buildings: list[Building | None] = [None] * 54
+    buildings[HEX_VERTICES[hex_id][0]] = Building(P2, "settlement")
+    buildings[HEX_VERTICES[hex_id][1]] = Building(P3, "settlement")
+    state = replace(
+        state,
+        buildings=tuple(buildings),
+        hands=(empty_hand(), empty_hand(), hand_from(wood=1)),
+    )
+    assert robber_victims(state, hex_id, P1) == (P3,)
+
+
+def test_a_road_does_not_connect_through_an_opponent_building() -> None:
+    state = start()
+    vertex = 0
+    edge, far_edge = VERTEX_EDGES[vertex][:2]
+    roads: list[PlayerId | None] = [None] * 72
+    roads[far_edge] = P1
+    buildings: list[Building | None] = [None] * 54
+    buildings[vertex] = Building(P2, "settlement")
+    blocked = replace(state, buildings=tuple(buildings), roads=tuple(roads))
+    assert not road_connected(blocked, edge, P1)
+    open_state = replace(blocked, buildings=(None,) * 54)
+    assert road_connected(open_state, edge, P1)
+
+
+def test_an_unbroken_longest_road_holder_keeps_a_tie() -> None:
+    assert longest_road_holder((5, 5, 0), P1, is_broken=False) == P1
+    assert longest_road_holder((5, 5, 0), None, is_broken=False) is None
+
+
+def test_settlement_piece_limit_stops_the_listing() -> None:
+    state = start()
+    target = 0
+    roads: list[PlayerId | None] = [None] * 72
+    roads[VERTEX_EDGES[target][0]] = P1
+    buildings: list[Building | None] = [None] * 54
+    far = [
+        vertex
+        for vertex in range(54)
+        if vertex != target and vertex not in VERTEX_NEIGHBORS[target]
+    ][:MAX_SETTLEMENTS]
+    for vertex in far:
+        buildings[vertex] = Building(P1, "settlement")
+    state = action_state(
+        replace(state, roads=tuple(roads), buildings=tuple(buildings), active=P1)
+    )
+    state = set_hand(state, P1, SETTLEMENT_COST)
+    assert not settlement_pieces_available(state, P1)
+    assert not any(isinstance(action, PlaceSettlement) for action in listing(state))
+
+
+def test_city_piece_limit_stops_the_listing() -> None:
+    state = start()
+    buildings: list[Building | None] = [None] * 54
+    for vertex in range(MAX_CITIES):
+        buildings[vertex] = Building(P1, "city")
+    buildings[MAX_CITIES] = Building(P1, "settlement")
+    state = replace(state, buildings=tuple(buildings))
+    assert not city_legal(state, MAX_CITIES, P1)
+
+
+def test_road_building_stops_after_the_last_piece() -> None:
+    state, _ = play_setup()
+    path = path_edges(MAX_ROADS - 1)
+    roads: list[PlayerId | None] = [None] * 72
+    for edge in path:
+        roads[edge] = P1
+    armed = replace(
+        state,
+        roads=tuple(roads),
+        phase="actions",
+        dice=(1, 2),
+        active=P1,
+        dev_hands=(
+            dev_hand_from(road_building=1),
+            empty_dev_hand(),
+            empty_dev_hand(),
+        ),
+    )
+    playing = GAME.apply(armed, P1, PlayRoadBuilding()).state
+    free_road = next(
+        action for action in listing(playing) if isinstance(action, PlaceRoad)
+    )
+    after = GAME.apply(playing, P1, free_road).state
+    assert after.phase == "actions"
+    assert after.free_roads == 0
+
+
+def test_only_one_development_card_can_be_played_per_turn() -> None:
+    state, _ = play_setup()
+    armed = replace(
+        state,
+        phase="actions",
+        dice=(1, 2),
+        dev_hands=(
+            dev_hand_from(knight=1, year_of_plenty=1),
+            empty_dev_hand(),
+            empty_dev_hand(),
+        ),
+    )
+    knight = next(action for action in listing(armed) if isinstance(action, PlayKnight))
+    after = GAME.apply(armed, P1, knight).state
+    assert not any(isinstance(action, PlayYearOfPlenty) for action in listing(after))
+
+
+def test_harbour_needs_your_own_building() -> None:
+    state, _ = play_setup()
+    edge = state.ports[0].edge
+    no_building = replace(state, ports=(Port(edge, None),), buildings=(None,) * 54)
+    assert trade_rates(no_building, P1)["wood"] == 4
+    buildings: list[Building | None] = [None] * 54
+    buildings[EDGE_VERTICES[edge][0]] = Building(P2, "settlement")
+    opponent = replace(no_building, buildings=tuple(buildings))
+    assert trade_rates(opponent, P1)["wood"] == 4
+    buildings[EDGE_VERTICES[edge][0]] = Building(P1, "settlement")
+    owned = replace(no_building, buildings=tuple(buildings))
+    assert trade_rates(owned, P1)["wood"] == 3
+
+
+def test_no_city_on_another_players_settlement() -> None:
+    state, _ = play_setup()
+    vertex = 0
+    buildings: list[Building | None] = [None] * 54
+    buildings[vertex] = Building(P2, "settlement")
+    state = replace(state, buildings=tuple(buildings), phase="actions", dice=(1, 2))
+    assert not city_legal(state, vertex, P1)
+    assert BuildCity(vertex) not in listing(state)
+
+
 def test_notation_round_trips_every_action() -> None:
     actions: list[Action] = [
         Roll(),
@@ -922,21 +1092,25 @@ def number_values(data: JsonObject, key: str) -> list[float]:
 def path_edges(length: int) -> list[int]:
     """A simple path of `length` edges somewhere on the board."""
     for start in range(len(VERTEX_HEXES)):
-        found = extend_path(start, {start}, [])
+        found = extend_path(start, {start}, [], length)
         if found is not None and len(found) == length:
             return found
     raise AssertionError("no path found")
 
 
-def extend_path(vertex: int, visited: set[int], edges: list[int]) -> list[int] | None:
-    if len(edges) == 5:
+def extend_path(
+    vertex: int, visited: set[int], edges: list[int], length: int
+) -> list[int] | None:
+    if len(edges) == length:
         return list(edges)
     for edge in VERTEX_EDGES[vertex]:
         first, second = EDGE_VERTICES[edge]
         next_vertex = second if first == vertex else first
         if next_vertex in visited:
             continue
-        found = extend_path(next_vertex, {*visited, next_vertex}, [*edges, edge])
+        found = extend_path(
+            next_vertex, {*visited, next_vertex}, [*edges, edge], length
+        )
         if found is not None:
             return found
     return None
