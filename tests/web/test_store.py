@@ -70,6 +70,10 @@ def test_summary_variants_carry_points_and_rank_only_when_finished(
     unranked["seats"][0]["rank"] = None
     with pytest.raises(ValidationError):
         MatchSummary.model_validate(unranked)
+    ranked = running.model_dump()
+    ranked["seats"][0].update(points=1.0, rank=1)
+    with pytest.raises(ValidationError):
+        RunningMatch.model_validate(ranked)
     return
 
 
