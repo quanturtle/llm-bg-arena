@@ -31,6 +31,24 @@ def test_launcher_starts_a_match_and_reports_how_it_ended(tmp_path: Path) -> Non
     return
 
 
+def test_the_server_ignores_a_log_path_from_the_config(tmp_path: Path) -> None:
+    runs = tmp_path / "runs"
+    outside = tmp_path / "elsewhere" / "planted.jsonl"
+    launcher = MatchLauncher(runs, FirstListedMove(), None)
+
+    async def start_and_wait() -> str:
+        match_id = launcher.start(f"{BOT_MATCH}log: {outside}\n").match_id
+        await launcher.wait()
+        return match_id
+
+    match_id = asyncio.run(start_and_wait())
+    launch = launcher.launch(match_id)
+    assert not outside.exists()
+    assert Path(launch.log).parent == runs
+    assert MatchStore(runs).match(match_id).status == "finished"
+    return
+
+
 def test_a_paused_match_holds_until_resumed(tmp_path: Path) -> None:
     launcher = MatchLauncher(tmp_path, FirstListedMove(), None)
 

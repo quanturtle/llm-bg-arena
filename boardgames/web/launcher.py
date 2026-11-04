@@ -93,7 +93,11 @@ class MatchLauncher:
         except yaml.YAMLError as error:
             raise ConfigError(f"the config is not valid YAML: {error}") from error
         config = parse_match_config(raw, "config")
-        running = Running(prepare_match(config, self._model, self._runs_dir))
+        running = Running(
+            prepare_match(
+                config, self._model, self._runs_dir, use_config_log=False
+            )
+        )
         match_id = running.prepared.match_id
         self._launched[match_id] = running
         self._tasks[match_id] = asyncio.ensure_future(self._run(running))

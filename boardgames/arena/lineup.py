@@ -113,10 +113,13 @@ def prepare_match(
     *,
     seed: int | None = None,
     log: Path | None = None,
+    use_config_log: bool = True,
 ) -> PreparedMatch:
     """Agents and log paths for a config; `seed` and `log` override the file.
 
-    `model` serves every seat; None (no API key) is a ConfigError.
+    `model` serves every seat; None (no API key) is a ConfigError. With
+    `use_config_log` false the file's `log` is ignored, so a server always writes
+    into `runs_dir`.
     """
     game = create_game(config.game)
     game_config = game.parse_config(config.config)
@@ -134,7 +137,8 @@ def prepare_match(
     ]
     match_id = uuid.uuid4().hex[:12]
     default_log = runs_dir / f"{game.id}-{match_seed}-{match_id}.jsonl"
-    log_path = log or config.log or default_log
+    file_log = config.log if use_config_log else None
+    log_path = log or file_log or default_log
     return PreparedMatch(
         game=game,
         game_config=game_config,
