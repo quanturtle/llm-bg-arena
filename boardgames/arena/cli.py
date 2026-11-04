@@ -14,7 +14,6 @@ key comes from the environment or a local .env file.
 import argparse
 import asyncio
 import os
-import socket
 import sys
 import threading
 import time
@@ -205,28 +204,32 @@ def current_viewer(directory: Path) -> Path:
     return viewer_build(directory)
 
 
-def open_replays(logs: tuple[Path, ...], host: str, port: int) -> None:
-    """Open each log's replay, from its first step, once the server accepts."""
+def open_replays(
+    logs: tuple[Path, ...], host: str, port: int, server: uvicorn.Server
+) -> None:
+    """Open each log's replay, from its first step, once our server is listening."""
     for log in logs:
         match_id = first_record(read_log(log), MatchStarted).match_id
         url = f"http://{host}:{port}/match/?id={match_id}&step=0"
         print(f"Opening {url}")
         threading.Thread(
-            target=open_when_listening, args=(url, host, port), daemon=True
+            target=open_when_started, args=(url, server), daemon=True
         ).start()
     return
 
 
-def open_when_listening(url: str, host: str, port: int) -> None:
-    """Wait until `host:port` accepts a connection, up to a limit, then open `url`."""
-    deadline = time.monotonic() + BROWSER_WAIT_SECONDS
+def open_when_started(
+    url: str, server: uvicorn.Server, wait_seconds: float = BROWSER_WAIT_SECONDS
+) -> None:
+    """Open `url` only after `server` bound its port, never for another server's."""
+    deadline = time.monotonic() + wait_seconds
     while time.monotonic() < deadline:
-        try:
-            socket.create_connection((host, port), timeout=1).close()
-            break
-        except OSError:
-            time.sleep(0.1)
-    webbrowser.open(url)
+        if server.started:
+            webbrowser.open(url)
+            return
+        if server.should_exit:
+            return
+        time.sleep(0.1)
     return
 
 
@@ -237,10 +240,11 @@ def serve(args: argparse.Namespace) -> None:
     opened = () if args.log is None else (args.log,)
     launcher = MatchLauncher(args.runs, chat_model_from_environment(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
-    open_replays(opened, args.host, args.port)
     store = MatchStore(args.runs, read_only=opened)
     app = create_app(store, launcher, OpenRouterCatalog(), viewer)
-    uvicorn.run(app, host=args.host, port=args.port)
+    server = uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port))
+    open_replays(opened, args.host, args.port, server)
+    server.run()
     return
 
 

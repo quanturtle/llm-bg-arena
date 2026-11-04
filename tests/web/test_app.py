@@ -99,6 +99,30 @@ def test_serve_command_needs_a_viewer_build(tmp_path: Path) -> None:
     return
 
 
+def test_a_read_only_log_that_vanishes_does_not_break_the_listing(
+    tmp_path: Path,
+) -> None:
+    examples = tmp_path / "examples"
+    runs = tmp_path / "runs"
+    examples.mkdir()
+    runs.mkdir()
+    write_match(examples, "example")
+    write_match(runs, "kept")
+    opened = examples / "example.jsonl"
+    client = TestClient(
+        create_app(
+            MatchStore(runs, read_only=(opened,)),
+            MatchLauncher(runs, None, None),
+        )
+    )
+    assert client.get("/api/matches").status_code == 200
+    opened.unlink()
+    for path in ("/api/matches", "/api/leaderboard", "/api/games"):
+        assert client.get(path).status_code == 200
+    assert client.get("/api/matches/kept").status_code == 200
+    return
+
+
 def test_puerto_rico_frames_expose_the_board_data(tmp_path: Path) -> None:
     write_match(
         tmp_path,
