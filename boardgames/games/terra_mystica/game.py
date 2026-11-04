@@ -111,7 +111,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 1
+    rules_version: ClassVar[int] = 2
 
     # Config ---------------------------------------------------------------
 
