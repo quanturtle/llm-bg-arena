@@ -1,14 +1,16 @@
 import asyncio
+from contextlib import nullcontext
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from boardgames.core import ConfigError
+from boardgames.logs.schema import MatchFinished
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher, MatchStillPlayingError
 from boardgames.web.store import MatchStore, ReadOnlyLogError
-from tests.arena.support import FakeClock
+from tests.arena.support import FakeClock, MemorySink
 from tests.llm.fakes import FirstListedMove
 
 BOT_MATCH = "game: tic_tac_toe\n"
@@ -50,6 +52,23 @@ def test_launcher_accepts_a_clock_and_an_id_factory(tmp_path: Path) -> None:
     assert match_id == "fixed-id"
     summary = MatchStore(tmp_path).match(match_id)
     assert summary.started_at == FakeClock().now_iso()
+    return
+
+
+async def start_and_finish(launcher: MatchLauncher) -> str:
+    match_id = launcher.start(BOT_MATCH).match_id
+    await launcher.wait()
+    return match_id
+
+
+def test_launcher_writes_through_the_files_it_is_given(tmp_path: Path) -> None:
+    sink = MemorySink()
+    launcher = MatchLauncher(
+        tmp_path, FirstListedMove(), None, open_files=lambda prepared: nullcontext(sink)
+    )
+    asyncio.run(start_and_finish(launcher))
+    assert isinstance(sink.records[-1], MatchFinished)
+    assert list(tmp_path.iterdir()) == []
     return
 
 

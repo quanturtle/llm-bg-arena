@@ -10,6 +10,7 @@ match_stopped.
 import asyncio
 import threading
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -23,12 +24,14 @@ from boardgames.arena.lineup import (
     DEFAULT_CACHE_DIR,
     PreparedMatch,
     new_match_id,
+    open_match_files,
     prepare_match,
     run_prepared,
 )
 from boardgames.arena.match_config import parse_match_config
 from boardgames.core import ArenaError, ConfigError
 from boardgames.llm.model import ChatModel
+from boardgames.logs.sink import RecordSink
 
 type LaunchStatus = Literal["running", "paused", "stopped", "finished", "failed"]
 type Ending = Literal["stopped", "finished", "failed"]
@@ -85,10 +88,13 @@ class MatchLauncher:
         id_factory: Callable[[], str] = new_match_id,
         cache_dir: Path = DEFAULT_CACHE_DIR,
         prepare: Callable[..., PreparedMatch] = prepare_match,
+        open_files: Callable[
+            [PreparedMatch], AbstractContextManager[RecordSink]
+        ] = open_match_files,
     ) -> None:
         """`model` serves every seat; with None (no API key) each start raises.
 
-        The clock, match ids, cache folder and preparation function are injectable
+        The clock, match ids, cache folder, preparation and log files are injectable
         so tests can replace every filesystem and time dependency.
         """
         self._runs_dir = runs_dir
@@ -98,6 +104,7 @@ class MatchLauncher:
         self._id_factory = id_factory
         self._cache_dir = cache_dir
         self._prepare = prepare
+        self._open_files = open_files
         self._launched: dict[str, Running] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._lock = threading.RLock()
@@ -140,7 +147,11 @@ class MatchLauncher:
         """Play the match and keep how it ended; a failure is kept for the viewer."""
         try:
             await run_prepared(
-                running.prepared, None, running.gate, clock=self._clock
+                running.prepared,
+                None,
+                running.gate,
+                clock=self._clock,
+                open_files=self._open_files,
             )
         except asyncio.CancelledError:
             running.ending = "stopped"

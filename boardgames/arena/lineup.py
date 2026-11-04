@@ -7,7 +7,8 @@ and `run_prepared`, so they agree on seeds, log names and the model stack.
 import hashlib
 import uuid
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TextIO
@@ -165,19 +166,30 @@ def prepare_match(
     )
 
 
+@contextmanager
+def open_match_files(prepared: PreparedMatch) -> Iterator[RecordSink]:
+    """The match's JSONL log and thoughts file as one sink, closed afterwards."""
+    with (
+        JsonlFile(prepared.log_path) as log_file,
+        ThoughtsFile(prepared.thoughts_path) as thoughts,
+    ):
+        yield Broadcast([log_file, thoughts])
+    return
+
+
 async def run_prepared(
     prepared: PreparedMatch,
     console: TextIO | None,
     control: MatchControl = ALWAYS_RUNNING,
     clock: Clock | None = None,
+    open_files: Callable[
+        [PreparedMatch], AbstractContextManager[RecordSink]
+    ] = open_match_files,
 ) -> MatchResult:
-    """Play a prepared match into its log and thoughts files, and `console` if given."""
+    """Play a prepared match into the sink `open_files` gives, and into `console`."""
     clock = clock or prepared.clock
-    with (
-        JsonlFile(prepared.log_path) as log_file,
-        ThoughtsFile(prepared.thoughts_path) as thoughts,
-    ):
-        sinks: list[RecordSink] = [log_file, thoughts]
+    with open_files(prepared) as files:
+        sinks: list[RecordSink] = [files]
         if console is not None:
             sinks.append(ConsoleLog(console))
         return await play_match(
