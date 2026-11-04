@@ -1551,8 +1551,6 @@ def default_action(state: PuertoRicoState, actions: list[Action]) -> Action | No
         return FinishPlacement() if FinishPlacement() in actions else None
     if state.phase == "captain_discard":
         discards = [action for action in actions if isinstance(action, DiscardGoods)]
-        if not discards:
-            return None
         return max(
             discards,
             key=lambda action: kept_goods(state.players[state.active_player], action),

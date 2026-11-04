@@ -141,7 +141,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             factions.append(options[choice])
         while True:
             scoring_order, rng = rng.shuffled(SCORING_TILES)
-            late = scoring_order[4 : min(config.rounds, 6)]
+            late = scoring_order[4 : config.rounds]
             if not any(tile.action is ScoringAction.SPADE for tile in late):
                 break
         scoring = scoring_order[: config.rounds]

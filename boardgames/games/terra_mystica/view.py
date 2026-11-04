@@ -223,8 +223,7 @@ def cult_spades_line(data: JsonObject) -> str:
     if _str(data, "phase") != "cult_spades":
         return ""
     active = _int(data, "active")
-    budgets = _ints(data, "cult_spades")
-    budget = budgets[active] if active < len(budgets) else 0
+    budget = _ints(data, "cult_spades")[active]
     return f"{seat_label(PlayerId(active))} has {budget} cult-bonus spade(s)."
 
 
