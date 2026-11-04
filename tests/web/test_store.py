@@ -2,14 +2,14 @@ from pathlib import Path
 
 import pytest
 
-from boardgames.logs.schema import MatchFinished, MatchStarted
+from boardgames.logs.schema import DecisionRecord, MatchFinished, MatchStarted
 from boardgames.web.store import (
     MatchStore,
     ReadOnlyLogError,
     UnknownMatchError,
     summarize,
 )
-from tests.web.support import costly_agents, without_finish, write_match
+from tests.web.support import costly_agents, without_finish, write_match, write_records
 
 
 def test_summary_has_scores_and_usage_per_seat(tmp_path: Path) -> None:
@@ -72,4 +72,62 @@ def test_read_only_log_is_listed_and_cannot_be_deleted(tmp_path: Path) -> None:
     with pytest.raises(ReadOnlyLogError):
         store.delete("example")
     assert log.exists()
+    return
+
+
+def test_a_log_that_is_not_utf8_is_unreadable_not_an_error(tmp_path: Path) -> None:
+    write_match(tmp_path, "good")
+    (tmp_path / "bad.jsonl").write_bytes(b'{"type": "match_started", "x": "\xff"}\n')
+    catalog = MatchStore(tmp_path).catalog()
+    assert [m.match_id for m in catalog.matches] == ["good"]
+    assert [u.path for u in catalog.unreadable] == ["bad.jsonl"]
+    return
+
+
+def test_a_log_with_a_player_outside_the_seats_is_unreadable(tmp_path: Path) -> None:
+    records = write_match(tmp_path, "bad-player")
+    changed = [
+        r.model_copy(update={"player": 7}) if isinstance(r, DecisionRecord) else r
+        for r in records
+    ]
+    write_records(tmp_path / "changed.jsonl", changed)
+    catalog = MatchStore(tmp_path).catalog()
+    assert [u.path for u in catalog.unreadable] == ["changed.jsonl"]
+    return
+
+
+def test_a_log_deleted_from_disk_is_unknown_not_an_error(tmp_path: Path) -> None:
+    write_match(tmp_path, "gone")
+    store = MatchStore(tmp_path)
+    store.catalog()
+    (tmp_path / "gone.jsonl").unlink()
+    with pytest.raises(UnknownMatchError):
+        store.match("gone")
+    with pytest.raises(UnknownMatchError):
+        store.records("gone")
+    with pytest.raises(UnknownMatchError):
+        store.updated_at("gone")
+    return
+
+
+def test_deleting_a_match_removes_a_duplicate_copy(tmp_path: Path) -> None:
+    write_match(tmp_path, "dup")
+    (tmp_path / "dup-copy.jsonl").write_bytes((tmp_path / "dup.jsonl").read_bytes())
+    store = MatchStore(tmp_path)
+    assert [m.match_id for m in store.catalog().matches] == ["dup"]
+    store.delete("dup")
+    assert not (tmp_path / "dup.jsonl").exists()
+    assert not (tmp_path / "dup-copy.jsonl").exists()
+    with pytest.raises(UnknownMatchError):
+        store.match("dup")
+    return
+
+
+def test_a_read_only_log_deleted_from_disk_disappears_quietly(tmp_path: Path) -> None:
+    log = tmp_path / "example.jsonl"
+    write_match(tmp_path, "example")
+    store = MatchStore(tmp_path / "runs", read_only=(log,))
+    assert [m.match_id for m in store.catalog().matches] == ["example"]
+    log.unlink()
+    assert store.catalog().matches == []
     return

@@ -21,6 +21,7 @@ from boardgames.logs.schema import (
     MatchStarted,
     MatchStopped,
 )
+from boardgames.logs.sink import LogFileError
 from boardgames.logs.thoughts import thoughts_path
 
 type MatchStatus = Literal["finished", "running", "stopped"]
@@ -213,10 +214,23 @@ type Indexed = MatchSummary | UnreadableLog
 
 
 def index_log(path: Path) -> Indexed:
-    """Summary of the log at `path`, or why it could not be read."""
+    """Summary of the log at `path`, or why it could not be read.
+
+    A log may be missing, not UTF-8, or hold records that do not fit the game's
+    seats; none of those may take the whole catalog down.
+    """
     try:
         return summarize(read_log(path))
-    except LogFormatError as error:
+    except (
+        LogFormatError,
+        LogFileError,
+        OSError,
+        UnicodeError,
+        IndexError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as error:
         return UnreadableLog(path=path.name, error=str(error))
 
 
@@ -263,27 +277,60 @@ class MatchStore:
 
     def records(self, match_id: str) -> list[LogRecord]:
         """Every record of one match's log."""
-        return read_log(self._path_of(match_id))
+        path = self._path_of(match_id)
+        try:
+            return read_log(path)
+        except (LogFileError, OSError) as error:
+            self._paths.pop(match_id, None)
+            raise UnknownMatchError(f"log of match {match_id!r} is gone") from error
 
     def updated_at(self, match_id: str) -> str:
         """When the match's log was last written, UTC ISO 8601.
 
         While a match runs, its current decision began at about this time."""
-        modified = self._path_of(match_id).stat().st_mtime
+        path = self._path_of(match_id)
+        try:
+            modified = path.stat().st_mtime
+        except OSError as error:
+            self._paths.pop(match_id, None)
+            raise UnknownMatchError(f"log of match {match_id!r} is gone") from error
         return datetime.fromtimestamp(modified, UTC).isoformat(timespec="milliseconds")
+
+    def stamp(self, match_id: str) -> FileStamp:
+        """The log's modification time and size, used to notice any new bytes."""
+        path = self._path_of(match_id)
+        try:
+            stat = path.stat()
+        except OSError as error:
+            self._paths.pop(match_id, None)
+            raise UnknownMatchError(f"log of match {match_id!r} is gone") from error
+        return (stat.st_mtime_ns, stat.st_size)
 
     def delete(self, match_id: str) -> None:
         """Remove a match's log and thoughts file; unknown ids raise UnknownMatchError.
 
         Only files found in the store's directory are removed; read-only logs raise.
+        A duplicate copy of the same match in the directory is removed too, so the
+        match does not reappear after its deletion.
         """
         path = self._path_of(match_id)
         if path.resolve() in {log.resolve() for log in self._read_only}:
             raise ReadOnlyLogError(f"match {match_id!r} was opened read-only")
-        path.unlink(missing_ok=True)
-        thoughts_path(path).unlink(missing_ok=True)
-        self._cache.pop(path, None)
-        del self._paths[match_id]
+        copies = [path]
+        if self._directory.is_dir():
+            copies.extend(
+                other
+                for other in self._directory.glob("*.jsonl")
+                if other.resolve() != path.resolve()
+            )
+        for copy in copies:
+            indexed = self._indexed(copy)
+            if not isinstance(indexed, MatchSummary) or indexed.match_id != match_id:
+                continue
+            copy.unlink(missing_ok=True)
+            thoughts_path(copy).unlink(missing_ok=True)
+            self._cache.pop(copy, None)
+            self._paths.pop(match_id, None)
         return
 
     def _log_paths(self) -> list[Path]:
@@ -291,18 +338,28 @@ class MatchStore:
             sorted(self._directory.glob("*.jsonl")) if self._directory.is_dir() else []
         )
         listed = {path.resolve() for path in found}
-        return found + [log for log in self._read_only if log.resolve() not in listed]
+        return found + [
+            log
+            for log in self._read_only
+            if log.is_file() and log.resolve() not in listed
+        ]
 
     def _path_of(self, match_id: str) -> Path:
         if match_id not in self._paths:
             self.catalog()
-        if match_id not in self._paths:
+        path = self._paths.get(match_id)
+        if path is None or not path.is_file():
+            self._paths.pop(match_id, None)
             raise UnknownMatchError(f"unknown match {match_id!r}")
-        return self._paths[match_id]
+        return path
 
     def _indexed(self, path: Path) -> Indexed:
         """The cached summary of `path`, reread when the file changed."""
-        stat = path.stat()
+        try:
+            stat = path.stat()
+        except OSError as error:
+            self._cache.pop(path, None)
+            return UnreadableLog(path=path.name, error=str(error))
         stamp = (stat.st_mtime_ns, stat.st_size)
         cached = self._cache.get(path)
         if cached is not None and cached[0] == stamp:
