@@ -11,7 +11,7 @@ from boardgames.core.errors import (
     UnknownGameError,
 )
 from boardgames.core.events import EVERYONE, Audience, Event, Everyone
-from boardgames.core.game import Game, GameConfig, Transition
+from boardgames.core.game import Game, GameConfig, Transition, checked_apply
 from boardgames.core.json_data import (
     JsonObject,
     JsonValue,
@@ -57,6 +57,7 @@ __all__ = [
     "Transition",
     "UnknownGameError",
     "canonical_json",
+    "checked_apply",
     "clean_json",
     "clean_text",
     "create_game",

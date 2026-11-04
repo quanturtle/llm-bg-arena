@@ -8,10 +8,11 @@ from typing import ClassVar, Protocol
 
 from boardgames.core.actions import ActionSpace
 from boardgames.core.decisions import Decision
+from boardgames.core.errors import IllegalActionError
 from boardgames.core.events import Event
 from boardgames.core.json_data import JsonObject, JsonValue
 from boardgames.core.observation import Observation
-from boardgames.core.players import PlayerId
+from boardgames.core.players import PlayerId, seat_label
 from boardgames.core.scores import Scores
 
 
@@ -103,3 +104,40 @@ class Game[S, A, C: GameConfig](Protocol):
     def action_json(self, action: A) -> dict[str, JsonValue]:
         """Machine form of an action for logs and the viewer."""
         ...
+
+
+class LegalGame[S, A, C: GameConfig](Game[S, A, C], Protocol):
+    """A game that separates the legality check from applying an action."""
+
+    def apply_legal(self, state: S, player: PlayerId, action: A) -> Transition[S]:
+        """Apply an action already checked by `checked_apply`."""
+        ...
+
+
+def checked_apply[S, A, C: GameConfig](
+    game: LegalGame[S, A, C],
+    state: S,
+    player: PlayerId,
+    action: A,
+    *,
+    no_decision: str | None = None,
+) -> Transition[S]:
+    """Check `action` against `player`'s open decision, then apply it."""
+    decision = next(
+        (item for item in game.pending_decisions(state) if item.player == player),
+        None,
+    )
+    if decision is None:
+        raise IllegalActionError(
+            no_decision or f"{seat_label(player)} has no open decision"
+        )
+    space = game.legal_actions(state, decision)
+    try:
+        is_legal = space.is_legal(action)
+    except (TypeError, ValueError, AttributeError) as error:
+        raise IllegalActionError(
+            f"{seat_label(player)} proposed an unknown action: {error}"
+        ) from error
+    if not is_legal:
+        raise IllegalActionError(space.explain(action))
+    return game.apply_legal(state, player, action)

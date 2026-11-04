@@ -124,6 +124,21 @@ def test_off_board_cell_is_explained() -> None:
     return
 
 
+def test_every_illegal_cell_gets_a_specific_reason() -> None:
+    state = play(["b2"])
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    for row in range(3):
+        for col in range(3):
+            mark = Mark(row, col)
+            if space.is_legal(mark):
+                continue
+            reason = space.explain(mark)
+            assert reason
+            assert reason != f"'{GAME.format_action(mark)}' is not a legal action now."
+    assert space.explain(Mark(3, 0)).startswith("a4 is off the board")
+
+
 def test_notation_round_trips_on_every_cell() -> None:
     for row in range(3):
         for col in range(3):

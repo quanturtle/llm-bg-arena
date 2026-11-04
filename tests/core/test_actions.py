@@ -106,6 +106,30 @@ def test_flat_space_custom_explanation() -> None:
     return
 
 
+def test_flat_space_from_check_filters_and_explains() -> None:
+    def check(action: Mark) -> str | None:
+        return None if action == Mark("a1") else f"{action.cell} is taken."
+
+    space = FlatActionSpace.from_check([Mark("a1"), Mark("b2")], mark_notation, check)
+    assert space.listing(10) == (Mark("a1"),)
+    assert space.is_legal(Mark("a1"))
+    assert not space.is_legal(Mark("b2"))
+    assert space.explain(Mark("b2")) == "b2 is taken."
+    assert space.explain(Mark("z9")) == "z9 is taken."
+
+
+def test_flat_space_from_check_never_uses_the_generic_reason() -> None:
+    space = FlatActionSpace.from_check(
+        [Mark("a1"), Mark("b2")],
+        mark_notation,
+        lambda action: None if action == Mark("a1") else f"{action.cell} is taken.",
+    )
+    for action in (Mark("b2"), Mark("z9")):
+        assert (
+            space.explain(action) != "'" + action.cell + "' is not a legal action now."
+        )
+
+
 def test_flat_space_rejects_unlisted_default() -> None:
     with pytest.raises(ValueError, match="not a listed action"):
         FlatActionSpace([Mark("a1")], mark_notation, default=Mark("z9"))

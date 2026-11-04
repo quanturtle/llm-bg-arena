@@ -14,7 +14,6 @@ from boardgames.core import (
     Decision,
     Event,
     FlatActionSpace,
-    IllegalActionError,
     JsonObject,
     JsonValue,
     NotationError,
@@ -22,6 +21,7 @@ from boardgames.core import (
     PlayerId,
     Scores,
     Transition,
+    checked_apply,
     register_game,
     seat_label,
 )
@@ -122,14 +122,23 @@ class TicTacToe:
     def legal_actions(
         self, state: TicTacToeState, decision: Decision
     ) -> ActionSpace[Mark]:
-        return FlatActionSpace(
-            open_cells(state), cell_name, explain=partial(explain_mark, state)
+        return FlatActionSpace.from_check(
+            all_cells(), cell_name, partial(move_reason, state)
         )
 
     def apply(
         self, state: TicTacToeState, player: PlayerId, action: Mark
     ) -> Transition[TicTacToeState]:
-        check_move(state, player, action)
+        if state.outcome is not None:
+            no_decision = "the game is over"
+        else:
+            assert state.to_move is not None
+            no_decision = f"it is {player_name(state.to_move)}'s turn"
+        return checked_apply(self, state, player, action, no_decision=no_decision)
+
+    def apply_legal(
+        self, state: TicTacToeState, player: PlayerId, action: Mark
+    ) -> Transition[TicTacToeState]:
         board = with_mark(state.board, action, player)
         cell = cell_name(action)
         events = [
@@ -226,14 +235,9 @@ def check_config(config: TicTacToeConfig) -> None:
     return
 
 
-def open_cells(state: TicTacToeState) -> list[Mark]:
-    """Empty cells, top row first."""
-    return [
-        Mark(row, col)
-        for row in reversed(range(SIZE))
-        for col in range(SIZE)
-        if state.board[row][col] is None
-    ]
+def all_cells() -> list[Mark]:
+    """Every cell, top row first."""
+    return [Mark(row, col) for row in reversed(range(SIZE)) for col in range(SIZE)]
 
 
 def cell_name(mark: Mark) -> str:
@@ -241,27 +245,15 @@ def cell_name(mark: Mark) -> str:
     return f"{chr(ord('a') + mark.col)}{mark.row + 1}"
 
 
-def explain_mark(state: TicTacToeState, mark: Mark) -> str:
-    """Why marking this cell is illegal; only called for an illegal mark."""
+def move_reason(state: TicTacToeState, mark: Mark) -> str | None:
+    """Why marking this cell is illegal, or None when it is legal."""
     cell = cell_name(mark)
     if not (0 <= mark.row < SIZE and 0 <= mark.col < SIZE):
         return f"{cell} is off the board, which runs from a1 to c3."
     owner = state.board[mark.row][mark.col]
     if owner is not None:
         return f"{cell} is already taken by {MARKS[owner]}."
-    raise AssertionError("explain_mark is only called for an illegal mark")
-
-
-def check_move(state: TicTacToeState, player: PlayerId, mark: Mark) -> None:
-    """Raise IllegalActionError unless `player` may mark this cell now."""
-    if state.outcome is not None:
-        raise IllegalActionError("the game is over")
-    assert state.to_move is not None
-    if player != state.to_move:
-        raise IllegalActionError(f"it is {player_name(state.to_move)}'s turn")
-    if mark not in open_cells(state):
-        raise IllegalActionError(explain_mark(state, mark))
-    return
+    return None
 
 
 def with_mark(board: Board, mark: Mark, player: PlayerId) -> Board:

@@ -79,16 +79,31 @@ class FlatActionSpace[A](ActionSpace[A]):
         *,
         explain: Callable[[A], str] | None = None,
         default: A | None = None,
+        check: Callable[[A], str | None] | None = None,
     ) -> None:
         self._actions = tuple(actions)
         self._notation = notation
         self._explain = explain
+        self._check = check
         self._by_tokens = index_by_tokens(self._actions, notation)
         self._children = children_by_prefix(self._by_tokens)
         if default is not None and default not in self._actions:
             raise ValueError(f"default {notation(default)!r} is not a listed action")
         self._default = default
         return
+
+    @classmethod
+    def from_check(
+        cls,
+        actions: Sequence[A],
+        notation: Callable[[A], str],
+        check: Callable[[A], str | None],
+        *,
+        default: A | None = None,
+    ) -> "FlatActionSpace[A]":
+        """A space holding the actions whose `check` returns no reason."""
+        listed = [action for action in actions if check(action) is None]
+        return cls(listed, notation, default=default, check=check)
 
     def notation(self, action: A) -> str:
         return self._notation(action)
@@ -107,6 +122,10 @@ class FlatActionSpace[A](ActionSpace[A]):
         return self._by_tokens.get(tuple(self._notation(action).split())) == action
 
     def explain(self, action: A) -> str:
+        if self._check is not None:
+            reason = self._check(action)
+            if reason is not None:
+                return reason
         if self._explain is None:
             return super().explain(action)
         return self._explain(action)
