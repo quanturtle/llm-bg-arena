@@ -9,6 +9,7 @@ import pytest
 from boardgames.agents import (
     Agent,
     AgentChoice,
+    AttemptRecord,
     Chosen,
     DecisionRequest,
     DecisionTrace,
@@ -26,6 +27,7 @@ from boardgames.arena.runner import (
 )
 from boardgames.core import (
     AnyGame,
+    ArenaError,
     ConfigError,
     Decision,
     GameConfig,
@@ -43,15 +45,18 @@ from boardgames.logs.schema import (
     MatchFinished,
     MatchStarted,
     MatchStopped,
+    UnfinishedDecisionRecord,
 )
 from boardgames.logs.sink import JsonlFile, LogFileError, RecordSink
 from tests.arena.support import (
+    ClaimConfig,
     FakeClock,
     FixedAgent,
     ForfeitingAgent,
     MemorySink,
     RecordingAgent,
     ScriptedAgent,
+    TokenClaim,
     random_agents,
 )
 from tests.llm.requests import tic_tac_toe_request
@@ -235,6 +240,40 @@ def test_one_failing_simultaneous_decision_cancels_the_other() -> None:
         return
 
     asyncio.run(fail_together())
+    return
+
+
+class PaidAgent:
+    """Claims "a" at once, after one paid model call."""
+
+    @property
+    def name(self) -> str:
+        return "paid"
+
+    def settings(self) -> dict[str, JsonValue]:
+        return {"kind": "llm"}
+
+    async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
+        trace = DecisionTrace(attempts=(AttemptRecord(text="a"),), cost_usd=0.25)
+        return Chosen(request.action_text.parse_action("a"), trace)
+
+
+def test_a_round_that_fails_after_a_logged_answer_stops_at_its_step() -> None:
+    sink = MemorySink()
+    with pytest.raises(ArenaError):
+        run(TokenClaim(), ClaimConfig(), [FixedAgent("a"), FixedAgent("a")], sink)
+    decisions = [r.step for r in sink.records if isinstance(r, DecisionRecord)]
+    assert decisions == [1]
+    assert sink.records[-1] == MatchStopped(steps=1, stopped_at=FakeClock().now_iso())
+    return
+
+
+def test_an_answer_that_returned_before_its_round_failed_keeps_its_cost() -> None:
+    sink = MemorySink()
+    with pytest.raises(ModelUnavailableError):
+        run(TokenClaim(), ClaimConfig(), [PaidAgent(), UnavailableAgent()], sink)
+    unfinished = [r for r in sink.records if isinstance(r, UnfinishedDecisionRecord)]
+    assert [(r.player, r.trace.cost_usd) for r in unfinished] == [(0, 0.25)]
     return
 
 

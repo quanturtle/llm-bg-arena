@@ -1,6 +1,8 @@
 """Fakes shared by runner, replay and invariant tests."""
 
 from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import ClassVar
 
 from boardgames.agents import (
     Agent,
@@ -11,7 +13,19 @@ from boardgames.agents import (
     Forfeited,
     RandomAgent,
 )
-from boardgames.core import JsonValue
+from boardgames.core import (
+    ActionSpace,
+    Decision,
+    FlatActionSpace,
+    IllegalActionError,
+    JsonObject,
+    JsonValue,
+    NotationError,
+    Observation,
+    PlayerId,
+    Scores,
+    Transition,
+)
 from boardgames.logs.schema import LogRecord
 
 
@@ -111,3 +125,90 @@ class FixedAgent:
 
 def random_agents(count: int, seed: int = 0) -> list[Agent]:
     return [RandomAgent(seed * 100 + seat) for seat in range(count)]
+
+
+TOKENS = ("a", "b", "c")
+
+
+@dataclass(frozen=True)
+class ClaimConfig:
+    num_players: int = 2
+
+
+@dataclass(frozen=True)
+class ClaimState:
+    """`claims[p]` is the token seat p took, or None while it still decides."""
+
+    claims: tuple[str | None, ...]
+
+
+class TokenClaim:
+    """Every seat claims a free token at the same time, so two can clash."""
+
+    id: ClassVar[str] = "token_claim"
+
+    def parse_config(self, raw: JsonObject) -> ClaimConfig:
+        return ClaimConfig()
+
+    def config_json(self, config: ClaimConfig) -> dict[str, JsonValue]:
+        return {"num_players": config.num_players}
+
+    def setup(self, config: ClaimConfig, seed: int) -> Transition[ClaimState]:
+        return Transition(ClaimState((None,) * config.num_players), ())
+
+    def pending_decisions(self, state: ClaimState) -> tuple[Decision, ...]:
+        return tuple(
+            Decision(PlayerId(seat), "claim", "Claim a free token.")
+            for seat, claim in enumerate(state.claims)
+            if claim is None
+        )
+
+    def legal_actions(self, state: ClaimState, decision: Decision) -> ActionSpace[str]:
+        return FlatActionSpace(free_tokens(state), str)
+
+    def apply(
+        self, state: ClaimState, player: PlayerId, action: str
+    ) -> Transition[ClaimState]:
+        if action not in free_tokens(state):
+            raise IllegalActionError(f"P{player + 1} cannot claim {action}")
+        claims = tuple(
+            action if seat == player else claim
+            for seat, claim in enumerate(state.claims)
+        )
+        return Transition(ClaimState(claims), ())
+
+    def is_terminal(self, state: ClaimState) -> bool:
+        return all(claim is not None for claim in state.claims)
+
+    def scores(self, state: ClaimState) -> Scores:
+        return Scores({PlayerId(seat): 1.0 for seat in range(len(state.claims))})
+
+    def public_scores(self, state: ClaimState) -> Scores:
+        return self.scores(state)
+
+    def observe(self, state: ClaimState, viewer: PlayerId | None) -> Observation:
+        return Observation(viewer, {"claims": list(state.claims)})
+
+    def render_text(self, observation: Observation) -> str:
+        return str(observation.data)
+
+    def rules_text(self) -> str:
+        return "Claim one free token."
+
+    def format_action(self, action: str) -> str:
+        return action
+
+    def parse_action(self, text: str) -> str:
+        if text not in TOKENS:
+            raise NotationError(f"{text!r} is not a token")
+        return text
+
+    def describe_action(self, observation: Observation, action: str) -> str:
+        return f"Claim {action}"
+
+    def action_json(self, action: str) -> dict[str, JsonValue]:
+        return {"token": action}
+
+
+def free_tokens(state: ClaimState) -> list[str]:
+    return [token for token in TOKENS if token not in state.claims]

@@ -7,7 +7,7 @@ waits while the match is paused; a cancelled match ends with match_stopped.
 """
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, replace
 from functools import partial
 
@@ -263,14 +263,20 @@ async def play_round[S, A, C: GameConfig](
     ledger.progress = progress
     answers = await decide_together(context, decisions, requests)
     forfeited: list[PlayerId] = []
-    for request, (choice, latency) in zip(requests, answers, strict=True):
-        answer = Answer(request, ledger.observed_at, latency)
-        if isinstance(choice, Forfeited):
-            record_forfeit(context, progress, answer, choice)
-            forfeited.append(request.decision.player)
-        else:
-            progress = apply_choice(context, progress, answer, choice)
-            ledger.progress = progress
+    logged = 0
+    try:
+        for request, (choice, latency) in zip(requests, answers, strict=True):
+            answer = Answer(request, ledger.observed_at, latency)
+            if isinstance(choice, Forfeited):
+                record_forfeit(context, progress, answer, choice)
+                forfeited.append(request.decision.player)
+            else:
+                progress = apply_choice(context, progress, answer, choice)
+                ledger.progress = progress
+            logged += 1
+    except BaseException:
+        report_unlogged(zip(requests[logged:], answers[logged:], strict=True))
+        raise
     return progress, tuple(forfeited)
 
 
@@ -292,7 +298,22 @@ async def decide_together[S, A, C: GameConfig](
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        report_unlogged(
+            (request, task.result())
+            for request, task in zip(requests, tasks, strict=True)
+            if not task.cancelled() and task.exception() is None
+        )
         raise
+
+
+def report_unlogged[A](
+    answers: Iterable[tuple[DecisionRequest[A], tuple[AgentChoice[A], float]]],
+) -> None:
+    """Hand the paid traces of answers a failed round will never log to the round."""
+    for request, (choice, _) in answers:
+        if choice.trace.attempts:
+            request.record_unfinished(choice.trace)
+    return
 
 
 def request_for[S, A, C: GameConfig](
