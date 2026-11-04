@@ -182,7 +182,7 @@ function NumberTokens({ uid, layout, observation }: { uid: string; layout: Catan
 }
 
 function Robbers({ uid, layout, observation }: { uid: string; layout: CatanLayout; observation: CatanObservation }) {
-  if (observation.robber === null || !layout.hexes[observation.robber]) return null;
+  if (!layout.hexes[observation.robber]) return null;
   return <Robber uid={uid} centre={toSvg(layout.hexes[observation.robber])} />;
 }
 

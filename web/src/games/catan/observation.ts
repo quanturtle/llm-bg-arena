@@ -14,10 +14,20 @@ export type CatanLayout = z.infer<typeof layoutSchema>;
 
 export const observationSchema = z.object({
   turn: z.number(),
-  phase: z.string(),
-  active: z.number().nullable(),
+  phase: z.enum([
+    "setup_settlement",
+    "setup_road",
+    "roll",
+    "discard",
+    "move_robber",
+    "actions",
+    "free_road",
+    "trade_response",
+    "game_over",
+  ]),
+  active: z.number(),
   dice: z.array(z.number()).nullable(),
-  robber: z.number().nullable(),
+  robber: z.number(),
   hexes: z.array(z.object({ terrain: z.string(), number: z.number().nullable() })),
   ports: z.array(z.object({ edge: z.number(), resource: z.string().nullable() })),
   buildings: z.array(z.object({ player: z.number(), kind: z.enum(["settlement", "city"]) }).nullable()),
