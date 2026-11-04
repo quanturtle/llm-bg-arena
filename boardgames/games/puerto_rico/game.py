@@ -1034,6 +1034,7 @@ def _finish_settler(
     rng = state.rng
     drawn = deck[:face_up_count]
     deck = deck[len(drawn) :]
+    shuffled: tuple[Good, ...] = ()
     reshuffled = False
     if len(drawn) < face_up_count:
         shuffled, rng = rng.shuffled(discard)
