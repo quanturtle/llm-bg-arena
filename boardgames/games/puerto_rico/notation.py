@@ -79,9 +79,7 @@ def format_action(action: Action) -> str:
             return f"pick {target} {index}"
         case FinishPlacement():
             return "finish"
-        case DiscardGoods(protected=protected, keep=keep, legacy=legacy):
-            if legacy:
-                return "discard" if not protected else f"discard {' '.join(protected)}"
+        case DiscardGoods(protected=protected, keep=keep):
             parts: list[str] = list(protected)
             parts.append("keep" if keep is not None else "none")
             if keep is not None:

@@ -265,7 +265,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             raise IllegalActionError(
                 f"{seat_label(player)} proposed an unknown action: {error}"
             ) from error
-        if not is_legal and not (isinstance(action, DiscardGoods) and action.legacy):
+        if not is_legal:
             raise IllegalActionError(space.explain(action))
         return self.apply_legal(state, player, action)
 
@@ -352,26 +352,12 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         return describe_action(observation, action)
 
     def action_json(self, action: Action) -> dict[str, JsonValue]:
-        if isinstance(action, DiscardGoods):
-            data: dict[str, JsonValue] = {
-                "type": "discard_goods",
-                "protected": list(action.protected),
-            }
-            if not action.legacy:
-                data["keep"] = action.keep
-            return data
         data = tagged_json_object(action)
         if isinstance(action, TakePlantation | TakeQuarry) and action.use_hospice:
             data.pop("use_hospice", None)
         elif isinstance(action, Build) and action.use_university:
             data.pop("use_university", None)
         return data
-
-    def adapt_saved_action(self, action: Action, saved: JsonObject) -> Action:
-        """Restore the old keep-one-of-each meaning of pre-``keep`` discards."""
-        if isinstance(action, DiscardGoods) and "keep" not in saved:
-            return replace(action, legacy=True)
-        return action
 
     # Role selection -------------------------------------------------------
 
@@ -853,10 +839,9 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         data: dict[str, JsonValue] = {
             "player": player,
             "protected": list(action.protected),
+            "keep": action.keep,
             "kept": [count for count in keep],
         }
-        if not action.legacy:
-            data["keep"] = action.keep
         event = Event(
             "goods_discarded",
             f"{seat_label(player)} kept goods after shipping.",

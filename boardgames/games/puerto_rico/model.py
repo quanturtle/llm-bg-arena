@@ -267,7 +267,6 @@ class DiscardGoods:
 
     protected: tuple[Good, ...] = ()
     keep: Good | None = None
-    legacy: bool = False
 
 
 # Goods helpers ------------------------------------------------------------

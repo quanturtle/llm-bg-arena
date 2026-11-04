@@ -1524,32 +1524,6 @@ def test_captain_discard_fallback_keeps_a_good() -> None:
     assert goods_total(after.players[player].goods) == 1
 
 
-def test_old_bare_discard_still_keeps_one_of_each_type() -> None:
-    state = start(seed=9)
-    player = state.order[0]
-    state = with_goods(state, player, corn=2, indigo=3)
-    state = with_role(state, "captain", player)
-    state = replace(
-        state,
-        phase="captain_discard",
-        active_role="captain",
-        active_player=player,
-        players_acted=frozenset(state.order[1:]),
-    )
-    action = GAME.parse_action("discard")
-    assert isinstance(action, DiscardGoods)
-    legacy = GAME.adapt_saved_action(action, {"type": "discard_goods", "protected": []})
-    assert isinstance(legacy, DiscardGoods) and legacy.legacy
-    assert GAME.format_action(legacy) == "discard"
-    assert GAME.action_json(legacy) == {
-        "type": "discard_goods",
-        "protected": [],
-    }
-    after = GAME.apply(state, player, legacy).state
-    assert goods_get(after.players[player].goods, "corn") == 1
-    assert goods_get(after.players[player].goods, "indigo") == 1
-
-
 def test_large_warehouse_protects_two_types() -> None:
     owner = PlayerState(
         goods=goods_from(corn=2, indigo=2, sugar=2),

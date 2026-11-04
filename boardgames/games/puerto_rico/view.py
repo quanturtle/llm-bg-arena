@@ -358,9 +358,7 @@ def describe_action(observation: Observation, action: Action) -> str:
             return f"Pick up a colonist from {target} {index}."
         case FinishPlacement():
             return "Finish placing colonists."
-        case DiscardGoods(protected=protected, keep=keep, legacy=legacy):
-            if legacy:
-                return "Keep one of each type plus the warehouse-protected types."
+        case DiscardGoods(protected=protected, keep=keep):
             parts: list[str] = []
             if keep is not None:
                 parts.append(f"keep 1 {keep}")
