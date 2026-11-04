@@ -6,7 +6,8 @@ from boardgames.llm.parsing import Rejected, Resolved
 from boardgames.llm.prompting import PromptSettings
 from boardgames.llm.tools import (
     Committed,
-    DecisionProgress,
+    Exhausted,
+    Exploring,
     ToolBudget,
     ToolResult,
     after_text_reply,
@@ -114,26 +115,25 @@ def test_progress_commits_on_a_resolved_take_action() -> None:
         answer("get_state", request),
         answer("take_action", request, action="a1"),
     ]
-    progress = after_tool_calls(DecisionProgress[Any](), results, BUDGET)
+    progress = after_tool_calls(Exploring(), results, BUDGET)
     assert isinstance(progress, Committed)
-    assert (progress.phase, progress.calls_made) == ("committed", 2)
-    assert progress.chosen is not None
+    assert request.actions.notation(progress.chosen.action) == "a1"
     return
 
 
 def test_progress_exhausts_on_rejections_calls_or_text_replies() -> None:
     request = tic_tac_toe_request(["b2"])
     rejected = answer("take_action", request, action="b2")
-    progress = after_tool_calls(DecisionProgress[Any](), [rejected], BUDGET)
-    assert (progress.phase, progress.rejections) == ("exploring", 1)
-    assert after_tool_calls(progress, [rejected], BUDGET).phase == "exhausted"
+    progress = after_tool_calls(Exploring(), [rejected], BUDGET)
+    assert progress == Exploring(calls_made=1, rejections=1)
+    assert isinstance(progress, Exploring)
+    assert after_tool_calls(progress, [rejected], BUDGET) == Exhausted()
     lookups = [answer("get_rules", request)] * BUDGET.max_tool_calls
-    assert after_tool_calls(DecisionProgress[Any](), lookups, BUDGET).phase == (
-        "exhausted"
-    )
-    nudged = after_text_reply(DecisionProgress[Any](), BUDGET)
-    assert (nudged.phase, nudged.text_replies) == ("exploring", 1)
-    assert after_text_reply(nudged, BUDGET).phase == "exhausted"
+    assert after_tool_calls(Exploring(), lookups, BUDGET) == Exhausted()
+    nudged = after_text_reply(Exploring(), BUDGET)
+    assert nudged == Exploring(text_replies=1)
+    assert isinstance(nudged, Exploring)
+    assert after_text_reply(nudged, BUDGET) == Exhausted()
     return
 
 
@@ -141,9 +141,7 @@ def test_an_accepted_action_commits_even_past_the_call_budget() -> None:
     request = tic_tac_toe_request([])
     results = [answer("get_rules", request)] * BUDGET.max_tool_calls
     results.append(answer("take_action", request, action="a1"))
-    assert after_tool_calls(DecisionProgress[Any](), results, BUDGET).phase == (
-        "committed"
-    )
+    assert isinstance(after_tool_calls(Exploring(), results, BUDGET), Committed)
     return
 
 

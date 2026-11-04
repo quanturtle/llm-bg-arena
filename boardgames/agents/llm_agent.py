@@ -52,6 +52,7 @@ from boardgames.llm.tools import (
     NO_TOOL_NUDGE,
     Committed,
     DecisionProgress,
+    Exploring,
     ToolBudget,
     ToolResult,
     after_text_reply,
@@ -194,10 +195,10 @@ class LlmAgent:
         )
         messages: tuple[Message, ...] = prompt.messages
         logged = 0
-        progress: DecisionProgress[A] = DecisionProgress()
+        progress: DecisionProgress[A] = Exploring()
         attempts: list[Attempt[A]] = []
         try:
-            while progress.phase == "exploring":
+            while isinstance(progress, Exploring):
                 completion = await self._model.complete(
                     messages, self._settings.model, tools, "auto"
                 )

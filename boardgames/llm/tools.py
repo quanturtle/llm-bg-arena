@@ -11,7 +11,6 @@ pure: tools answer from the DecisionRequest alone.
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from typing import Literal
 
 from boardgames.agents.base import DecisionRequest
 from boardgames.core import ActionSpace, JsonObject, NotationError, Tokens, clean_json
@@ -29,8 +28,6 @@ from boardgames.llm.prompting import (
     recent_events_text,
     submit_tool,
 )
-
-type Phase = Literal["exploring", "committed", "exhausted"]
 
 TAKE_ACTION = "take_action"
 NO_ARGUMENTS: JsonObject = {"type": "object", "properties": {}}
@@ -210,40 +207,28 @@ class ToolBudget:
 
 
 @dataclass(frozen=True)
-class DecisionProgress[A]:
-    """A decision still exploring; `Committed` carries the accepted action."""
+class Exploring:
+    """A decision still calling tools, and how much of its limits it has used."""
 
     calls_made: int = 0
     rejections: int = 0
     text_replies: int = 0
 
-    @property
-    def phase(self) -> Phase:
-        return "exploring"
 
-
-@dataclass(frozen=True, kw_only=True)
-class Committed[A](DecisionProgress[A]):
-    """A decision whose action was accepted, so its reply always goes with it."""
+@dataclass(frozen=True)
+class Committed[A]:
+    """A decision whose action was accepted, with the reply that chose it."""
 
     chosen: Resolved[A]
-    reply: ParsedReply | None = None
-
-    @property
-    def phase(self) -> Phase:
-        return "committed"
+    reply: ParsedReply | None
 
 
 @dataclass(frozen=True)
-class Exhausted[A](DecisionProgress[A]):
+class Exhausted:
     """A decision that used up one of its limits."""
 
-    @property
-    def phase(self) -> Phase:
-        return "exhausted"
 
-
-type ProgressState[A] = DecisionProgress[A] | Committed[A] | Exhausted[A]
+type DecisionProgress[A] = Exploring | Committed[A] | Exhausted
 
 
 def answer_tool_calls[A](
@@ -265,62 +250,38 @@ def answer_tool_calls[A](
 
 
 def after_tool_calls[A](
-    progress: ProgressState[A],
-    results: Sequence[ToolResult[A]],
-    budget: ToolBudget,
-) -> ProgressState[A]:
+    progress: Exploring, results: Sequence[ToolResult[A]], budget: ToolBudget
+) -> DecisionProgress[A]:
     """Progress after one reply's tool calls; an accepted action always commits,
     and the limits are checked only once the whole reply is counted."""
     for result in results:
-        progress = after_tool_call(progress, result)
-    if isinstance(progress, Committed):
-        return progress
+        if isinstance(result.outcome, Resolved):
+            return Committed(result.outcome, result.reply)
+        progress = counted_call(progress, result)
     return exhausted_if_over(progress, budget)
 
 
-def after_tool_call[A](
-    progress: ProgressState[A], result: ToolResult[A]
-) -> ProgressState[A]:
-    """Progress after one answered tool call; the first accepted action commits."""
-    calls_made = progress.calls_made + 1
+def counted_call[A](progress: Exploring, result: ToolResult[A]) -> Exploring:
+    """Progress after one answered call that did not commit."""
     rejected = isinstance(result.outcome, Rejected)
-    rejections = progress.rejections + (1 if rejected else 0)
-    if isinstance(result.outcome, Resolved) and not isinstance(progress, Committed):
-        return Committed(
-            calls_made=calls_made,
-            rejections=rejections,
-            text_replies=progress.text_replies,
-            chosen=result.outcome,
-            reply=result.reply,
-        )
     return replace(
-        progress, calls_made=calls_made, rejections=rejections
+        progress,
+        calls_made=progress.calls_made + 1,
+        rejections=progress.rejections + (1 if rejected else 0),
     )
 
 
-def after_text_reply[A](
-    progress: ProgressState[A], budget: ToolBudget
-) -> ProgressState[A]:
+def after_text_reply(progress: Exploring, budget: ToolBudget) -> Exploring | Exhausted:
     """Progress after a reply with no tool call; the second one exhausts."""
     advanced = replace(progress, text_replies=progress.text_replies + 1)
     return exhausted_if_over(advanced, budget)
 
 
-def exhausted_if_over[A](
-    progress: ProgressState[A], budget: ToolBudget
-) -> ProgressState[A]:
-    """The progress, moved to "exhausted" once any limit is reached."""
-    if isinstance(progress, Committed):
-        return progress
+def exhausted_if_over(progress: Exploring, budget: ToolBudget) -> Exploring | Exhausted:
+    """The progress, or Exhausted once any limit is reached."""
     over = (
         progress.calls_made >= budget.max_tool_calls
         or progress.rejections > budget.max_illegal_retries
         or progress.text_replies > 1
     )
-    if not over:
-        return progress
-    return Exhausted(
-        calls_made=progress.calls_made,
-        rejections=progress.rejections,
-        text_replies=progress.text_replies,
-    )
+    return Exhausted() if over else progress
