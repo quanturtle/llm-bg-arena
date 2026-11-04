@@ -8,6 +8,7 @@ from boardgames.core import ConfigError
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher, MatchStillPlayingError
 from boardgames.web.store import MatchStore, ReadOnlyLogError
+from tests.arena.support import FakeClock
 from tests.llm.fakes import FirstListedMove
 
 BOT_MATCH = "game: tic_tac_toe\n"
@@ -28,6 +29,27 @@ def test_launcher_starts_a_match_and_reports_how_it_ended(tmp_path: Path) -> Non
     assert MatchStore(tmp_path).match(launch.match_id).status == "finished"
     with pytest.raises(ConfigError):
         launcher.start("- a list, not a config\n")
+    return
+
+
+def test_launcher_accepts_a_clock_and_an_id_factory(tmp_path: Path) -> None:
+    launcher = MatchLauncher(
+        tmp_path,
+        FirstListedMove(),
+        None,
+        clock=FakeClock(),
+        id_factory=lambda: "fixed-id",
+    )
+
+    async def start_and_wait() -> str:
+        match_id = launcher.start(BOT_MATCH).match_id
+        await launcher.wait()
+        return match_id
+
+    match_id = asyncio.run(start_and_wait())
+    assert match_id == "fixed-id"
+    summary = MatchStore(tmp_path).match(match_id)
+    assert summary.started_at == FakeClock().now_iso()
     return
 
 

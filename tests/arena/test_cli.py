@@ -11,8 +11,10 @@ from boardgames.arena.lineup import (
     derive_seed,
     openrouter_model,
     player_names,
+    prepare_match,
 )
-from boardgames.arena.match_config import LlmSeat
+from boardgames.arena.match_config import LlmSeat, parse_match_config
+from tests.arena.support import FakeClock
 from tests.llm.fakes import FirstListedMove
 
 
@@ -121,6 +123,28 @@ def test_llm_seat_builds_an_llm_agent_with_its_settings() -> None:
     assert settings["kind"] == "llm"
     assert (settings["max_illegal_retries"], settings["fallback"]) == (1, "forfeit")
     assert settings["extractor"] == "openai/gpt-5-mini"
+    return
+
+
+def test_prepare_match_accepts_paths_cache_and_clock(tmp_path: Path) -> None:
+    config = parse_match_config(
+        {"game": "tic_tac_toe", "cache": True}, "test"
+    )
+    log = tmp_path / "match.jsonl"
+    thoughts = tmp_path / "thoughts.md"
+    prepared = prepare_match(
+        config,
+        FirstListedMove(),
+        tmp_path / "runs",
+        match_id="chosen",
+        log=log,
+        thoughts=thoughts,
+        cache_dir=tmp_path / "cache",
+        clock=FakeClock(),
+    )
+    assert prepared.match_id == "chosen"
+    assert (prepared.log_path, prepared.thoughts_path) == (log, thoughts)
+    assert prepared.clock.now_iso() == FakeClock().now_iso()
     return
 
 

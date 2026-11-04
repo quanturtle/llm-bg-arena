@@ -8,6 +8,8 @@ match_stopped.
 """
 
 import asyncio
+import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -15,8 +17,15 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict
 
+from boardgames.arena.clock import Clock, SystemClock
 from boardgames.arena.control import PauseGate
-from boardgames.arena.lineup import PreparedMatch, prepare_match, run_prepared
+from boardgames.arena.lineup import (
+    DEFAULT_CACHE_DIR,
+    PreparedMatch,
+    new_match_id,
+    prepare_match,
+    run_prepared,
+)
 from boardgames.arena.match_config import parse_match_config
 from boardgames.core import ArenaError, ConfigError
 from boardgames.llm.model import ChatModel
@@ -67,14 +76,31 @@ class MatchLauncher:
     """Starts matches into `runs_dir`, pauses and stops them, and keeps their status."""
 
     def __init__(
-        self, runs_dir: Path, model: ChatModel | None, examples_dir: Path | None
+        self,
+        runs_dir: Path,
+        model: ChatModel | None,
+        examples_dir: Path | None,
+        *,
+        clock: Clock | None = None,
+        id_factory: Callable[[], str] = new_match_id,
+        cache_dir: Path = DEFAULT_CACHE_DIR,
+        prepare: Callable[..., PreparedMatch] = prepare_match,
     ) -> None:
-        """`model` serves every seat; with None (no API key) each start raises."""
+        """`model` serves every seat; with None (no API key) each start raises.
+
+        The clock, match ids, cache folder and preparation function are injectable
+        so tests can replace every filesystem and time dependency.
+        """
         self._runs_dir = runs_dir
         self._model = model
         self._examples_dir = examples_dir
+        self._clock = clock or SystemClock()
+        self._id_factory = id_factory
+        self._cache_dir = cache_dir
+        self._prepare = prepare
         self._launched: dict[str, Running] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
+        self._lock = threading.RLock()
         return
 
     def examples(self) -> list[Example]:
@@ -94,19 +120,28 @@ class MatchLauncher:
             raise ConfigError(f"the config is not valid YAML: {error}") from error
         config = parse_match_config(raw, "config")
         running = Running(
-            prepare_match(
-                config, self._model, self._runs_dir, use_config_log=False
+            self._prepare(
+                config,
+                self._model,
+                self._runs_dir,
+                use_config_log=False,
+                id_factory=self._id_factory,
+                cache_dir=self._cache_dir,
+                clock=self._clock,
             )
         )
         match_id = running.prepared.match_id
-        self._launched[match_id] = running
-        self._tasks[match_id] = asyncio.ensure_future(self._run(running))
+        with self._lock:
+            self._launched[match_id] = running
+            self._tasks[match_id] = asyncio.ensure_future(self._run(running))
         return self.launch(match_id)
 
     async def _run(self, running: Running) -> None:
         """Play the match and keep how it ended; a failure is kept for the viewer."""
         try:
-            await run_prepared(running.prepared, None, running.gate)
+            await run_prepared(
+                running.prepared, None, running.gate, clock=self._clock
+            )
         except asyncio.CancelledError:
             running.ending = "stopped"
             raise
@@ -119,30 +154,39 @@ class MatchLauncher:
 
     def launch(self, match_id: str) -> Launch:
         """The current status of one started match."""
-        if match_id not in self._launched:
-            raise UnknownLaunchError(f"match {match_id!r} was not started here")
-        return launch_of(self._launched[match_id], self._tasks[match_id])
+        with self._lock:
+            if match_id not in self._launched:
+                raise UnknownLaunchError(f"match {match_id!r} was not started here")
+            return launch_of(self._launched[match_id], self._tasks[match_id])
 
     def launches(self) -> list[Launch]:
         """Every match started through this launcher, newest first."""
-        return [self.launch(match_id) for match_id in reversed(self._launched)]
+        with self._lock:
+            running = [
+                (self._launched[match_id], self._tasks[match_id])
+                for match_id in reversed(self._launched)
+            ]
+        return [launch_of(item, task) for item, task in running]
 
     def pause(self, match_id: str) -> Launch:
         """Hold the match before its next round; a round in progress finishes first."""
-        self.launch(match_id)
-        self._launched[match_id].gate.pause()
+        with self._lock:
+            self.launch(match_id)
+            self._launched[match_id].gate.pause()
         return self.launch(match_id)
 
     def resume(self, match_id: str) -> Launch:
         """Let a paused match play on."""
-        self.launch(match_id)
-        self._launched[match_id].gate.resume()
+        with self._lock:
+            self.launch(match_id)
+            self._launched[match_id].gate.resume()
         return self.launch(match_id)
 
     async def stop(self, match_id: str) -> Launch:
         """Cancel the match, cutting off any model call in flight, and wait for it."""
-        self.launch(match_id)
-        task = self._tasks[match_id]
+        with self._lock:
+            self.launch(match_id)
+            task = self._tasks[match_id]
         if not task.done():
             task.cancel()
             await asyncio.wait({task}, timeout=STOP_TIMEOUT_SECONDS)
@@ -153,13 +197,14 @@ class MatchLauncher:
 
         A match still running or paused raises MatchStillPlayingError; unknown ids pass.
         """
-        if match_id in self._launched and self.launch(match_id).status in (
-            "running",
-            "paused",
-        ):
-            raise MatchStillPlayingError(
-                f"match {match_id!r} is still playing; stop it before deleting it"
-            )
+        with self._lock:
+            if match_id in self._launched and self.launch(match_id).status in (
+                "running",
+                "paused",
+            ):
+                raise MatchStillPlayingError(
+                    f"match {match_id!r} is still playing; stop it before deleting it"
+                )
         return
 
     def forget(self, match_id: str) -> None:
@@ -167,15 +212,18 @@ class MatchLauncher:
 
         A match still running or paused raises MatchStillPlayingError; unknown ids pass.
         """
-        self.check_forgettable(match_id)
-        self._launched.pop(match_id, None)
-        self._tasks.pop(match_id, None)
+        with self._lock:
+            self.check_forgettable(match_id)
+            self._launched.pop(match_id, None)
+            self._tasks.pop(match_id, None)
         return
 
     async def wait(self) -> None:
         """Wait for every started match to end; for tests."""
-        if self._tasks:
-            await asyncio.gather(*self._tasks.values(), return_exceptions=True)
+        with self._lock:
+            tasks = list(self._tasks.values())
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
         return
 
 

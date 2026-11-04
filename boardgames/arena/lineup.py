@@ -7,14 +7,14 @@ and `run_prepared`, so they agree on seeds, log names and the model stack.
 import hashlib
 import uuid
 from collections import Counter
-from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TextIO
 
 from boardgames.agents import Agent
 from boardgames.agents.llm_agent import LlmAgent
-from boardgames.arena.clock import SystemClock
+from boardgames.arena.clock import Clock, SystemClock
 from boardgames.arena.console import ConsoleLog
 from boardgames.arena.control import MatchControl
 from boardgames.arena.match_config import (
@@ -37,6 +37,11 @@ DEFAULT_CACHE_DIR = Path(".arena_cache")
 API_KEY_VARIABLE = "OPENROUTER_API_KEY"
 
 
+def new_match_id() -> str:
+    """A fresh short id, injectable so tests can make it deterministic."""
+    return uuid.uuid4().hex[:12]
+
+
 @dataclass(frozen=True)
 class PreparedMatch:
     """Everything a match needs before its first step."""
@@ -48,6 +53,7 @@ class PreparedMatch:
     match_id: str
     log_path: Path
     thoughts_path: Path
+    clock: Clock = field(default_factory=SystemClock)
 
 
 def openrouter_model(api_key: str) -> ChatModel:
@@ -55,11 +61,13 @@ def openrouter_model(api_key: str) -> ChatModel:
     return RetryingChatModel(OpenRouterChatModel(api_key))
 
 
-def with_cache(model: ChatModel, use_cache: bool) -> ChatModel:
+def with_cache(
+    model: ChatModel, use_cache: bool, cache_dir: Path = DEFAULT_CACHE_DIR
+) -> ChatModel:
     """`model` behind the reply cache when the match asks for it."""
     if not use_cache:
         return model
-    return CachedChatModel(model, DirectoryResponseStore(DEFAULT_CACHE_DIR))
+    return CachedChatModel(model, DirectoryResponseStore(cache_dir))
 
 
 def derive_seed(match_seed: int, seat: int) -> int:
@@ -113,13 +121,19 @@ def prepare_match(
     *,
     seed: int | None = None,
     log: Path | None = None,
+    thoughts: Path | None = None,
     use_config_log: bool = True,
+    match_id: str | None = None,
+    id_factory: Callable[[], str] = new_match_id,
+    cache_dir: Path = DEFAULT_CACHE_DIR,
+    clock: Clock | None = None,
 ) -> PreparedMatch:
-    """Agents and log paths for a config; `seed` and `log` override the file.
+    """Agents and log paths for a config; the keyword arguments override defaults.
 
     `model` serves every seat; None (no API key) is a ConfigError. With
     `use_config_log` false the file's `log` is ignored, so a server always writes
-    into `runs_dir`.
+    into `runs_dir`. Tests may supply the id, both file paths, the cache folder
+    and the clock.
     """
     game = create_game(config.game)
     game_config = game.parse_config(config.config)
@@ -128,14 +142,14 @@ def prepare_match(
     if model is None:
         first = llm_agent_settings(seats[0], 0).model.model
         raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {first!r}")
-    stack = with_cache(model, config.cache)
+    stack = with_cache(model, config.cache, cache_dir)
     agents = [
         agent_for_seat(seat, name, match_seed, index, stack)
         for index, (seat, name) in enumerate(
             zip(seats, player_names(seats), strict=True)
         )
     ]
-    match_id = uuid.uuid4().hex[:12]
+    match_id = match_id or id_factory()
     default_log = runs_dir / f"{game.id}-{match_seed}-{match_id}.jsonl"
     file_log = config.log if use_config_log else None
     log_path = log or file_log or default_log
@@ -146,7 +160,8 @@ def prepare_match(
         agents=agents,
         match_id=match_id,
         log_path=log_path,
-        thoughts_path=thoughts_path(log_path),
+        thoughts_path=thoughts or thoughts_path(log_path),
+        clock=clock or SystemClock(),
     )
 
 
@@ -154,8 +169,10 @@ async def run_prepared(
     prepared: PreparedMatch,
     console: TextIO | None,
     control: MatchControl = ALWAYS_RUNNING,
+    clock: Clock | None = None,
 ) -> MatchResult:
     """Play a prepared match into its log and thoughts files, and `console` if given."""
+    clock = clock or prepared.clock
     with (
         JsonlFile(prepared.log_path) as log_file,
         ThoughtsFile(prepared.thoughts_path) as thoughts,
@@ -170,6 +187,6 @@ async def run_prepared(
             prepared.agents,
             match_id=prepared.match_id,
             sink=Broadcast(sinks),
-            clock=SystemClock(),
+            clock=clock,
             control=control,
         )
