@@ -14,8 +14,10 @@ from boardgames.games.terra_mystica.model import (
     Pass,
     PowerAction,
     SendPriest,
+    SkipCultSpade,
     TransformTerrain,
     UpgradeBuilding,
+    UseCultSpade,
 )
 
 HEX_TEXT = r"(-?[0-9]+),(-?[0-9]+)"
@@ -25,6 +27,8 @@ UPGRADE_PATTERN = re.compile(rf"upgrade {HEX_TEXT} ([a-z_]+)")
 PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
 ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
 POWER_PATTERN = re.compile(r"power (priest|workers|coins)")
+CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}")
+SKIP_CULT_SPADE_PATTERN = re.compile(r"skip spade")
 
 BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingType)
 CULTS: frozenset[str] = frozenset(cult.value for cult in Cult)
@@ -49,6 +53,10 @@ def format_action(action: Action) -> str:
             return f"advance {cult.value}"
         case PowerAction(kind=kind):
             return f"power {kind}"
+        case UseCultSpade(position=position):
+            return f"spade {position.notation()}"
+        case SkipCultSpade():
+            return "skip spade"
         case Pass():
             return "pass"
     raise TypeError(f"unknown Terra Mystica action {action!r}")
@@ -62,6 +70,8 @@ def parse_action(text: str) -> Action:
         return AdvanceDigging()
     if text == "pass":
         return Pass()
+    if text == "skip spade":
+        return SkipCultSpade()
 
     if match := BUILD_PATTERN.fullmatch(text):
         return BuildDwelling(parse_hex(match.group(1), match.group(2)))
@@ -88,6 +98,8 @@ def parse_action(text: str) -> Action:
     if match := POWER_PATTERN.fullmatch(text):
         kind = match.group(1)
         return PowerAction(kind)  # type: ignore[arg-type]
+    if match := CULT_SPADE_PATTERN.fullmatch(text):
+        return UseCultSpade(parse_hex(match.group(1), match.group(2)))
     raise NotationError(f"{text!r} is not a Terra Mystica action")
 
 

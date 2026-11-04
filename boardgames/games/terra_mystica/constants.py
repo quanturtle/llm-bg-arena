@@ -6,6 +6,7 @@ Everything here is immutable and shared. The mutable match state lives in
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Literal
 
 
 class Terrain(Enum):
@@ -206,13 +207,37 @@ SCORING_VALUES: dict[ScoringAction, int] = {
     ScoringAction.TOWN: 5,
 }
 
-SCORING_TILES: tuple[ScoringAction, ...] = (
-    ScoringAction.DWELLING,
-    ScoringAction.TRADING_HOUSE,
-    ScoringAction.STRONGHOLD,
-    ScoringAction.SANCTUARY,
-    ScoringAction.SPADE,
-    ScoringAction.TOWN,
+
+type CultReward = Literal["priests", "workers", "coins", "power", "spades"]
+
+
+@dataclass(frozen=True)
+class CultBonus:
+    """A round tile's end-of-round reward per `per` spaces on one cult track."""
+
+    cult: Cult
+    per: int
+    reward: CultReward
+    amount: int = 1
+
+
+@dataclass(frozen=True)
+class ScoringTile:
+    """A round tile: the action it scores and its end-of-round cult bonus."""
+
+    action: ScoringAction
+    bonus: CultBonus
+
+
+SCORING_TILES: tuple[ScoringTile, ...] = (
+    ScoringTile(ScoringAction.DWELLING, CultBonus(Cult.WATER, 4, "priests")),
+    ScoringTile(ScoringAction.DWELLING, CultBonus(Cult.FIRE, 4, "power", 4)),
+    ScoringTile(ScoringAction.TRADING_HOUSE, CultBonus(Cult.AIR, 4, "spades")),
+    ScoringTile(ScoringAction.TRADING_HOUSE, CultBonus(Cult.WATER, 4, "spades")),
+    ScoringTile(ScoringAction.STRONGHOLD, CultBonus(Cult.AIR, 2, "workers")),
+    ScoringTile(ScoringAction.SANCTUARY, CultBonus(Cult.FIRE, 2, "workers")),
+    ScoringTile(ScoringAction.SPADE, CultBonus(Cult.EARTH, 1, "coins")),
+    ScoringTile(ScoringAction.TOWN, CultBonus(Cult.EARTH, 4, "spades")),
 )
 
 STANDARD_DWELLING_INCOME: tuple[Income, ...] = (

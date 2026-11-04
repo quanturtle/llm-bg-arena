@@ -46,10 +46,12 @@ from boardgames.games.terra_mystica.constants import (
     BuildingType,
     Cost,
     Cult,
+    CultBonus,
     FactionType,
     Income,
     Resources,
     ScoringAction,
+    ScoringTile,
 )
 from boardgames.games.terra_mystica.model import (
     Action,
@@ -64,10 +66,12 @@ from boardgames.games.terra_mystica.model import (
     PlayerState,
     PowerAction,
     SendPriest,
+    SkipCultSpade,
     TerraMysticaConfig,
     TerraMysticaState,
     TransformTerrain,
     UpgradeBuilding,
+    UseCultSpade,
     add_resources,
     advance_cult,
     building_cost,
@@ -77,8 +81,10 @@ from boardgames.games.terra_mystica.model import (
     can_place_building,
     can_spend_power,
     cult_limit,
+    gain_power,
     income_with_power,
     pay,
+    replace_at,
     replace_player,
     settle_town,
     shipping_cost,
@@ -159,6 +165,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             pass_order=(),
             round=1,
             scoring=scoring,
+            cult_spades=(0,) * n,
             used_power_actions=frozenset(),
             used_orders=frozenset(),
         )
@@ -183,8 +190,16 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             ),
             Event(
                 "scoring_tiles",
-                "Round scoring: " + ", ".join(tile.value for tile in scoring) + ".",
-                {"scoring": [tile.value for tile in scoring]},
+                "Round scoring: "
+                + ", ".join(
+                    f"{tile.action.value} ({_bonus_text(tile.bonus)})"
+                    for tile in scoring
+                )
+                + ".",
+                {
+                    "scoring": [tile.action.value for tile in scoring],
+                    "bonuses": [_bonus_json(tile.bonus) for tile in scoring],
+                },
             ),
             Event(
                 "setup_dwelling",
@@ -207,6 +222,14 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     "Place one of your starting dwellings on a free home-terrain tile.",
                 ),
             )
+        if state.phase == "cult_spades":
+            return (
+                Decision(
+                    state.active_player,
+                    "cult_spade",
+                    "Spend a cult-bonus spade on a reachable tile, or skip.",
+                ),
+            )
         return (
             Decision(
                 state.active_player,
@@ -219,7 +242,13 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         self, state: TerraMysticaState, decision: Decision
     ) -> ActionSpace[Action]:
         actions = legal_action_list(state, decision.player)
-        default = Pass() if state.phase == "action" else None
+        default = (
+            Pass()
+            if state.phase == "action"
+            else SkipCultSpade()
+            if state.phase == "cult_spades"
+            else None
+        )
         return FlatActionSpace(
             actions,
             format_action,
@@ -262,6 +291,12 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             if not isinstance(action, BuildDwelling):
                 raise IllegalActionError("place a starting dwelling now")
             return self.place_starting_dwelling(state, player, action.position)
+        if state.phase == "cult_spades":
+            if isinstance(action, UseCultSpade):
+                return self.use_cult_spade(state, player, action.position)
+            if isinstance(action, SkipCultSpade):
+                return self.skip_cult_spade(state, player)
+            raise IllegalActionError("spend a cult-bonus spade or skip now")
         if state.phase != "action":
             raise IllegalActionError("the game is over")
         if player != state.active_player:
@@ -749,6 +784,62 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         )
         return Transition(state, (event,))
 
+    def use_cult_spade(
+        self, state: TerraMysticaState, player: PlayerId, position: Hex
+    ) -> Transition[TerraMysticaState]:
+        owner = state.players[player]
+        tile = state.board.tile(position)
+        budget = state.cult_spades[player]
+        if tile is None or not tile.is_land or tile.building is not None:
+            raise IllegalActionError("choose an empty land tile")
+        if tile.terrain is owner.home_terrain:
+            raise IllegalActionError("that tile is already your home terrain")
+        if position not in state.board.reachable_land(player, owner.shipping):
+            raise IllegalActionError("that tile is not reachable")
+        cost = spades_for(owner.profile, tile.terrain)
+        if cost > budget:
+            raise IllegalActionError("you do not have enough cult-bonus spades")
+        board = state.board.replace_tile(
+            position, replace(tile, terrain=owner.home_terrain)
+        )
+        state = replace(
+            state,
+            board=board,
+            cult_spades=replace_at(state.cult_spades, player, budget - cost),
+        )
+        event = Event(
+            "cult_spade_used",
+            f"{seat_label(player)} used {cost} cult-bonus spade(s) at "
+            f"{position.notation()}.",
+            {
+                "player": player,
+                "position": position.notation(),
+                "spades": cost,
+                "remaining": budget - cost,
+            },
+        )
+        return self._advance_cult_spades(state, (event,))
+
+    def skip_cult_spade(
+        self, state: TerraMysticaState, player: PlayerId
+    ) -> Transition[TerraMysticaState]:
+        remaining = state.cult_spades[player]
+        state = replace(state, cult_spades=replace_at(state.cult_spades, player, 0))
+        event = Event(
+            "cult_spade_skipped",
+            f"{seat_label(player)} skipped {remaining} cult-bonus spade(s).",
+            {"player": player, "spades": remaining},
+        )
+        return self._advance_cult_spades(state, (event,))
+
+    def _advance_cult_spades(
+        self, state: TerraMysticaState, events: tuple[Event, ...]
+    ) -> Transition[TerraMysticaState]:
+        next_player = _next_cult_spade_player(state)
+        if next_player is None:
+            return _start_next_round(state, events)
+        return Transition(replace(state, active_player=next_player), events)
+
     def advance_turn(
         self,
         state: TerraMysticaState,
@@ -795,7 +886,7 @@ def start_round(
 ) -> tuple[TerraMysticaState, tuple[Event, ...]]:
     """Enter the action phase and run the income phase."""
     round_number = state.round
-    scoring = _round_scoring(state)
+    tile = _round_tile(state)
     state = replace(
         state,
         phase="action",
@@ -807,8 +898,13 @@ def start_round(
     events: list[Event] = [
         Event(
             "round_started",
-            f"Round {round_number}: {scoring.value} scores.",
-            {"round": round_number, "scoring": scoring.value},
+            f"Round {round_number}: {tile.action.value} scores; "
+            f"cult bonus {_bonus_text(tile.bonus)}.",
+            {
+                "round": round_number,
+                "scoring": tile.action.value,
+                "bonus": _bonus_json(tile.bonus),
+            },
         )
     ]
     for seat in state.order:
@@ -866,17 +962,132 @@ def end_round(
     first = state.pass_order[0]
     start = state.order.index(first)
     new_order = (*state.order[start:], *state.order[:start])
+    state = replace(state, order=new_order)
+    bonus = _round_tile(state).bonus
+    if bonus.reward == "spades":
+        budgets = tuple(
+            _cult_bonus_amount(state.players[seat], bonus)
+            for seat in range(len(state.players))
+        )
+        state = replace(state, phase="cult_spades", cult_spades=budgets)
+        next_player = _next_cult_spade_player(state)
+        if next_player is None:
+            return _start_next_round(state, events)
+        event = Event(
+            "cult_bonus",
+            f"{seat_label(next_player)} may use {budgets[next_player]} "
+            f"cult-bonus spade(s).",
+            {
+                "player": next_player,
+                "cult": bonus.cult.value,
+                "reward": bonus.reward,
+                "amount": budgets[next_player],
+            },
+        )
+        return Transition(replace(state, active_player=next_player), (*events, event))
+    bonus_events: list[Event] = []
+    for seat in new_order:
+        state, bonus_event = _apply_cult_bonus(state, seat, bonus)
+        if bonus_event is not None:
+            bonus_events.append(bonus_event)
+    return _start_next_round(state, (*events, *bonus_events))
+
+
+def _start_next_round(
+    state: TerraMysticaState, events: tuple[Event, ...]
+) -> Transition[TerraMysticaState]:
+    """Finish cleanup and begin the next round."""
     state = replace(
         state,
-        order=new_order,
         round=state.round + 1,
         passed=frozenset(),
         pass_order=(),
         used_power_actions=frozenset(),
-        active_player=new_order[0],
+        active_player=state.order[0],
+        cult_spades=(0,) * len(state.players),
     )
     state, round_events = start_round(state)
     return Transition(state, (*events, *round_events))
+
+
+def _cult_bonus_amount(player: PlayerState, bonus: CultBonus) -> int:
+    return (player.cult(bonus.cult) // bonus.per) * bonus.amount
+
+
+def _apply_cult_bonus(
+    state: TerraMysticaState, seat: PlayerId, bonus: CultBonus
+) -> tuple[TerraMysticaState, Event | None]:
+    """Pay one non-spade end-of-round cult bonus to one player."""
+    owner = state.players[seat]
+    amount = _cult_bonus_amount(owner, bonus)
+    if amount <= 0:
+        return state, None
+    if bonus.reward == "priests":
+        resources = _add_income(owner.resources, Income(priests=amount))
+        owner = replace(owner, resources=resources)
+    elif bonus.reward == "workers":
+        resources = _add_income(owner.resources, Income(workers=amount))
+        owner = replace(owner, resources=resources)
+    elif bonus.reward == "coins":
+        resources = _add_income(owner.resources, Income(coins=amount))
+        owner = replace(owner, resources=resources)
+    elif bonus.reward == "power":
+        resources = gain_power(owner.resources, amount)
+        owner = replace(owner, resources=resources)
+    elif bonus.reward == "spades":
+        raise ValueError("spades need a player's choice")
+    state = replace_player(state, seat, owner)
+    event = Event(
+        "cult_bonus",
+        f"{seat_label(seat)} gained {amount} {bonus.reward} from the "
+        f"{bonus.cult.value} cult bonus.",
+        {
+            "player": seat,
+            "cult": bonus.cult.value,
+            "reward": bonus.reward,
+            "amount": amount,
+        },
+    )
+    return state, event
+
+
+def _next_cult_spade_player(state: TerraMysticaState) -> PlayerId | None:
+    return next((seat for seat in state.order if state.cult_spades[seat] > 0), None)
+
+
+def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
+    owner = state.players[player]
+    budget = state.cult_spades[player]
+    reachable = set(state.board.reachable_land(player, owner.shipping))
+    actions: list[Action] = []
+    for tile in state.board.tiles:
+        if not tile.is_land or tile.building is not None:
+            continue
+        if tile.terrain is owner.home_terrain:
+            continue
+        if tile.position not in reachable:
+            continue
+        if spades_for(owner.profile, tile.terrain) <= budget:
+            actions.append(UseCultSpade(tile.position))
+    actions.append(SkipCultSpade())
+    return actions
+
+
+def _round_tile(state: TerraMysticaState) -> ScoringTile:
+    return state.scoring[state.round - 1]
+
+
+def _bonus_json(bonus: CultBonus) -> dict[str, JsonValue]:
+    return {
+        "cult": bonus.cult.value,
+        "per": bonus.per,
+        "reward": bonus.reward,
+        "amount": bonus.amount,
+    }
+
+
+def _bonus_text(bonus: CultBonus) -> str:
+    return f"{bonus.amount} {bonus.reward} per {bonus.per} {bonus.cult.value}"
 
 
 def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
@@ -954,6 +1165,8 @@ def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action
             and tile.terrain is owner.home_terrain
             and tile.building is None
         ]
+    if state.phase == "cult_spades":
+        return _cult_spade_actions(state, player)
     if state.phase != "action":
         return []
     if player != state.active_player:
@@ -1071,6 +1284,24 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             if tile.terrain is not state.players[player].home_terrain:
                 return "Starting dwellings must be on your home terrain."
         return "Place a starting dwelling on a free home-terrain tile."
+    if state.phase == "cult_spades":
+        owner = state.players[player]
+        if isinstance(action, UseCultSpade):
+            tile = state.board.tile(action.position)
+            if tile is None or not tile.is_land or tile.building is not None:
+                return "There is no empty land tile there."
+            if tile.terrain is owner.home_terrain:
+                return "That tile is already your home terrain."
+            if action.position not in state.board.reachable_land(
+                player, owner.shipping
+            ):
+                return "That tile is not reachable."
+            if spades_for(owner.profile, tile.terrain) > state.cult_spades[player]:
+                return "You do not have enough cult-bonus spades."
+            return "That cult-bonus spade cannot be used there now."
+        if isinstance(action, SkipCultSpade):
+            return "Skipping is always legal."
+        return "Spend a cult-bonus spade or skip."
     if state.phase != "action":
         return "The game is over."
     if player != state.active_player:
@@ -1183,7 +1414,7 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
 
 
 def _round_scoring(state: TerraMysticaState) -> ScoringAction:
-    return state.scoring[state.round - 1]
+    return _round_tile(state).action
 
 
 def _cult_top_occupied(state: TerraMysticaState, player: PlayerId, cult: Cult) -> bool:

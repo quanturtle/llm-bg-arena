@@ -18,9 +18,11 @@ from boardgames.games.terra_mystica.model import (
     Pass,
     PowerAction,
     SendPriest,
+    SkipCultSpade,
     TerraMysticaState,
     TransformTerrain,
     UpgradeBuilding,
+    UseCultSpade,
 )
 from boardgames.games.terra_mystica.scoring import final_scores
 
@@ -39,13 +41,23 @@ TERRAIN_LETTERS = {
 def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
     """Everything is public in Terra Mystica, so every viewer sees the same state."""
     players = seats(len(state.players))
-    scoring = [tile.value for tile in state.scoring]
+    scoring = [tile.action.value for tile in state.scoring]
     data: dict[str, JsonValue] = {
         "round": state.round,
         "phase": state.phase,
         "active": state.active_player,
         "order": list(state.order),
         "scoring": scoring,
+        "scoring_bonuses": [
+            {
+                "cult": tile.bonus.cult.value,
+                "per": tile.bonus.per,
+                "reward": tile.bonus.reward,
+                "amount": tile.bonus.amount,
+            }
+            for tile in state.scoring
+        ],
+        "cult_spades": list(state.cult_spades),
         "used_orders": [
             {"cult": cult.value, "order": order}
             for cult, order in sorted(
@@ -127,6 +139,7 @@ def render_text(observation: Observation) -> str:
     data = observation.data
     lines = [status_line(data)]
     lines.append(scoring_line(data))
+    lines.append(cult_bonuses_line(data))
     lines.append(orders_line(data))
     lines.extend(player_lines(data))
     lines.extend(board_lines(data))
@@ -140,7 +153,7 @@ def render_text(observation: Observation) -> str:
         "'.' is empty. Actions: build q,r; transform q,r; "
         "upgrade q,r trading_house|temple|stronghold|sanctuary; shipping; "
         "digging; priest fire|water|earth|air 0-3; advance fire|water|earth|air; "
-        "power priest|workers|coins; pass."
+        "power priest|workers|coins; spade q,r; skip spade; pass."
     )
     return "\n".join(lines)
 
@@ -164,6 +177,18 @@ def status_line(data: JsonObject) -> str:
 def scoring_line(data: JsonObject) -> str:
     scoring = _strings(data, "scoring")
     return "Round scoring: " + ", ".join(scoring) + "."
+
+
+def cult_bonuses_line(data: JsonObject) -> str:
+    bonuses = _objects(data, "scoring_bonuses")
+    if not bonuses:
+        return "Cult bonuses: none."
+    parts = [
+        f"{_int(bonus, 'amount')} {_str(bonus, 'reward')} per "
+        f"{_int(bonus, 'per')} {_str(bonus, 'cult')}"
+        for bonus in bonuses
+    ]
+    return "Cult bonuses: " + ", ".join(parts) + "."
 
 
 def orders_line(data: JsonObject) -> str:
@@ -262,6 +287,10 @@ def describe_action(observation: Observation, action: Action) -> str:
             return f"Spend a priest to advance {cult.value} by one space."
         case PowerAction(kind=kind):
             return f"Spend power for {kind}."
+        case UseCultSpade(position=position):
+            return f"Use cult-bonus spades to transform {position.notation()}."
+        case SkipCultSpade():
+            return "Skip the remaining cult-bonus spades."
         case Pass():
             return "Pass."
     return "Take an action."

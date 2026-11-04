@@ -25,8 +25,11 @@ Each round has an income phase, an action phase and cleanup.
   have none, Swarmlings have 2).
 - Actions: players take one action at a time until they pass. The first player to
   pass starts the next round.
-- Cleanup: the round's scoring tile is replaced by the next one and income is
-  collected for the new round. After the final round, final scoring is applied.
+- Cleanup: the current round tile's cult bonus is paid in the next round's play
+  order, then the next round's income is collected. If the bonus is spades, its
+  owner chooses which reachable tiles to transform or skips them. There is no
+  cult bonus after the final round. After the final round, final scoring is
+  applied.
 
 ## Actions
 - **Build a dwelling** on a tile reachable from one of your structures, directly
@@ -58,9 +61,10 @@ town bonus. A key lets one cult marker enter space 10. Structures already in a
 town are marked and cannot found another town; building next to a town expands it.
 
 ## Scoring tiles
-Each round scores one action: dwellings, trading houses, strongholds, sanctuaries,
-spades or towns. The points are awarded immediately when the matching action is
-taken.
+Each round tile scores one action: dwellings, trading houses, strongholds,
+sanctuaries, spades or towns. The points are awarded immediately when the
+matching action is taken. Each tile also shows a cult bonus, paid at the end of
+that round.
 
 ## Final scoring
 - Each cult track: 8/4/2 points for first/second/third, split evenly on ties.
@@ -77,4 +81,6 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `priest fire 0` — send a priest to the Fire order space 0.
 - `advance air` — spend a priest to advance Air by 1.
 - `power priest` — spend power for a priest.
+- `spade 0,0` — use cult-bonus spades on a reachable tile.
+- `skip spade` — forfeit the rest of your cult-bonus spades.
 - `pass` — stop acting this round.

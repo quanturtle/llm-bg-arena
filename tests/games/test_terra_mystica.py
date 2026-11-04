@@ -8,6 +8,7 @@ import pytest
 from boardgames.arena.runner import play_match
 from boardgames.core import (
     ConfigError,
+    Event,
     IllegalActionError,
     NotationError,
     PlayerId,
@@ -26,6 +27,7 @@ from boardgames.games.terra_mystica import (
     TerraMysticaConfig,
     TerraMysticaState,
     UpgradeBuilding,
+    UseCultSpade,
 )
 from boardgames.games.terra_mystica.constants import (
     CULT_ORDER_STEPS,
@@ -36,8 +38,11 @@ from boardgames.games.terra_mystica.constants import (
     TERRAIN_WHEEL,
     BuildingType,
     Cult,
+    CultBonus,
     FactionType,
     Resources,
+    ScoringAction,
+    ScoringTile,
 )
 from boardgames.games.terra_mystica.game import initial_setup_queue
 from boardgames.games.terra_mystica.model import (
@@ -449,6 +454,59 @@ def test_observation_is_public_and_renders() -> None:
     assert "Board:" in text
     assert "Round scoring:" in text
     assert "Legend:" in text
+
+
+def test_observation_and_round_event_show_cult_bonuses() -> None:
+    state = start(num_players=2, seed=1)
+    observation = GAME.observe(state, None)
+    bonuses = observation.data["scoring_bonuses"]
+    assert isinstance(bonuses, list)
+    assert len(bonuses) == 1
+    assert isinstance(bonuses[0], dict)
+    assert set(bonuses[0]) == {"cult", "per", "reward", "amount"}
+
+    round_events: list[Event] = []
+    while state.phase == "setup":
+        (decision,) = GAME.pending_decisions(state)
+        transition = GAME.apply(state, decision.player, listing(state)[0])
+        state = transition.state
+        round_events.extend(
+            event for event in transition.events if event.kind == "round_started"
+        )
+    assert round_events
+    assert "bonus" in round_events[0].data
+
+
+def test_cult_spade_bonus_is_a_player_choice() -> None:
+    state = play_setup(start(num_players=2, seed=1, rounds=2))
+    spade_tile = ScoringTile(
+        ScoringAction.TRADING_HOUSE, CultBonus(Cult.AIR, 4, "spades")
+    )
+    priest_tile = ScoringTile(
+        ScoringAction.DWELLING, CultBonus(Cult.WATER, 4, "priests")
+    )
+    state = replace(state, scoring=(spade_tile, priest_tile))
+    state = replace(
+        state,
+        players=tuple(replace(player, cults=(9, 9, 9, 9)) for player in state.players),
+    )
+    while state.phase == "action" and state.round == 1:
+        state = play(state, "pass")
+
+    assert state.phase == "cult_spades"
+    (decision,) = GAME.pending_decisions(state)
+    spade = next(
+        action for action in listing(state) if isinstance(action, UseCultSpade)
+    )
+    home = state.players[decision.player].home_terrain
+    state = GAME.apply(state, decision.player, spade).state
+    tile = state.board.tile(spade.position)
+    assert tile is not None and tile.terrain is home
+
+    while state.phase == "cult_spades":
+        state = play(state, "skip spade")
+    assert state.round == 2
+    assert state.phase == "action"
 
 
 def test_action_json_has_a_type_tag() -> None:

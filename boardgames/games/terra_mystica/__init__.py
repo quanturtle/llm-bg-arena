@@ -13,10 +13,12 @@ from boardgames.games.terra_mystica.model import (
     Pass,
     PowerAction,
     SendPriest,
+    SkipCultSpade,
     TerraMysticaConfig,
     TerraMysticaState,
     TransformTerrain,
     UpgradeBuilding,
+    UseCultSpade,
 )
 
 __all__ = [
@@ -31,9 +33,11 @@ __all__ = [
     "Pass",
     "PowerAction",
     "SendPriest",
+    "SkipCultSpade",
     "TerraMystica",
     "TerraMysticaConfig",
     "TerraMysticaState",
     "TransformTerrain",
     "UpgradeBuilding",
+    "UseCultSpade",
 ]

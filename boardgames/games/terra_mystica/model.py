@@ -20,11 +20,11 @@ from boardgames.games.terra_mystica.constants import (
     FactionType,
     Income,
     Resources,
-    ScoringAction,
+    ScoringTile,
     Terrain,
 )
 
-type Phase = Literal["setup", "action", "game_over"]
+type Phase = Literal["setup", "action", "cult_spades", "game_over"]
 
 
 @dataclass(frozen=True, order=True)
@@ -279,7 +279,8 @@ class TerraMysticaState:
     passed: frozenset[PlayerId]
     pass_order: tuple[PlayerId, ...]
     round: int
-    scoring: tuple[ScoringAction, ...]
+    scoring: tuple[ScoringTile, ...]
+    cult_spades: tuple[int, ...]
     used_power_actions: frozenset[str]
     used_orders: frozenset[tuple[Cult, int]]
     end_reason: str | None = None
@@ -343,6 +344,18 @@ class PowerAction:
 
 
 @dataclass(frozen=True)
+class UseCultSpade:
+    """Spend one or more cult-bonus spades to transform a reachable tile."""
+
+    position: Hex
+
+
+@dataclass(frozen=True)
+class SkipCultSpade:
+    """Forfeit the rest of this player's cult-bonus spades."""
+
+
+@dataclass(frozen=True)
 class Pass:
     """Take no more actions this round."""
 
@@ -356,6 +369,8 @@ type Action = (
     | SendPriest
     | AdvanceCult
     | PowerAction
+    | UseCultSpade
+    | SkipCultSpade
     | Pass
 )
 
