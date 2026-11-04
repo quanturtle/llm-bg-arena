@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from boardgames.logs.schema import (
     DecisionRecord,
@@ -64,21 +65,10 @@ def test_summary_variants_carry_points_and_rank_only_when_finished(
     running = summarize(without_finish(records))
     assert isinstance(running, RunningMatch)
     assert running.seats[0].points is None
-    assert isinstance(
-        MatchSummary(
-            match_id="m",
-            game_id="tic_tac_toe",
-            config={},
-            seed=0,
-            started_at="t",
-            finished_at="t",
-            steps=0,
-            status="finished",
-            prompt_version=0,
-            seats=[],
-        ),
-        FinishedMatch,
-    )
+    unranked = {**finished.model_dump(), "finished_at": None}
+    unranked["seats"][0]["rank"] = None
+    with pytest.raises(ValidationError):
+        MatchSummary.model_validate(unranked)
     return
 
 

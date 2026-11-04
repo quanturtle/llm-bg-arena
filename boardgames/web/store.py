@@ -80,10 +80,9 @@ class UnscoredSeatSummary(SeatSummary):
 
 
 class MatchSummary(Summary):
-    """The common fields of a match, and a factory for the right status variant.
+    """The fields every match shares; only its three status variants are built.
 
-    Use `FinishedMatch` when points and ranks must be present; a running or
-    stopped match keeps them optional.
+    `FinishedMatch` seats have points and ranks; running and stopped ones have none.
     """
 
     match_id: str
@@ -98,25 +97,13 @@ class MatchSummary(Summary):
     prompt_version: int
     seats: Sequence[SeatSummary]
 
-    def __new__(cls, **data: Any) -> Any:
-        """Construct the variant that fits `status` when called as `MatchSummary`."""
+    @model_validator(mode="before")
+    @classmethod
+    def _only_variants(cls, data: Any) -> Any:
+        """Refuse the base class, which would accept results its status rules out."""
         if cls is MatchSummary:
-            status = data.get("status")
-            variants: dict[
-                str, type[FinishedMatch] | type[RunningMatch] | type[StoppedMatch]
-            ] = {
-                "finished": FinishedMatch,
-                "running": RunningMatch,
-                "stopped": StoppedMatch,
-            }
-            variant = variants.get(status) if isinstance(status, str) else None
-            if variant is not None:
-                return object.__new__(variant)
-        return object.__new__(cls)
-
-    @property
-    def is_finished(self) -> bool:
-        return self.status == "finished"
+            raise ValueError("build a FinishedMatch, RunningMatch or StoppedMatch")
+        return data
 
     def winners(self) -> list[int]:
         """Seats ranked first; empty while the match is running."""
@@ -313,22 +300,6 @@ def prompt_version_of(start: MatchStarted) -> int:
     """The prompt version the match's model seats logged; 0 if none logged one."""
     versions = (seat.settings.get("prompt_version") for seat in start.seats)
     return next((v for v in versions if isinstance(v, int)), 0)
-
-
-def ended_at(finish: MatchFinished | None, stop: MatchStopped | None) -> str | None:
-    """When the match finished or was stopped; None while it runs."""
-    if finish is not None:
-        return finish.finished_at
-    return None if stop is None else stop.stopped_at
-
-
-def match_status(
-    finish: MatchFinished | None, stop: MatchStopped | None
-) -> MatchStatus:
-    """Finished, stopped, or still running."""
-    if finish is not None:
-        return "finished"
-    return "running" if stop is None else "stopped"
 
 
 type FileStamp = tuple[int, int]
