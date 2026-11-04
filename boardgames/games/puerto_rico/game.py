@@ -423,7 +423,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 )
             )
         elif role == "craftsman":
-            state, produced_events = run_production(state)
+            state, produced_events = run_production(state, player)
             events.extend(produced_events)
         elif role == "captain":
             state = replace(
@@ -909,11 +909,13 @@ def distribute_colonists(state: PuertoRicoState, picker: PlayerId) -> PuertoRico
 
 
 def run_production(
-    state: PuertoRicoState,
+    state: PuertoRicoState, chooser: PlayerId
 ) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-    """Every player produces goods in order, limited by the bank."""
+    """Every player produces goods from the Craftsman chooser, limited by the bank."""
     events: list[Event] = []
-    for seat in state.order:
+    start = state.order.index(chooser)
+    for offset in range(len(state.order)):
+        seat = state.order[(start + offset) % len(state.order)]
         owner = state.players[seat]
         potential = production(owner)
         produced = [0, 0, 0, 0, 0]
