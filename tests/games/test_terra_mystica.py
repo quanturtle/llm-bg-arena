@@ -42,6 +42,7 @@ from boardgames.games.terra_mystica.constants import (
     SCORING_TILES,
     STANDARD_TRADING_HOUSE_INCOME,
     TERRAIN_WHEEL,
+    TOWN_SUPPLY,
     BuildingType,
     Cult,
     CultBonus,
@@ -959,13 +960,13 @@ def test_towns_require_power_and_are_marked_once() -> None:
     )
     component = state.board.connected(position, player)
     assert town_ready(state.board, component)
-    board, founded = settle_town(state.board, position, player)
+    board, founded = settle_town(state.board, position, player, towns_left=TOWN_SUPPLY)
     assert founded
     for hex_position in component:
         tile = board.tile(hex_position)
         assert tile is not None and tile.building is not None
         assert tile.building.in_town
-    assert not settle_town(board, position, player)[1]
+    assert not settle_town(board, position, player, towns_left=TOWN_SUPPLY)[1]
     weak = Board.base()
     weak_positions = [Hex(q, 0) for q in range(4)]
     for weak_position, weak_type in zip(
@@ -981,7 +982,7 @@ def test_towns_require_power_and_are_marked_once() -> None:
         weak = weak.place(weak_position, Building(weak_type, player))
     weak_component = weak.connected(weak_positions[0], player)
     assert not town_ready(weak, weak_component)
-    assert not settle_town(weak, weak_positions[0], player)[1]
+    assert not settle_town(weak, weak_positions[0], player, towns_left=TOWN_SUPPLY)[1]
 
 
 def test_town_supply_stops_after_ten_towns() -> None:
@@ -1038,12 +1039,64 @@ def _town_gap_board(river_between: bool) -> tuple[Board, Hex]:
 
 def test_towns_ignore_indirect_adjacency() -> None:
     board, position = _town_gap_board(river_between=False)
-    assert not settle_town(board, position, P1)[1]
+    assert not settle_town(board, position, P1, towns_left=TOWN_SUPPLY)[1]
 
 
 def test_mermaids_may_join_one_river_space_for_a_town() -> None:
     board, position = _town_gap_board(river_between=True)
-    assert settle_town(board, position, P1, cross_river=True)[1]
+    assert settle_town(board, position, P1, towns_left=TOWN_SUPPLY, cross_river=True)[1]
+
+
+def _mermaid_gap_state() -> tuple[TerraMysticaState, PlayerId, Hex]:
+    state = start(num_players=2, seed=2)
+    player = state.order[0]
+    board = Board.base()
+    a, a2, b, b2 = _town_gap_layout(board, river_between=True)
+    for position, kind in (
+        (a, BuildingType.STRONGHOLD),
+        (a2, BuildingType.TRADING_HOUSE),
+        (b, BuildingType.TEMPLE),
+    ):
+        board = board.place(position, Building(kind, player))
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.MERMAIDS,
+            resources=Resources(coins=50, workers=50, priests=5),
+            shipping=1,
+        ),
+    )
+    state = _neutral_scoring(
+        replace(
+            state,
+            board=board,
+            phase="action",
+            active_player=player,
+            passed=frozenset(),
+            pass_order=(),
+            setup_queue=(),
+            round=1,
+        )
+    )
+    return state, player, b2
+
+
+def test_mermaids_may_decline_the_river_town() -> None:
+    state, player, target = _mermaid_gap_state()
+    assert BuildDwelling(target) in listing(state)
+    assert BuildDwelling(target, join_river=False) in listing(state)
+
+    joined = GAME.apply(state, player, BuildDwelling(target)).state
+    separate = GAME.apply(state, player, BuildDwelling(target, join_river=False)).state
+    assert joined.towns == 1
+    assert joined.players[player].keys == 1
+    assert separate.towns == 0
+    assert separate.players[player].keys == 0
+    tile = separate.board.tile(target)
+    assert tile is not None and tile.building is not None
+    assert not tile.building.in_town
 
 
 def test_dwarves_and_fakirs_reach_across_two_and_three_spaces() -> None:

@@ -51,6 +51,7 @@ from boardgames.games.terra_mystica.constants import (
     Cost,
     Cult,
     CultBonus,
+    FactionProfile,
     FactionType,
     Income,
     PowerActionKind,
@@ -400,11 +401,15 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         self, state: TerraMysticaState, player: PlayerId, action: Action
     ) -> Transition[TerraMysticaState]:
         if isinstance(action, BuildDwelling):
-            return self.build_dwelling(state, player, action.position)
+            return self.build_dwelling(
+                state, player, action.position, action.join_river
+            )
         if isinstance(action, TransformTerrain):
             return self.transform_terrain(state, player, action.position)
         if isinstance(action, UpgradeBuilding):
-            return self.upgrade_building(state, player, action.position, action.to)
+            return self.upgrade_building(
+                state, player, action.position, action.to, action.join_river
+            )
         if isinstance(action, AdvanceShipping):
             return self.advance_shipping(state, player)
         if isinstance(action, AdvanceDigging):
@@ -420,7 +425,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         raise IllegalActionError("unknown action")
 
     def build_dwelling(
-        self, state: TerraMysticaState, player: PlayerId, position: Hex
+        self,
+        state: TerraMysticaState,
+        player: PlayerId,
+        position: Hex,
+        join_river: bool = True,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -475,7 +484,14 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         if _round_scoring(state) is ScoringAction.DWELLING:
             victory_points += SCORING_VALUES[ScoringAction.DWELLING]
         board, resources, victory_points, keys, founded = _town_rewards(
-            state, player, board, position, resources, victory_points, owner.keys
+            state,
+            player,
+            board,
+            position,
+            resources,
+            victory_points,
+            owner.keys,
+            join_river=join_river,
         )
         owner = replace(
             owner,
@@ -564,6 +580,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         player: PlayerId,
         position: Hex,
         target: BuildingType,
+        join_river: bool = True,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -593,7 +610,14 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         if scored is not None:
             victory_points += SCORING_VALUES[scored]
         board, resources, victory_points, keys, founded = _town_rewards(
-            state, player, board, position, resources, victory_points, owner.keys
+            state,
+            player,
+            board,
+            position,
+            resources,
+            victory_points,
+            owner.keys,
+            join_river=join_river,
         )
         owner = replace(
             owner,
@@ -1239,6 +1263,8 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 total = _add_costs(total, reach_cost)
             if can_pay(resources, total):
                 actions.append(BuildDwelling(tile.position))
+                if _river_choice(state.board, player, profile, tile.position):
+                    actions.append(BuildDwelling(tile.position, join_river=False))
 
     for tile in state.board.tiles:
         if not tile.is_land or tile.building is not None:
@@ -1261,25 +1287,53 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 bool(state.board.adjacent_opponents(position, player)),
             )
             if can_pay(resources, cost):
-                actions.append(UpgradeBuilding(position, BuildingType.TRADING_HOUSE))
+                _append_upgrade(
+                    actions,
+                    state.board,
+                    player,
+                    profile,
+                    position,
+                    BuildingType.TRADING_HOUSE,
+                )
         if (
             building.type is BuildingType.TRADING_HOUSE
             and can_place_building(state.board, player, BuildingType.TEMPLE)
             and can_pay(resources, profile.costs.temple)
         ):
-            actions.append(UpgradeBuilding(position, BuildingType.TEMPLE))
+            _append_upgrade(
+                actions,
+                state.board,
+                player,
+                profile,
+                position,
+                BuildingType.TEMPLE,
+            )
         if (
             building.type is BuildingType.TRADING_HOUSE
             and can_place_building(state.board, player, BuildingType.STRONGHOLD)
             and can_pay(resources, profile.costs.stronghold)
         ):
-            actions.append(UpgradeBuilding(position, BuildingType.STRONGHOLD))
+            _append_upgrade(
+                actions,
+                state.board,
+                player,
+                profile,
+                position,
+                BuildingType.STRONGHOLD,
+            )
         if (
             building.type is BuildingType.TEMPLE
             and can_place_building(state.board, player, BuildingType.SANCTUARY)
             and can_pay(resources, profile.costs.sanctuary)
         ):
-            actions.append(UpgradeBuilding(position, BuildingType.SANCTUARY))
+            _append_upgrade(
+                actions,
+                state.board,
+                player,
+                profile,
+                position,
+                BuildingType.SANCTUARY,
+            )
 
     if _shipping_reason(state, player) is None:
         actions.append(AdvanceShipping())
@@ -1492,6 +1546,8 @@ def _town_rewards(
     resources: Resources,
     victory_points: int,
     keys: int,
+    *,
+    join_river: bool = True,
 ) -> tuple[Board, Resources, int, int, bool]:
     """Mark a new town and award its points, key and faction bonus."""
     owner = state.players[player]
@@ -1499,7 +1555,7 @@ def _town_rewards(
         board,
         position,
         player,
-        cross_river=owner.profile.type is FactionType.MERMAIDS,
+        cross_river=join_river and owner.profile.type is FactionType.MERMAIDS,
         towns_left=TOWN_SUPPLY - state.towns,
     )
     if not founded:
@@ -1535,6 +1591,31 @@ def _valid_upgrade(source: BuildingType, target: BuildingType) -> bool:
         )
         or (source is BuildingType.TEMPLE and target is BuildingType.SANCTUARY)
     )
+
+
+def _river_choice(
+    board: Board, player: PlayerId, profile: FactionProfile, position: Hex
+) -> bool:
+    """Whether a Mermaid may choose between joining and not joining across a river."""
+    if profile.type is not FactionType.MERMAIDS:
+        return False
+    direct = set(board.connected(position, player))
+    across = set(board.connected_area(position, player, 1))
+    return direct != across
+
+
+def _append_upgrade(
+    actions: list[Action],
+    board: Board,
+    player: PlayerId,
+    profile: FactionProfile,
+    position: Hex,
+    target: BuildingType,
+) -> None:
+    """List an upgrade, plus the Mermaid variant that declines the river skip."""
+    actions.append(UpgradeBuilding(position, target))
+    if _river_choice(board, player, profile, position):
+        actions.append(UpgradeBuilding(position, target, join_river=False))
 
 
 def _adjacent_to_own(board: Board, player: PlayerId, position: Hex) -> bool:

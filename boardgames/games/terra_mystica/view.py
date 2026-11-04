@@ -298,14 +298,19 @@ def final_lines(data: JsonObject) -> list[str]:
 
 def describe_action(observation: Observation, action: Action) -> str:
     match action:
-        case BuildDwelling(position=position):
+        case BuildDwelling(position=position, join_river=join_river):
             if observation.data.get("phase") == "setup":
                 return f"Place a starting dwelling at {position.notation()}."
-            return f"Build a dwelling at {position.notation()}."
+            suffix = "" if join_river else " without crossing the river"
+            return f"Build a dwelling at {position.notation()}{suffix}."
         case TransformTerrain(position=position):
             return f"Transform {position.notation()} into your home terrain."
-        case UpgradeBuilding(position=position, to=building):
-            return f"Upgrade the building at {position.notation()} to {building.value}."
+        case UpgradeBuilding(position=position, to=building, join_river=join_river):
+            suffix = "" if join_river else " without crossing the river"
+            return (
+                f"Upgrade the building at {position.notation()} to "
+                f"{building.value}{suffix}."
+            )
         case AdvanceShipping():
             return "Advance one step on the shipping track."
         case AdvanceDigging():

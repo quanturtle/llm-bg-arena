@@ -27,9 +27,9 @@ from boardgames.games.terra_mystica.model import (
 )
 
 HEX_TEXT = r"(-?[0-9]+),(-?[0-9]+)"
-BUILD_PATTERN = re.compile(rf"build {HEX_TEXT}")
+BUILD_PATTERN = re.compile(rf"build {HEX_TEXT}( separate)?")
 TRANSFORM_PATTERN = re.compile(rf"transform {HEX_TEXT}")
-UPGRADE_PATTERN = re.compile(rf"upgrade {HEX_TEXT} ([a-z_]+)")
+UPGRADE_PATTERN = re.compile(rf"upgrade {HEX_TEXT} ([a-z_]+)( separate)?")
 PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
 ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
 POWER_PATTERN = re.compile(rf"power ({'|'.join(POWER_ACTION_KINDS)})")
@@ -41,12 +41,14 @@ BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingTyp
 def format_action(action: Action) -> str:
     """Canonical notation of an action."""
     match action:
-        case BuildDwelling(position=position):
-            return f"build {position.notation()}"
+        case BuildDwelling(position=position, join_river=join_river):
+            suffix = "" if join_river else " separate"
+            return f"build {position.notation()}{suffix}"
         case TransformTerrain(position=position):
             return f"transform {position.notation()}"
-        case UpgradeBuilding(position=position, to=building):
-            return f"upgrade {position.notation()} {building.value}"
+        case UpgradeBuilding(position=position, to=building, join_river=join_river):
+            suffix = "" if join_river else " separate"
+            return f"upgrade {position.notation()} {building.value}{suffix}"
         case AdvanceShipping():
             return "shipping"
         case AdvanceDigging():
@@ -78,7 +80,10 @@ def parse_action(text: str) -> Action:
         return SkipCultSpade()
 
     if match := BUILD_PATTERN.fullmatch(text):
-        return BuildDwelling(parse_hex(match.group(1), match.group(2)))
+        return BuildDwelling(
+            parse_hex(match.group(1), match.group(2)),
+            join_river=match.group(3) is None,
+        )
     if match := TRANSFORM_PATTERN.fullmatch(text):
         return TransformTerrain(parse_hex(match.group(1), match.group(2)))
     if match := UPGRADE_PATTERN.fullmatch(text):
@@ -88,6 +93,7 @@ def parse_action(text: str) -> Action:
         return UpgradeBuilding(
             parse_hex(match.group(1), match.group(2)),
             BuildingType(name),
+            join_river=match.group(4) is None,
         )
     if match := PRIEST_PATTERN.fullmatch(text):
         cult, order = match.groups()

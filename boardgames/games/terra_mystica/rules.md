@@ -68,8 +68,8 @@ Each round has an income phase, an action phase and cleanup.
 Four directly adjacent structures with total power 7 form a town (three with a
 sanctuary). Indirect adjacency, including across rivers or by tunneling, does
 not join a town; the Mermaids are the one exception and may cross one river
-space. Building or upgrading into a town awards 5 victory points, a key and the
-faction's town bonus. The base game has 10 town tiles, so at most 10 towns exist.
+space, or decline to. Building or upgrading into a town awards 5 victory points,
+a key and the faction's town bonus. The base game has 10 town tiles, so at most 10 towns exist.
 A key lets one cult marker enter space 10. Structures already in a town are
 marked and cannot found another town; building next to a town expands it.
 
@@ -95,8 +95,10 @@ against that supply.
 ## Notation
 Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `build 0,0` — build a dwelling (transforming first if needed).
+- `build 0,0 separate` — as the Mermaids, build without joining a town across the river.
 - `transform 0,0` — transform the tile into your home terrain.
 - `upgrade 0,0 trading_house` — upgrade the building there.
+- `upgrade 0,0 temple separate` — as the Mermaids, upgrade without joining a town across the river.
 - `shipping` / `digging` — advance that track.
 - `priest fire 0` — send a priest to the Fire order space 0.
 - `advance air` — spend a priest to advance Air by 1.

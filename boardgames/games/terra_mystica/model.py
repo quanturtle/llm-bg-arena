@@ -13,7 +13,6 @@ from boardgames.games.terra_mystica.constants import (
     MAX_BUILDINGS,
     POWER_VALUES,
     TERRAIN_WHEEL,
-    TOWN_SUPPLY,
     BuildingType,
     Cost,
     Cult,
@@ -314,9 +313,14 @@ class TerraMysticaState:
 
 @dataclass(frozen=True)
 class BuildDwelling:
-    """Transform a reachable tile if needed, then build a dwelling on it."""
+    """Transform a reachable tile if needed, then build a dwelling on it.
+
+    Mermaids may set `join_river` to False to decline joining a town across one
+    river space.
+    """
 
     position: Hex
+    join_river: bool = True
 
 
 @dataclass(frozen=True)
@@ -328,10 +332,15 @@ class TransformTerrain:
 
 @dataclass(frozen=True)
 class UpgradeBuilding:
-    """Upgrade one of the player's structures."""
+    """Upgrade one of the player's structures.
+
+    Mermaids may set `join_river` to False to decline joining a town across one
+    river space.
+    """
 
     position: Hex
     to: BuildingType
+    join_river: bool = True
 
 
 @dataclass(frozen=True)
@@ -675,38 +684,13 @@ def mark_town(board: Board, positions: tuple[Hex, ...]) -> Board:
     return board
 
 
-def town_count(board: Board) -> int:
-    """How many separate groups of town-marked structures the board holds."""
-    seen: set[Hex] = set()
-    count = 0
-    for tile in board.tiles:
-        if tile.building is None or not tile.building.in_town or tile.position in seen:
-            continue
-        count += 1
-        queue = [tile.position]
-        seen.add(tile.position)
-        while queue:
-            position = queue.pop()
-            for neighbour in position.neighbours():
-                other = board.tile(neighbour)
-                if (
-                    other is not None
-                    and other.building is not None
-                    and other.building.in_town
-                    and neighbour not in seen
-                ):
-                    seen.add(neighbour)
-                    queue.append(neighbour)
-    return count
-
-
 def settle_town(
     board: Board,
     position: Hex,
     player: PlayerId,
     *,
+    towns_left: int,
     cross_river: bool = False,
-    towns_left: int | None = None,
 ) -> tuple[Board, bool]:
     """Mark a new or expanded town; True when a new town was founded.
 
@@ -726,8 +710,6 @@ def settle_town(
     )
     if already:
         return mark_town(board, component), False
-    if towns_left is None:
-        towns_left = TOWN_SUPPLY - town_count(board)
     if towns_left <= 0:
         return board, False
     if town_ready(board, component):
