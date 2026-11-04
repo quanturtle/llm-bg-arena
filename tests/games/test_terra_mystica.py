@@ -220,21 +220,6 @@ def test_build_dwelling_uses_an_adjacent_home_tile() -> None:
     assert tile.building.owner == player
 
 
-def test_shipping_extends_reach_across_a_river() -> None:
-    for seed in range(20):
-        state = play_setup(start(num_players=2, seed=seed))
-        player = state.active_player
-        for building in state.board.occupied(player):
-            direct = state.board.reachable_from(building, 0)
-            with_shipping = state.board.reachable_from(building, 1)
-            extra = with_shipping - direct
-            if extra:
-                assert extra <= with_shipping
-                assert not extra & direct
-                return
-    pytest.skip("no setup in the sampled seeds has a river crossing")
-
-
 def test_shipping_crosses_a_fixed_river_tile() -> None:
     board = Board.base()
     for tile in board.tiles:
@@ -764,6 +749,32 @@ def test_spade_round_tile_never_lands_in_rounds_five_or_six() -> None:
     assert missing > 0
 
 
+def test_shipping_is_not_listed_at_the_maximum() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    owner = replace(
+        state.players[player],
+        faction=FactionType.WITCHES,
+        shipping=FACTION_BY_TYPE[FactionType.WITCHES].shipping_max,
+        resources=Resources(coins=20, workers=5, priests=3),
+    )
+    state = replace_player(
+        state,
+        player,
+        owner,
+    )
+    state = replace(
+        state,
+        phase="action",
+        setup_queue=(),
+        active_player=player,
+        passed=frozenset(),
+        pass_order=(),
+        round=1,
+    )
+    assert AdvanceShipping() not in listing(state)
+
+
 def test_mermaids_earn_two_points_on_their_first_shipping_step() -> None:
     state = start(num_players=2, seed=1, rounds=1)
     player = state.order[0]
@@ -874,11 +885,11 @@ def test_observation_and_text_show_passes_power_actions_and_cult_spades() -> Non
     spade_state = replace(
         state,
         phase="cult_spades",
-        cult_spades=(1, 2),
-        active_player=state.order[0],
+        cult_spades=(2, 2),
+        active_player=PlayerId(0),
     )
     spade_text = GAME.render_text(GAME.observe(spade_state, None))
-    assert "cult-bonus spade" in spade_text
+    assert "P1 has 2 cult-bonus spade(s)." in spade_text
 
 
 def test_cult_spade_turn_handoff_announces_the_next_budget() -> None:

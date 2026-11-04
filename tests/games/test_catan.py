@@ -879,6 +879,47 @@ def test_no_city_on_another_players_settlement() -> None:
     assert BuildCity(vertex) not in listing(state)
 
 
+def test_event_texts_missing_from_the_example_log() -> None:
+    state, _ = play_setup()
+    vertex = next(
+        vertex
+        for vertex, building in enumerate(state.buildings)
+        if building is not None
+        and building.player == P1
+        and building.kind == "settlement"
+    )
+    state = action_state(set_hand(state, P1, CITY_COST))
+    events = GAME.apply(state, P1, BuildCity(vertex)).events
+    assert next(event.text for event in events if event.kind == "city_built") == (
+        f"P1 upgraded v{vertex} to a city."
+    )
+
+    army = replace(start(), knights_played=(3, 4, 0), largest_army=P1)
+    _, army_events = update_largest_army(army)
+    assert (
+        next(event.text for event in army_events if event.kind == "largest_army_lost")
+        == "P1 lost the largest army."
+    )
+
+    path = path_edges(5)
+    previous = replace(
+        start(),
+        roads=tuple(P1 if edge in path else None for edge in range(72)),
+        buildings=(None,) * 54,
+        longest_road=P1,
+    )
+    current = replace(
+        previous,
+        roads=tuple(P2 if edge in path else None for edge in range(72)),
+    )
+    _, road_events = update_longest_road(previous, current)
+    assert (
+        next(event.text for event in road_events if event.kind == "longest_road_lost")
+        == "P1 lost the longest road."
+    )
+    return
+
+
 def test_notation_round_trips_every_action() -> None:
     actions: list[Action] = [
         Roll(),
