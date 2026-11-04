@@ -78,6 +78,7 @@ def observe(state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
         ],
         "face_up": list(state.face_up),
         "plantation_deck_count": len(state.plantation_deck),
+        "plantation_discard_count": len(state.plantation_discard),
         "available_buildings": list(state.available_buildings),
         "quarry_supply": state.quarry_supply,
         "goods_supply": goods_json_map(state.goods_supply),

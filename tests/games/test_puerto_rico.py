@@ -686,6 +686,18 @@ def test_hacienda_draws_an_extra_plantation_once() -> None:
     assert "hacienda" not in notations(state)
 
 
+def test_settler_keeps_unchosen_plantations_in_a_discard_pile() -> None:
+    state = start(seed=3)
+    state = select_role(state, "settler")
+    taken = state.face_up[0]
+    unchosen = state.face_up[1:]
+    state = play(state, f"take {taken}")
+    while state.phase == "settler_action":
+        state = play(state, "pass")
+    assert state.plantation_discard == unchosen
+    assert len(state.face_up) == 4
+
+
 # Roles: Mayor -------------------------------------------------------------
 
 

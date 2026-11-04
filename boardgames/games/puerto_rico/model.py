@@ -172,6 +172,7 @@ class PuertoRicoState:
     cargo_ships: tuple[CargoShip, ...]
     face_up: tuple[Good, ...]
     plantation_deck: tuple[Good, ...]
+    plantation_discard: tuple[Good, ...]
     available_buildings: tuple[str, ...]
     quarry_supply: int
     goods_supply: Goods

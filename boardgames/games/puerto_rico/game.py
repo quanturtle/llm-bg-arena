@@ -188,6 +188,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             cargo_ships=ships,
             face_up=face_up,
             plantation_deck=plantation_deck,
+            plantation_discard=(),
             available_buildings=available,
             quarry_supply=QUARRY_SUPPLY,
             goods_supply=GOOD_SUPPLY,
@@ -968,9 +969,21 @@ def finish_standard_phase(state: PuertoRicoState) -> PuertoRicoState:
     role = state.active_role
     if role == "settler":
         face_up_count = len(state.order) + 1
-        face_up = state.plantation_deck[:face_up_count]
-        deck = state.plantation_deck[face_up_count:]
-        state = replace(state, face_up=face_up, plantation_deck=deck)
+        discard = (*state.plantation_discard, *state.face_up)
+        deck = state.plantation_deck
+        rng = state.rng
+        if len(deck) < face_up_count:
+            deck, rng = rng.shuffled((*deck, *discard))
+            discard = ()
+        face_up = deck[:face_up_count]
+        deck = deck[face_up_count:]
+        state = replace(
+            state,
+            face_up=face_up,
+            plantation_deck=deck,
+            plantation_discard=discard,
+            rng=rng,
+        )
     elif role == "mayor":
         state = refill_colonist_ship(state)
     elif role == "trader":
