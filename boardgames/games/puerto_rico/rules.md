@@ -11,7 +11,7 @@ Build the most victory points. Points come from shipping goods to Europe (victor
 - The governor chooses first. Role cards are chosen once each round in governor order; after every player has chosen, the round ends and the governorship passes clockwise.
 
 ## Roles and privileges
-- **Settler:** take a face-up plantation. Privilege: the Settler may take a quarry instead. A player with an active Construction Hut may also take a quarry. Unchosen face-up plantations wait in a discard pile; when the deck cannot refill the row, the discard pile is shuffled into a new deck.
+- **Settler:** take a face-up plantation. Privilege: the Settler may take a quarry instead. A player with an active Construction Hut may also take a quarry. Unchosen face-up plantations wait in a discard pile; when the deck cannot refill the row, any leftover deck is drawn first and the discard pile is then shuffled into a new deck.
 - **Mayor:** colonists from the ship are distributed round-robin starting with the Mayor. Privilege: the Mayor takes one extra colonist from the supply. Then each player places every new colonist on an empty circle before moving any existing colonist.
 - **Builder:** build one building. Privilege: the Builder pays one doubloon less. Each active quarry also reduces a building's cost by one, up to the building's victory point value.
 - **Craftsman:** every player produces goods. Privilege: the Craftsman may take one extra producible good from the supply.

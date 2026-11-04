@@ -987,14 +987,17 @@ def finish_standard_phase(state: PuertoRicoState) -> PuertoRicoState:
         discard = (*state.plantation_discard, *state.face_up)
         deck = state.plantation_deck
         rng = state.rng
-        if len(deck) < face_up_count:
-            deck, rng = rng.shuffled((*deck, *discard))
+        drawn = deck[:face_up_count]
+        deck = deck[len(drawn) :]
+        if len(drawn) < face_up_count:
+            shuffled, rng = rng.shuffled(discard)
+            needed = face_up_count - len(drawn)
+            drawn = (*drawn, *shuffled[:needed])
+            deck = shuffled[needed:]
             discard = ()
-        face_up = deck[:face_up_count]
-        deck = deck[face_up_count:]
         state = replace(
             state,
-            face_up=face_up,
+            face_up=drawn,
             plantation_deck=deck,
             plantation_discard=discard,
             rng=rng,

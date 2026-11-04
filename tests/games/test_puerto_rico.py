@@ -686,6 +686,20 @@ def test_hacienda_draws_an_extra_plantation_once() -> None:
     assert "hacienda" not in notations(state)
 
 
+def test_settler_draws_leftover_deck_before_reshuffling_discards() -> None:
+    state = start(seed=3)
+    state = replace(
+        state,
+        active_role="settler",
+        face_up=(),
+        plantation_deck=("coffee",),
+        plantation_discard=("corn", "corn", "corn"),
+    )
+    state = finish_standard_phase(state)
+    assert state.face_up[0] == "coffee"
+    assert state.face_up[1:] == ("corn", "corn", "corn")
+
+
 def test_settler_keeps_unchosen_plantations_in_a_discard_pile() -> None:
     state = start(seed=3)
     state = select_role(state, "settler")
