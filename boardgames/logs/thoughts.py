@@ -151,9 +151,7 @@ def attempt_text(attempt: AttemptRecord) -> list[str]:
         parts.append("**Tool calls**\n\n" + "\n".join(lines) + "\n")
     if attempt.rejection is not None:
         shown = f"`{attempt.answer}`" if attempt.answer is not None else "the reply"
-        parts.append(
-            f"**Rejected** {shown}: {attempt.rejection.feedback}\n"
-        )
+        parts.append(f"**Rejected** {shown}: {attempt.rejection.feedback}\n")
     return parts
 
 

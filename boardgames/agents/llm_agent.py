@@ -388,9 +388,7 @@ def decision_trace[A](
     """Totals over every model and extractor call of a decision."""
     completions = [c for attempt in attempts for c in attempt.completions]
     costs = [c.cost_usd for c in completions]
-    records: tuple[AttemptRecord, ...] = tuple(
-        attempt.record for attempt in attempts
-    )
+    records: tuple[AttemptRecord, ...] = tuple(attempt.record for attempt in attempts)
     return DecisionTrace(
         reasoning=reasoning,
         memory=memory,
