@@ -18,6 +18,7 @@ import sys
 import threading
 import time
 import webbrowser
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -61,6 +62,20 @@ class ServerState(Protocol):
 
     started: bool
     should_exit: bool
+
+
+@dataclass(frozen=True)
+class AppConfig:
+    """Process settings read once at startup, instead of inside each handler."""
+
+    api_key: str | None
+    model: ChatModel | None = None
+
+    def chat_model(self) -> ChatModel | None:
+        """The configured model, or OpenRouter when only a key was found."""
+        if self.model is not None:
+            return self.model
+        return openrouter_model(self.api_key) if self.api_key else None
 
 
 def load_environment() -> None:
@@ -150,25 +165,38 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def list_games(args: argparse.Namespace) -> None:
+def list_games(
+    args: argparse.Namespace, config: AppConfig | None = None
+) -> None:
     """Print one registered game id per line."""
     for game_id in game_ids():
         print(game_id)
     return
 
 
+def config_from_environment() -> AppConfig:
+    """Process settings from the environment, read once at startup."""
+    return AppConfig(os.environ.get(API_KEY_VARIABLE) or None)
+
+
+def config_for_command() -> AppConfig:
+    """Settings for a handler called without startup config, keeping tests able
+    to replace the model factory."""
+    return AppConfig(api_key=None, model=chat_model_from_environment())
+
+
 def chat_model_from_environment() -> ChatModel | None:
     """OpenRouter with the key `main` loads from .env, or None without a key."""
-    api_key = os.environ.get(API_KEY_VARIABLE) or None
-    return openrouter_model(api_key) if api_key else None
+    return config_from_environment().chat_model()
 
 
-def play(args: argparse.Namespace) -> None:
+def play(args: argparse.Namespace, config: AppConfig | None = None) -> None:
     """Play the match a config file describes, print it unless --quiet, log it."""
-    config = load_match_config(args.match)
+    config = config or config_for_command()
+    match_config = load_match_config(args.match)
     prepared = prepare_match(
-        config,
-        chat_model_from_environment(),
+        match_config,
+        config.chat_model(),
         DEFAULT_LOG_DIR,
         seed=args.seed,
         log=args.log,
@@ -182,7 +210,9 @@ def play(args: argparse.Namespace) -> None:
     return
 
 
-def check_replay(args: argparse.Namespace) -> None:
+def check_replay(
+    args: argparse.Namespace, config: AppConfig | None = None
+) -> None:
     """Replay a log and report whether it matches."""
     report = replay_match(read_log(args.log))
     stopped = (
@@ -241,12 +271,13 @@ def open_when_started(
     return
 
 
-def serve(args: argparse.Namespace) -> None:
+def serve(args: argparse.Namespace, config: AppConfig | None = None) -> None:
     """Serve the web viewer until interrupted; matches started there run in-process."""
+    config = config or config_for_command()
     game_ids()
     viewer = current_viewer(args.viewer)
     opened = () if args.log is None else (args.log,)
-    launcher = MatchLauncher(args.runs, chat_model_from_environment(), args.examples)
+    launcher = MatchLauncher(args.runs, config.chat_model(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
     store = MatchStore(args.runs, read_only=opened)
     app = create_app(store, launcher, OpenRouterCatalog(), viewer)
@@ -256,10 +287,12 @@ def serve(args: argparse.Namespace) -> None:
     return
 
 
-def run_command(args: argparse.Namespace) -> None:
+def run_command(
+    args: argparse.Namespace, config: AppConfig | None = None
+) -> None:
     """Run the chosen command; arena errors print a message and exit with status 1."""
     try:
-        args.handler(args)
+        args.handler(args, config or config_for_command())
     except ArenaError as error:
         print(f"error: {error}", file=sys.stderr)
         sys.exit(1)
@@ -268,8 +301,9 @@ def run_command(args: argparse.Namespace) -> None:
 
 def main() -> None:
     load_environment()
+    config = config_from_environment()
     args = parse_arguments(sys.argv[1:])
-    run_command(args)
+    run_command(args, config)
     return
 
 

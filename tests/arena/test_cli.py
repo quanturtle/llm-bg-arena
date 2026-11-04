@@ -219,6 +219,17 @@ def test_browser_waits_for_our_server_not_any_listener(
     return
 
 
+def test_the_api_key_is_read_once_into_a_typed_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(API_KEY_VARIABLE, "secret")
+    config = cli.config_from_environment()
+    monkeypatch.delenv(API_KEY_VARIABLE)
+    assert config.api_key == "secret"
+    assert config.chat_model() is not None
+    return
+
+
 def test_games_lists_registered_ids(capsys: pytest.CaptureFixture[str]) -> None:
     cli.run_command(cli.parse_arguments(["games"]))
     assert capsys.readouterr().out.split() == [
