@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Annotated, Literal
 
-import httpx
+import httpx2
 from pydantic import (
     BaseModel,
     BeforeValidator,
@@ -128,7 +128,7 @@ class OpenRouterChatModel:
         api_key: str,
         *,
         base_url: str = DEFAULT_BASE_URL,
-        transport: httpx.AsyncBaseTransport | None = None,
+        transport: httpx2.AsyncBaseTransport | None = None,
     ) -> None:
         self._base_url = base_url
         self._transport = transport
@@ -148,18 +148,18 @@ class OpenRouterChatModel:
         body = request_body(messages, settings, tools, tool_choice)
         try:
             async with asyncio.timeout(settings.timeout_seconds):
-                async with httpx.AsyncClient(
+                async with httpx2.AsyncClient(
                     base_url=self._base_url,
                     headers=self._headers,
                     transport=self._transport,
                     timeout=settings.timeout_seconds,
                 ) as client:
                     response = await client.post("/chat/completions", json=body)
-        except (TimeoutError, httpx.TimeoutException) as error:
+        except (TimeoutError, httpx2.TimeoutException) as error:
             raise TransientModelError(
                 f"{settings.model}: no reply within {settings.timeout_seconds}s"
             ) from error
-        except httpx.TransportError as error:
+        except httpx2.TransportError as error:
             raise TransientModelError(f"{settings.model}: {error}") from error
         payload = parse_payload(response)
         readable = (
@@ -221,7 +221,7 @@ def reasoning_json(settings: ModelSettings) -> dict[str, JsonValue]:
     return reasoning
 
 
-def parse_payload(response: httpx.Response) -> ResponsePayload | UnreadableReply:
+def parse_payload(response: httpx2.Response) -> ResponsePayload | UnreadableReply:
     """The response body; a field in an unexpected shape reads as missing.
 
     A body that is not JSON counts as empty; a broken structure is unreadable.

@@ -10,7 +10,7 @@ fetches the list once per process and keeps it.
 import json
 from typing import Protocol, get_args
 
-import httpx
+import httpx2
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from boardgames.core import ArenaError
@@ -100,11 +100,11 @@ class OpenRouterCatalog:
 
     async def _fetch(self) -> dict[str, ModelCapabilities]:
         try:
-            async with httpx.AsyncClient(timeout=CATALOG_TIMEOUT_SECONDS) as client:
+            async with httpx2.AsyncClient(timeout=CATALOG_TIMEOUT_SECONDS) as client:
                 response = await client.get(self._url)
                 response.raise_for_status()
                 payload = response.json()
-        except (httpx.HTTPError, json.JSONDecodeError) as error:
+        except (httpx2.HTTPError, json.JSONDecodeError) as error:
             raise CatalogUnavailableError(
                 f"cannot read OpenRouter's model list: {error}"
             ) from error

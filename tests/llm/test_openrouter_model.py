@@ -2,7 +2,7 @@ import asyncio
 import json
 from collections.abc import Callable
 
-import httpx
+import httpx2
 import pytest
 
 from boardgames.core import ConfigError, JsonValue
@@ -28,7 +28,7 @@ SETTINGS = ModelSettings(model="anthropic/claude-haiku-5-5")
 MESSAGES = (Message("system", "rules"), Message("user", "your move"))
 TOOL = ToolSpec("submit_action", "Submit your action.", {"type": "object"})
 
-type Handler = Callable[[httpx.Request], httpx.Response]
+type Handler = Callable[[httpx2.Request], httpx2.Response]
 
 
 def reply_payload(
@@ -50,7 +50,7 @@ def reply_payload(
 
 
 def model_with(handler: Handler) -> OpenRouterChatModel:
-    return OpenRouterChatModel("test-key", transport=httpx.MockTransport(handler))
+    return OpenRouterChatModel("test-key", transport=httpx2.MockTransport(handler))
 
 
 def complete(model: OpenRouterChatModel) -> Completion:
@@ -182,7 +182,9 @@ def test_a_null_tool_call_id_keeps_the_reply_and_its_cost() -> None:
             "function": {"name": "submit_action", "arguments": '{"action": "b2"}'},
         }
     ]
-    completion = complete(model_with(lambda request: httpx.Response(200, json=payload)))
+    completion = complete(
+        model_with(lambda request: httpx2.Response(200, json=payload))
+    )
     assert completion.tool_calls == (
         ToolCall("call_0", "submit_action", '{"action": "b2"}'),
     )
@@ -193,17 +195,17 @@ def test_a_null_tool_call_id_keeps_the_reply_and_its_cost() -> None:
 def test_a_string_error_code_is_read_and_rate_limits_are_transient() -> None:
     body = {"error": {"code": "rate_limit_exceeded", "message": "slow down"}}
     with pytest.raises(TransientModelError, match="slow down"):
-        complete(model_with(lambda request: httpx.Response(200, json=body)))
+        complete(model_with(lambda request: httpx2.Response(200, json=body)))
     return
 
 
 def test_a_5xx_is_retried_whatever_its_code_and_unknown_codes_are_not() -> None:
     gateway = {"error": {"code": "bad_gateway", "message": "upstream died"}}
     with pytest.raises(TransientModelError, match="upstream died"):
-        complete(model_with(lambda request: httpx.Response(502, json=gateway)))
+        complete(model_with(lambda request: httpx2.Response(502, json=gateway)))
     limit = {"error": {"code": "key_limit_exceeded", "message": "out of credit"}}
     with pytest.raises(ModelRequestError, match="out of credit"):
-        complete(model_with(lambda request: httpx.Response(200, json=limit)))
+        complete(model_with(lambda request: httpx2.Response(200, json=limit)))
     return
 
 
@@ -215,7 +217,9 @@ def test_tool_arguments_sent_as_an_object_are_kept_as_text() -> None:
             "function": {"name": "submit_action", "arguments": {"action": "b2"}},
         }
     ]
-    completion = complete(model_with(lambda request: httpx.Response(200, json=payload)))
+    completion = complete(
+        model_with(lambda request: httpx2.Response(200, json=payload))
+    )
     assert completion.tool_calls == (
         ToolCall("c1", "submit_action", '{"action": "b2"}'),
     )
@@ -225,7 +229,9 @@ def test_tool_arguments_sent_as_an_object_are_kept_as_text() -> None:
 def test_one_bad_usage_field_does_not_throw_away_the_reply() -> None:
     payload = reply_payload()
     payload["usage"] = {"prompt_tokens": "many", "completion_tokens": 100}
-    completion = complete(model_with(lambda request: httpx.Response(200, json=payload)))
+    completion = complete(
+        model_with(lambda request: httpx2.Response(200, json=payload))
+    )
     assert completion.text == "b2"
     assert completion.cost_usd is None
     return
@@ -263,11 +269,11 @@ def test_failure_classifies_statuses_and_error_bodies() -> None:
 
 
 def test_complete_sends_the_key_and_reads_the_reply() -> None:
-    seen: list[httpx.Request] = []
+    seen: list[httpx2.Request] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         seen.append(request)
-        return httpx.Response(200, json=reply_payload(tool_arguments='{"a": 1}'))
+        return httpx2.Response(200, json=reply_payload(tool_arguments='{"a": 1}'))
 
     completion = complete(model_with(handler))
     assert seen[0].url == "https://openrouter.ai/api/v1/chat/completions"
@@ -278,11 +284,11 @@ def test_complete_sends_the_key_and_reads_the_reply() -> None:
 
 
 def test_rate_limit_is_transient_and_bad_key_is_rejected() -> None:
-    limited = model_with(lambda request: httpx.Response(429, text="slow down"))
+    limited = model_with(lambda request: httpx2.Response(429, text="slow down"))
     with pytest.raises(TransientModelError, match="HTTP 429"):
         complete(limited)
     unauthorized = model_with(
-        lambda request: httpx.Response(
+        lambda request: httpx2.Response(
             401, json={"error": {"code": 401, "message": "bad key"}}
         )
     )
@@ -292,10 +298,12 @@ def test_rate_limit_is_transient_and_bad_key_is_rejected() -> None:
 
 
 def test_timeout_bounds_the_whole_call_not_each_read() -> None:
-    class SlowTransport(httpx.AsyncBaseTransport):
-        async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    class SlowTransport(httpx2.AsyncBaseTransport):
+        async def handle_async_request(
+            self, request: httpx2.Request
+        ) -> httpx2.Response:
             await asyncio.sleep(0.2)
-            return httpx.Response(200, json=reply_payload(), request=request)
+            return httpx2.Response(200, json=reply_payload(), request=request)
 
     model = OpenRouterChatModel("test-key", transport=SlowTransport())
     settings = ModelSettings(model="m", timeout_seconds=0.05)
@@ -305,8 +313,8 @@ def test_timeout_bounds_the_whole_call_not_each_read() -> None:
 
 
 def test_connection_failure_is_transient() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("refused")
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        raise httpx2.ConnectError("refused")
 
     with pytest.raises(TransientModelError, match="refused"):
         complete(model_with(handler))
@@ -316,7 +324,7 @@ def test_connection_failure_is_transient() -> None:
 def test_an_error_inside_the_choice_is_a_failure() -> None:
     body = {"choices": [{"message": {}, "error": {"code": 502, "message": "down"}}]}
     with pytest.raises(TransientModelError, match="down"):
-        complete(model_with(lambda request: httpx.Response(200, json=body)))
+        complete(model_with(lambda request: httpx2.Response(200, json=body)))
     return
 
 
