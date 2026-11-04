@@ -37,6 +37,7 @@ from boardgames.games.terra_mystica.constants import (
     MAX_BUILDINGS,
     POWER_ACTION_COSTS,
     POWER_ACTION_INCOME,
+    POWER_ACTION_KINDS,
     PRIEST_SUPPLY,
     SCORING_TILES,
     SCORING_VALUES,
@@ -50,6 +51,7 @@ from boardgames.games.terra_mystica.constants import (
     CultBonus,
     FactionType,
     Income,
+    PowerActionKind,
     Resources,
     ScoringAction,
     ScoringTile,
@@ -736,7 +738,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         return self.advance_turn(state, player, (event,))
 
     def take_power_action(
-        self, state: TerraMysticaState, player: PlayerId, kind: str
+        self, state: TerraMysticaState, player: PlayerId, kind: PowerActionKind
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         cost = POWER_ACTION_COSTS[kind]
@@ -1292,7 +1294,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                     actions.append(SendPriest(cult, order))
             actions.append(AdvanceCult(cult))
 
-    for kind in ("priest", "workers", "coins"):
+    for kind in POWER_ACTION_KINDS:
         if kind in state.used_power_actions:
             continue
         if can_spend_power(owner.resources, POWER_ACTION_COSTS[kind]):

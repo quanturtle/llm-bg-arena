@@ -263,13 +263,17 @@ STANDARD_TEMPLE_INCOME: tuple[Income, ...] = (
     Income(priests=3),
 )
 
-POWER_ACTION_COSTS: dict[str, int] = {
+type PowerActionKind = Literal["priest", "workers", "coins"]
+
+POWER_ACTION_KINDS: tuple[PowerActionKind, ...] = ("priest", "workers", "coins")
+
+POWER_ACTION_COSTS: dict[PowerActionKind, int] = {
     "priest": 3,
     "workers": 4,
     "coins": 4,
 }
 
-POWER_ACTION_INCOME: dict[str, Income] = {
+POWER_ACTION_INCOME: dict[PowerActionKind, Income] = {
     "priest": Income(priests=1),
     "workers": Income(workers=2),
     "coins": Income(coins=7),

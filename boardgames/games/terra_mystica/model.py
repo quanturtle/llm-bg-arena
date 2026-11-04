@@ -20,6 +20,7 @@ from boardgames.games.terra_mystica.constants import (
     FactionProfile,
     FactionType,
     Income,
+    PowerActionKind,
     Resources,
     ScoringTile,
     Terrain,
@@ -282,7 +283,7 @@ class TerraMysticaState:
     round: int
     scoring: tuple[ScoringTile, ...]
     cult_spades: tuple[int, ...]
-    used_power_actions: frozenset[str]
+    used_power_actions: frozenset[PowerActionKind]
     used_orders: Mapping[tuple[Cult, int], PlayerId]
     end_reason: str | None = None
 
@@ -341,7 +342,7 @@ class AdvanceCult:
 class PowerAction:
     """Spend charged power for a resource from the shared power actions."""
 
-    kind: Literal["priest", "workers", "coins"]
+    kind: PowerActionKind
 
 
 @dataclass(frozen=True)

@@ -1,9 +1,15 @@
 """Text notation for Terra Mystica actions: one canonical form, strict parsing."""
 
 import re
+from typing import cast
 
 from boardgames.core import NotationError
-from boardgames.games.terra_mystica.constants import BuildingType, Cult
+from boardgames.games.terra_mystica.constants import (
+    POWER_ACTION_KINDS,
+    BuildingType,
+    Cult,
+    PowerActionKind,
+)
 from boardgames.games.terra_mystica.model import (
     Action,
     AdvanceCult,
@@ -26,11 +32,10 @@ TRANSFORM_PATTERN = re.compile(rf"transform {HEX_TEXT}")
 UPGRADE_PATTERN = re.compile(rf"upgrade {HEX_TEXT} ([a-z_]+)")
 PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
 ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
-POWER_PATTERN = re.compile(r"power (priest|workers|coins)")
+POWER_PATTERN = re.compile(rf"power ({'|'.join(POWER_ACTION_KINDS)})")
 CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}")
 
 BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingType)
-CULTS: frozenset[str] = frozenset(cult.value for cult in Cult)
 
 
 def format_action(action: Action) -> str:
@@ -86,17 +91,11 @@ def parse_action(text: str) -> Action:
         )
     if match := PRIEST_PATTERN.fullmatch(text):
         cult, order = match.groups()
-        if cult not in CULTS:
-            raise NotationError(f"{text!r} does not name a cult")
         return SendPriest(Cult(cult), int(order))
     if match := ADVANCE_CULT_PATTERN.fullmatch(text):
-        cult = match.group(1)
-        if cult not in CULTS:
-            raise NotationError(f"{text!r} does not name a cult")
-        return AdvanceCult(Cult(cult))
+        return AdvanceCult(Cult(match.group(1)))
     if match := POWER_PATTERN.fullmatch(text):
-        kind = match.group(1)
-        return PowerAction(kind)  # type: ignore[arg-type]
+        return PowerAction(cast(PowerActionKind, match.group(1)))
     if match := CULT_SPADE_PATTERN.fullmatch(text):
         return UseCultSpade(parse_hex(match.group(1), match.group(2)))
     raise NotationError(f"{text!r} is not a Terra Mystica action")
