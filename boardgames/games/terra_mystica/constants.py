@@ -156,7 +156,7 @@ class FactionProfile:
     town_workers_bonus: int = 0
     final_coin_divisor: int = 3
     trading_house_discount: int = 3
-    base_income: Income = Income()
+    base_income: Income = Income(workers=1)
     dwelling_income: tuple[Income, ...] = ()
     trading_house_income: tuple[Income, ...] = ()
     temple_income: tuple[Income, ...] = ()
@@ -193,7 +193,7 @@ MAX_BUILDINGS: dict[BuildingType, int] = {
     BuildingType.SANCTUARY: 1,
 }
 
-CULT_ORDER_STEPS: tuple[int, ...] = (3, 2, 2, 3)
+CULT_ORDER_STEPS: tuple[int, ...] = (3, 2, 2, 2)
 CULT_POWER_THRESHOLDS: dict[int, int] = {3: 1, 5: 2, 7: 2, 10: 3}
 CULT_FINAL_POINTS: tuple[int, ...] = (8, 4, 2)
 AREA_FINAL_POINTS: tuple[int, ...] = (18, 12, 6)
@@ -230,8 +230,8 @@ STANDARD_DWELLING_INCOME: tuple[Income, ...] = (
 STANDARD_TRADING_HOUSE_INCOME: tuple[Income, ...] = (
     Income(coins=2, power=1),
     Income(coins=4, power=2),
-    Income(coins=6, power=3),
-    Income(coins=8, power=4),
+    Income(coins=6, power=4),
+    Income(coins=8, power=6),
 )
 
 STANDARD_TEMPLE_INCOME: tuple[Income, ...] = (
@@ -408,6 +408,7 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         starting_resources=Resources(coins=10, workers=2, power1=3, power2=9),
         starting_cults=(0, 0, 0, 0),
         costs=ENGINEER_COSTS,
+        base_income=Income(),
         dwelling_income=ENGINEER_DWELLING_INCOME,
         temple_income=ENGINEER_TEMPLE_INCOME,
         trading_house_discount=2,
@@ -527,6 +528,12 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
 FACTIONS: tuple[FactionType, ...] = tuple(profile.type for profile in FACTION_PROFILES)
 FACTION_BY_TYPE: dict[FactionType, FactionProfile] = {
     profile.type: profile for profile in FACTION_PROFILES
+}
+FACTIONS_BY_TERRAIN: dict[Terrain, tuple[FactionType, ...]] = {
+    terrain: tuple(
+        profile.type for profile in FACTION_PROFILES if profile.home_terrain is terrain
+    )
+    for terrain in TERRAIN_WHEEL
 }
 
 

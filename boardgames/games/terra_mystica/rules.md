@@ -20,28 +20,32 @@ terraforming, cults, towns and scoring are playable.
 ## Round structure
 Each round has an income phase, an action phase and cleanup.
 - Income: every player gains workers from dwellings, coins and power from trading
-  houses, priests from temples and sanctuaries, plus the faction's base income and
-  stronghold income.
+  houses, priests from temples and sanctuaries, plus the faction's base worker
+  income and stronghold income. The standard base income is 1 worker (Engineers
+  have none, Swarmlings have 2).
 - Actions: players take one action at a time until they pass. The first player to
   pass starts the next round.
 - Cleanup: the round's scoring tile is replaced by the next one and income is
   collected for the new round. After the final round, final scoring is applied.
 
 ## Actions
-- **Build a dwelling** on a tile directly adjacent to one of your structures. If
-  the tile is not your home terrain you must pay spades to transform it first.
-  Spades cost workers at your digging rate (or priests for the Darklings).
+- **Build a dwelling** on a tile reachable from one of your structures, directly
+  or across up to your shipping value in river spaces. If the tile is not your
+  home terrain you must pay spades to transform it first. Spades cost workers at
+  your digging rate (or priests for the Darklings).
 - **Transform terrain** into your home terrain without building.
 - **Upgrade a structure**: dwelling to trading house; trading house to temple or
   stronghold; temple to sanctuary. A trading house costs less when an opponent's
   structure is directly adjacent.
-- **Advance shipping** for 1 priest and 4 coins. Shipping is not available to the
-  Dwarves or Fakirs.
+- **Advance shipping** for 1 priest and 4 coins, gaining 2/3/4 points on the
+  standard track. Shipping is not available to the Dwarves or Fakirs.
 - **Advance digging** for the faction's digging cost. Darklings cannot dig and
   Fakirs stop after one step.
-- **Send a priest** to an unused order space of a cult to advance 3 or 2 spaces,
-  or **reclaim a priest** to advance 1 space and keep it. Advancing past the 3rd,
-  5th, 7th and 10th spaces grants power. Space 10 needs a town key.
+- **Send a priest** to an unused order space of a cult to advance 3 or 2 spaces.
+  Each order space can hold only one priest for the whole game. Alternatively,
+  **spend a priest to advance a cult by 1 space** without using an order space.
+  Advancing past the 3rd, 5th, 7th and 10th spaces grants power. Space 10 needs a
+  town key.
 - **Power action**: spend charged power for a priest, two workers or seven coins.
 - **Pass** to stop acting for the round.
 
@@ -69,6 +73,6 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `upgrade 0,0 trading_house` — upgrade the building there.
 - `shipping` / `digging` — advance that track.
 - `priest fire 0` — send a priest to the Fire order space 0.
-- `reclaim air` — advance Air by 1 and keep the priest.
+- `advance air` — spend a priest to advance Air by 1.
 - `power priest` — spend power for a priest.
 - `pass` — stop acting this round.

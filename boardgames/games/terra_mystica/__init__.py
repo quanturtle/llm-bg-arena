@@ -3,6 +3,7 @@
 from boardgames.games.terra_mystica.game import TerraMystica
 from boardgames.games.terra_mystica.model import (
     Action,
+    AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
     Board,
@@ -11,7 +12,6 @@ from boardgames.games.terra_mystica.model import (
     Hex,
     Pass,
     PowerAction,
-    ReclaimPriest,
     SendPriest,
     TerraMysticaConfig,
     TerraMysticaState,
@@ -21,6 +21,7 @@ from boardgames.games.terra_mystica.model import (
 
 __all__ = [
     "Action",
+    "AdvanceCult",
     "AdvanceDigging",
     "AdvanceShipping",
     "Board",
@@ -29,7 +30,6 @@ __all__ = [
     "Hex",
     "Pass",
     "PowerAction",
-    "ReclaimPriest",
     "SendPriest",
     "TerraMystica",
     "TerraMysticaConfig",

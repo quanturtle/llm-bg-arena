@@ -16,11 +16,11 @@ from boardgames.core import (
 )
 from boardgames.games.terra_mystica import (
     Action,
+    AdvanceCult,
     BuildDwelling,
     Hex,
     Pass,
     PowerAction,
-    ReclaimPriest,
     SendPriest,
     TerraMystica,
     TerraMysticaConfig,
@@ -28,9 +28,11 @@ from boardgames.games.terra_mystica import (
     UpgradeBuilding,
 )
 from boardgames.games.terra_mystica.constants import (
+    CULT_ORDER_STEPS,
     FACTION_BY_TYPE,
     FACTION_PROFILES,
     MAX_BUILDINGS,
+    STANDARD_TRADING_HOUSE_INCOME,
     TERRAIN_WHEEL,
     BuildingType,
     Cult,
@@ -44,6 +46,7 @@ from boardgames.games.terra_mystica.model import (
     cult_limit,
     gain_power,
     replace_player,
+    shipping_points,
     spade_cost,
     spades_for,
     spend_power,
@@ -109,6 +112,7 @@ def test_setup_assigns_distinct_factions_and_valid_starting_state() -> None:
     state = start(num_players=5, seed=7, rounds=2)
     factions = [player.faction for player in state.players]
     assert len(set(factions)) == 5
+    assert len({player.home_terrain for player in state.players}) == 5
     for player in state.players:
         profile = FACTION_BY_TYPE[player.faction]
         assert player.victory_points == 20
@@ -183,7 +187,7 @@ def test_starting_dwellings_must_be_on_home_terrain() -> None:
 
 
 def test_build_dwelling_uses_an_adjacent_home_tile() -> None:
-    state = play_setup(start(num_players=2, seed=2))
+    state = play_setup(start(num_players=2, seed=1))
     player = state.active_player
     before = state.board.count(player, BuildingType.DWELLING)
     action = next(
@@ -282,19 +286,57 @@ def test_send_priest_costs_a_priest_and_advances_cult() -> None:
     state = GAME.apply(state, player, action).state
     assert state.players[player].resources.priests == 0
     assert state.players[player].cult(Cult.FIRE) > before
-    assert (action.cult, action.order) in state.players[player].used_orders
+    assert (action.cult, action.order) in state.used_orders
 
 
-def test_reclaim_priest_advances_one_and_keeps_the_priest() -> None:
+def test_cult_order_spaces_are_shared() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    first = state.active_player
+    second = next(seat for seat in seats(2) if seat != first)
+    state = with_resources(state, first, priests=1)
+    action = next(
+        action
+        for action in listing(state)
+        if isinstance(action, SendPriest)
+        and action.cult is Cult.FIRE
+        and action.order == 0
+    )
+    state = GAME.apply(state, first, action).state
+    assert (Cult.FIRE, 0) in state.used_orders
+    state = with_resources(state, second, priests=1)
+    state = replace(state, active_player=second)
+    assert not any(
+        isinstance(action, SendPriest)
+        and action.cult is Cult.FIRE
+        and action.order == 0
+        for action in listing(state)
+    )
+
+
+def test_standard_rule_tables_match_the_base_game() -> None:
+    assert CULT_ORDER_STEPS == (3, 2, 2, 2)
+    assert tuple(income.power for income in STANDARD_TRADING_HOUSE_INCOME) == (
+        1,
+        2,
+        4,
+        6,
+    )
+    assert [shipping_points(level) for level in (1, 2, 3)] == [2, 3, 4]
+    assert FACTION_BY_TYPE[FactionType.WITCHES].base_income.workers == 1
+    assert FACTION_BY_TYPE[FactionType.ENGINEERS].base_income.workers == 0
+    assert FACTION_BY_TYPE[FactionType.SWARMLINGS].base_income.workers == 2
+
+
+def test_advance_cult_costs_a_priest() -> None:
     state = play_setup(start(num_players=2, seed=2))
     player = state.active_player
     state = with_resources(state, player, priests=1)
     action = next(
-        action for action in listing(state) if isinstance(action, ReclaimPriest)
+        action for action in listing(state) if isinstance(action, AdvanceCult)
     )
     before = state.players[player].cult(action.cult)
     state = GAME.apply(state, player, action).state
-    assert state.players[player].resources.priests == 1
+    assert state.players[player].resources.priests == 0
     assert state.players[player].cult(action.cult) == before + 1
 
 
@@ -307,7 +349,7 @@ def test_cult_space_ten_requires_a_key() -> None:
     state = replace_player(state, player, owner)
     assert cult_limit(state.players[player]) == 9
     assert not any(
-        isinstance(action, SendPriest | ReclaimPriest) and action.cult is Cult.EARTH
+        isinstance(action, SendPriest | AdvanceCult) and action.cult is Cult.EARTH
         for action in listing(state)
     )
     owner = replace(state.players[player], keys=1)
@@ -316,7 +358,7 @@ def test_cult_space_ten_requires_a_key() -> None:
     assert any(
         action.cult is Cult.EARTH
         for action in listing(state)
-        if isinstance(action, SendPriest | ReclaimPriest)
+        if isinstance(action, SendPriest | AdvanceCult)
     )
 
 
@@ -330,7 +372,7 @@ def test_second_player_cannot_enter_an_occupied_cult_top() -> None:
     other_owner = state.players[other].with_cult(Cult.FIRE, 10)
     state = replace_player(state, other, other_owner)
     assert not any(
-        isinstance(action, SendPriest | ReclaimPriest) and action.cult is Cult.FIRE
+        isinstance(action, SendPriest | AdvanceCult) and action.cult is Cult.FIRE
         for action in listing(state)
     )
 

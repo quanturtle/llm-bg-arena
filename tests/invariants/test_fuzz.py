@@ -102,6 +102,9 @@ def check_catan(state: CatanState) -> None:
 def check_terra_mystica(state: TerraMysticaState) -> None:
     """Resources stay non-negative, power stays in its cycle, cults stay bounded."""
     assert len(state.players) == state.config.num_players
+    assert len({player.profile.home_terrain for player in state.players}) == len(
+        state.players
+    )
     for player in state.players:
         resources = player.resources
         assert resources.coins >= 0

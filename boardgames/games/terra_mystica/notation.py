@@ -6,13 +6,13 @@ from boardgames.core import NotationError
 from boardgames.games.terra_mystica.constants import BuildingType, Cult
 from boardgames.games.terra_mystica.model import (
     Action,
+    AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
     BuildDwelling,
     Hex,
     Pass,
     PowerAction,
-    ReclaimPriest,
     SendPriest,
     TransformTerrain,
     UpgradeBuilding,
@@ -23,7 +23,7 @@ BUILD_PATTERN = re.compile(rf"build {HEX_TEXT}")
 TRANSFORM_PATTERN = re.compile(rf"transform {HEX_TEXT}")
 UPGRADE_PATTERN = re.compile(rf"upgrade {HEX_TEXT} ([a-z_]+)")
 PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
-RECLAIM_PATTERN = re.compile(r"reclaim (fire|water|earth|air)")
+ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
 POWER_PATTERN = re.compile(r"power (priest|workers|coins)")
 
 BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingType)
@@ -45,8 +45,8 @@ def format_action(action: Action) -> str:
             return "digging"
         case SendPriest(cult=cult, order=order):
             return f"priest {cult.value} {order}"
-        case ReclaimPriest(cult=cult):
-            return f"reclaim {cult.value}"
+        case AdvanceCult(cult=cult):
+            return f"advance {cult.value}"
         case PowerAction(kind=kind):
             return f"power {kind}"
         case Pass():
@@ -80,11 +80,11 @@ def parse_action(text: str) -> Action:
         if cult not in CULTS:
             raise NotationError(f"{text!r} does not name a cult")
         return SendPriest(Cult(cult), int(order))
-    if match := RECLAIM_PATTERN.fullmatch(text):
+    if match := ADVANCE_CULT_PATTERN.fullmatch(text):
         cult = match.group(1)
         if cult not in CULTS:
             raise NotationError(f"{text!r} does not name a cult")
-        return ReclaimPriest(Cult(cult))
+        return AdvanceCult(Cult(cult))
     if match := POWER_PATTERN.fullmatch(text):
         kind = match.group(1)
         return PowerAction(kind)  # type: ignore[arg-type]

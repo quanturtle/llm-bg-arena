@@ -11,12 +11,12 @@ from boardgames.core import (
 from boardgames.games.terra_mystica.constants import CULT_ORDER
 from boardgames.games.terra_mystica.model import (
     Action,
+    AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
     BuildDwelling,
     Pass,
     PowerAction,
-    ReclaimPriest,
     SendPriest,
     TerraMysticaState,
     TransformTerrain,
@@ -46,6 +46,13 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "active": state.active_player,
         "order": list(state.order),
         "scoring": scoring,
+        "used_orders": [
+            {"cult": cult.value, "order": order}
+            for cult, order in sorted(
+                state.used_orders,
+                key=lambda item: (CULT_ORDER.index(item[0]), item[1]),
+            )
+        ],
         "passed": sorted(state.passed),
         "setup_queue": list(state.setup_queue),
         "players": [player_data(state, seat) for seat in players],
@@ -120,6 +127,7 @@ def render_text(observation: Observation) -> str:
     data = observation.data
     lines = [status_line(data)]
     lines.append(scoring_line(data))
+    lines.append(orders_line(data))
     lines.extend(player_lines(data))
     lines.extend(board_lines(data))
     if observation.viewer is not None:
@@ -131,7 +139,7 @@ def render_text(observation: Observation) -> str:
         "W wasteland, D desert, R river. A digit is the owner of a building; "
         "'.' is empty. Actions: build q,r; transform q,r; "
         "upgrade q,r trading_house|temple|stronghold|sanctuary; shipping; "
-        "digging; priest fire|water|earth|air 0-3; reclaim fire|water|earth|air; "
+        "digging; priest fire|water|earth|air 0-3; advance fire|water|earth|air; "
         "power priest|workers|coins; pass."
     )
     return "\n".join(lines)
@@ -156,6 +164,14 @@ def status_line(data: JsonObject) -> str:
 def scoring_line(data: JsonObject) -> str:
     scoring = _strings(data, "scoring")
     return "Round scoring: " + ", ".join(scoring) + "."
+
+
+def orders_line(data: JsonObject) -> str:
+    orders = _objects(data, "used_orders")
+    if not orders:
+        return "Claimed cult order spaces: none."
+    parts = [f"{_str(order, 'cult')} {_int(order, 'order')}" for order in orders]
+    return "Claimed cult order spaces: " + ", ".join(parts) + "."
 
 
 def player_lines(data: JsonObject) -> list[str]:
@@ -242,8 +258,8 @@ def describe_action(observation: Observation, action: Action) -> str:
             return "Advance one step on the digging track."
         case SendPriest(cult=cult, order=order):
             return f"Send a priest to the {cult.value} order space {order}."
-        case ReclaimPriest(cult=cult):
-            return f"Advance {cult.value} by 1 and keep the priest."
+        case AdvanceCult(cult=cult):
+            return f"Spend a priest to advance {cult.value} by one space."
         case PowerAction(kind=kind):
             return f"Spend power for {kind}."
         case Pass():

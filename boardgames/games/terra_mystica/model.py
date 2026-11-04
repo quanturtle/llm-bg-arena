@@ -237,7 +237,6 @@ class PlayerState:
     shipping: int = 0
     digging: int = 0
     keys: int = 0
-    used_orders: frozenset[tuple[Cult, int]] = frozenset()
 
     @property
     def profile(self) -> FactionProfile:
@@ -282,6 +281,7 @@ class TerraMysticaState:
     round: int
     scoring: tuple[ScoringAction, ...]
     used_power_actions: frozenset[str]
+    used_orders: frozenset[tuple[Cult, int]]
     end_reason: str | None = None
 
 
@@ -329,8 +329,8 @@ class SendPriest:
 
 
 @dataclass(frozen=True)
-class ReclaimPriest:
-    """Advance one step on a cult and keep the priest."""
+class AdvanceCult:
+    """Spend a priest to advance one cult space without using an order space."""
 
     cult: Cult
 
@@ -354,7 +354,7 @@ type Action = (
     | AdvanceShipping
     | AdvanceDigging
     | SendPriest
-    | ReclaimPriest
+    | AdvanceCult
     | PowerAction
     | Pass
 )
@@ -374,7 +374,7 @@ def replace_player(
 
 
 def income_with_power(resources: Resources, income: Income) -> Resources:
-    """Add coins, workers, priests and VP, and route power through the bowls."""
+    """Add coins, workers and priests, and route power through the bowls."""
     updated = Resources(
         coins=resources.coins + income.coins,
         workers=resources.workers + income.workers,
@@ -498,8 +498,8 @@ def shipping_cost() -> Cost:
 
 
 def shipping_points(level: int) -> int:
-    """Victory points printed on the shipping space reached."""
-    return level
+    """Victory points printed on the shipping space reached (2, 3, 4, ...)."""
+    return level + 1
 
 
 def cult_gain_power(old: int, new: int) -> int:
