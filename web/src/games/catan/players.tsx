@@ -48,8 +48,8 @@ function AwardSlot({ held, icon: Icon, label }: { held: boolean; icon: typeof Aw
   );
 }
 
-function PlayerCard({ observation, match, player }: { observation: CatanObservation; match: MatchSummary; player: number }) {
-  const isActive = observation.active === player && !observation.game_over;
+function PlayerCard({ observation, match, player, pending }: { observation: CatanObservation; match: MatchSummary; player: number; pending: number[] }) {
+  const isActive = pending.includes(player) && !observation.game_over;
   const isWinner = observation.game_over && observation.winner === player;
   const devLine = devCardLine(observation, player);
   return (
@@ -88,12 +88,12 @@ function PlayerCard({ observation, match, player }: { observation: CatanObservat
   );
 }
 
-export function CatanPlayers({ observation, match }: { observation: CatanObservation; match: MatchSummary }) {
+export function CatanPlayers({ observation, match, pending }: { observation: CatanObservation; match: MatchSummary; pending: number[] }) {
   return (
     <div className="grid content-start gap-4 pt-2.5 @lg:grid-cols-2 @3xl:grid-cols-1 xl:min-h-0 xl:overflow-y-auto">
 
       {observation.hand_sizes.map((_, player) => (
-        <PlayerCard key={player} observation={observation} match={match} player={player} />
+        <PlayerCard key={player} observation={observation} match={match} player={player} pending={pending} />
       ))}
     </div>
   );

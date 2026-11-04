@@ -45,7 +45,7 @@ import type { MatchSummary } from "@/lib/api";
 
 const DICE = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
-function CatanStatus({ observation, match }: { observation: CatanObservation; match: MatchSummary }) {
+function CatanStatus({ observation, match, pending }: { observation: CatanObservation; match: MatchSummary; pending: number[] }) {
   if (observation.game_over) {
     const winner = observation.winner === null ? null : match.seats[observation.winner];
     return (
@@ -62,7 +62,7 @@ function CatanStatus({ observation, match }: { observation: CatanObservation; ma
     );
   }
   const dice = observation.dice;
-  const active = observation.active === null ? null : match.seats[observation.active];
+  const acting = pending.map((player) => match.seats[player]).filter((seat) => seat !== undefined);
   return (
     <StatusBar
       aside={
@@ -82,11 +82,15 @@ function CatanStatus({ observation, match }: { observation: CatanObservation; ma
       <span className="font-semibold tabular-nums">Turn {observation.turn}</span>
       <span className="text-muted-foreground">·</span>
       <span className="text-muted-foreground">{observation.phase.replace(/_/g, " ")}</span>
-      {active ? (
+      {acting.length ? (
         <>
           <span className="text-muted-foreground">·</span>
-          <SeatChip seat={active} link={false} className="min-w-0" />
-          <span className="shrink-0 text-muted-foreground">to act</span>
+          {acting.map((seat, index) => (
+            <span key={index} className="flex items-center gap-1">
+              <SeatChip seat={seat} link={false} className="min-w-0" />
+              <span className="shrink-0 text-muted-foreground">to act</span>
+            </span>
+          ))}
         </>
       ) : null}
     </StatusBar>
@@ -100,12 +104,12 @@ function CatanBoard({ observation, context }: { observation: CatanObservation; c
   if (!layout.success) return <p className="text-sm text-destructive">The Catan layout did not load: {layout.error.message}</p>;
   return (
     <div className="@container flex flex-col gap-3 xl:h-full">
-      <CatanStatus observation={observation} match={context.match} />
+      <CatanStatus observation={observation} match={context.match} pending={context.frame.pending} />
       <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_18rem] xl:min-h-0 xl:flex-1">
         <div className="relative mx-auto w-full max-w-[760px] xl:h-full">
           <CatanBoardSvg layout={layout.data} observation={observation} />
         </div>
-        <CatanPlayers observation={observation} match={context.match} />
+        <CatanPlayers observation={observation} match={context.match} pending={context.frame.pending} />
       </div>
     </div>
   );
