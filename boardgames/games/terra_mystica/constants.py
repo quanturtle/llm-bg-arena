@@ -196,6 +196,28 @@ MAX_BUILDINGS: dict[BuildingType, int] = {
 }
 
 TOWN_SUPPLY = 10
+
+
+@dataclass(frozen=True)
+class TownTile:
+    """One kind of base-game town tile."""
+
+    victory_points: int
+    coins: int = 0
+    workers: int = 0
+    priests: int = 0
+    power: int = 0
+    cult_steps: bool = False
+
+
+TOWN_TILES: tuple[TownTile, ...] = (
+    TownTile(5, coins=6),
+    TownTile(7, workers=2),
+    TownTile(9, priests=1),
+    TownTile(6, power=8),
+    TownTile(8, cult_steps=True),
+)
+
 CULT_ORDER_STEPS: tuple[int, ...] = (3, 2, 2, 2)
 CULT_POWER_THRESHOLDS: dict[int, int] = {3: 1, 5: 2, 7: 2, 10: 3}
 PRIEST_SUPPLY = 7
@@ -271,20 +293,30 @@ STANDARD_TEMPLE_INCOME: tuple[Income, ...] = (
     Income(priests=3),
 )
 
-type PowerActionKind = Literal["priest", "workers", "coins"]
+type PowerActionKind = Literal["priest", "workers", "coins", "spade", "double_spade"]
 
-POWER_ACTION_KINDS: tuple[PowerActionKind, ...] = ("priest", "workers", "coins")
+POWER_ACTION_KINDS: tuple[PowerActionKind, ...] = (
+    "priest",
+    "workers",
+    "coins",
+    "spade",
+    "double_spade",
+)
 
 POWER_ACTION_COSTS: dict[PowerActionKind, int] = {
     "priest": 3,
     "workers": 4,
     "coins": 4,
+    "spade": 4,
+    "double_spade": 6,
 }
 
 POWER_ACTION_INCOME: dict[PowerActionKind, Income] = {
     "priest": Income(priests=1),
     "workers": Income(workers=2),
     "coins": Income(coins=7),
+    "spade": Income(),
+    "double_spade": Income(),
 }
 
 # Cumulative incomes for factions whose trading houses or temples differ.

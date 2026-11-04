@@ -15,11 +15,15 @@ from boardgames.games.terra_mystica.model import (
     AdvanceDigging,
     AdvanceShipping,
     BuildDwelling,
+    ChooseStrongholdCult,
     Pass,
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    TakeTownTile,
     TerraMysticaState,
+    TradeCoinsForVp,
+    TradeVpForCoin,
     TransformTerrain,
     UpgradeBuilding,
     UseCultSpade,
@@ -51,6 +55,7 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "scoring": scoring,
         "scoring_bonuses": [cult_bonus_json(tile.bonus) for tile in state.scoring],
         "cult_spades": list(state.cult_spades),
+        "town_tiles": list(state.town_tiles),
         "used_orders": [
             {"cult": cult.value, "order": order, "player": player}
             for (cult, order), player in sorted(
@@ -298,15 +303,16 @@ def final_lines(data: JsonObject) -> list[str]:
 
 def describe_action(observation: Observation, action: Action) -> str:
     match action:
-        case BuildDwelling(position=position, join_river=join_river):
+        case BuildDwelling(position=position, river=river):
             if observation.data.get("phase") == "setup":
                 return f"Place a starting dwelling at {position.notation()}."
-            suffix = " across one river" if join_river else ""
+            suffix = "" if river is None else f" across river {river.notation()}"
             return f"Build a dwelling at {position.notation()}{suffix}."
-        case TransformTerrain(position=position):
-            return f"Transform {position.notation()} into your home terrain."
-        case UpgradeBuilding(position=position, to=building, join_river=join_river):
-            suffix = " across one river" if join_river else ""
+        case TransformTerrain(position=position, to=terrain):
+            target = "your home terrain" if terrain is None else terrain.value
+            return f"Transform {position.notation()} into {target}."
+        case UpgradeBuilding(position=position, to=building, river=river):
+            suffix = "" if river is None else f" across river {river.notation()}"
             return (
                 f"Upgrade the building at {position.notation()} to "
                 f"{building.value}{suffix}."
@@ -319,12 +325,26 @@ def describe_action(observation: Observation, action: Action) -> str:
             return f"Send a priest to the {cult.value} order space {order}."
         case AdvanceCult(cult=cult):
             return f"Spend a priest to advance {cult.value} by one space."
+        case ChooseStrongholdCult(cult=cult):
+            return (
+                f"Advance {cult.value} by one space as the Darklings' "
+                "stronghold reward."
+            )
+        case TakeTownTile(index=index):
+            return f"Take town tile {index}."
         case PowerAction(kind=kind):
             return f"Spend power for {kind}."
-        case UseCultSpade(position=position):
-            return f"Use cult-bonus spades to transform {position.notation()}."
+        case UseCultSpade(position=position, to=terrain):
+            target = (
+                "toward your home terrain" if terrain is None else f"to {terrain.value}"
+            )
+            return f"Use cult-bonus spades at {position.notation()} {target}."
         case SkipCultSpade():
             return "Skip the remaining cult-bonus spades."
+        case TradeVpForCoin():
+            return "Trade 1 victory point for 1 coin."
+        case TradeCoinsForVp():
+            return "Trade 2 coins for 1 victory point."
         case Pass():
             return "Pass."
     return "Take an action."

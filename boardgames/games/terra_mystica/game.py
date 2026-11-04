@@ -47,6 +47,7 @@ from boardgames.games.terra_mystica.constants import (
     STANDARD_TRADING_HOUSE_INCOME,
     TERRAIN_WHEEL,
     TOWN_SUPPLY,
+    TOWN_TILES,
     BuildingType,
     Cost,
     Cult,
@@ -58,6 +59,7 @@ from boardgames.games.terra_mystica.constants import (
     Resources,
     ScoringAction,
     ScoringTile,
+    Terrain,
 )
 from boardgames.games.terra_mystica.model import (
     Action,
@@ -67,14 +69,18 @@ from boardgames.games.terra_mystica.model import (
     Board,
     BuildDwelling,
     Building,
+    ChooseStrongholdCult,
     Hex,
     Pass,
     PlayerState,
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    TakeTownTile,
     TerraMysticaConfig,
     TerraMysticaState,
+    TradeCoinsForVp,
+    TradeVpForCoin,
     TransformTerrain,
     UpgradeBuilding,
     UseCultSpade,
@@ -101,7 +107,7 @@ from boardgames.games.terra_mystica.model import (
     spade_cost,
     spades_for,
     spend_power,
-    terrain_toward,
+    terrain_distance,
 )
 from boardgames.games.terra_mystica.notation import format_action, parse_action
 from boardgames.games.terra_mystica.scoring import final_scores
@@ -117,7 +123,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 6
+    rules_version: ClassVar[int] = 7
 
     # Config ---------------------------------------------------------------
 
@@ -245,6 +251,22 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     "Spend a cult-bonus spade on a reachable tile, or skip.",
                 ),
             )
+        if state.phase == "stronghold_cult":
+            return (
+                Decision(
+                    state.active_player,
+                    "stronghold_cult",
+                    "Choose a cult track for the Darklings' stronghold reward.",
+                ),
+            )
+        if state.phase == "town_choice":
+            return (
+                Decision(
+                    state.active_player,
+                    "town_choice",
+                    "Choose one of the remaining town tiles.",
+                ),
+            )
         return (
             Decision(
                 state.active_player,
@@ -294,11 +316,33 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 raise IllegalActionError("place a starting dwelling now")
             return self.place_starting_dwelling(state, player, action.position)
         if state.phase == "cult_spades":
+            if (
+                isinstance(action, BuildDwelling)
+                and state.spade_return == "action"
+                and action.position in state.power_spade_tiles
+            ):
+                state = replace(
+                    state,
+                    phase="action",
+                    cult_spades=replace_at(state.cult_spades, player, 0),
+                    spade_return="round",
+                    spade_actor=None,
+                    power_spade_tiles=(),
+                )
+                return self.build_dwelling(state, player, action.position, action.river)
             if isinstance(action, UseCultSpade):
-                return self.use_cult_spade(state, player, action.position)
+                return self.use_cult_spade(state, player, action.position, action.to)
             if isinstance(action, SkipCultSpade):
                 return self.skip_cult_spade(state, player)
             raise IllegalActionError("spend a cult-bonus spade or skip now")
+        if state.phase == "stronghold_cult":
+            if not isinstance(action, ChooseStrongholdCult):
+                raise IllegalActionError("choose a cult for the stronghold reward")
+            return self.choose_stronghold_cult(state, player, action.cult)
+        if state.phase == "town_choice":
+            if not isinstance(action, TakeTownTile):
+                raise IllegalActionError("choose a town tile now")
+            return self.take_town_tile(state, player, action.index)
         if state.phase != "action":
             raise IllegalActionError("the game is over")
         if player != state.active_player:
@@ -401,14 +445,12 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         self, state: TerraMysticaState, player: PlayerId, action: Action
     ) -> Transition[TerraMysticaState]:
         if isinstance(action, BuildDwelling):
-            return self.build_dwelling(
-                state, player, action.position, action.join_river
-            )
+            return self.build_dwelling(state, player, action.position, action.river)
         if isinstance(action, TransformTerrain):
-            return self.transform_terrain(state, player, action.position)
+            return self.transform_terrain(state, player, action.position, action.to)
         if isinstance(action, UpgradeBuilding):
             return self.upgrade_building(
-                state, player, action.position, action.to, action.join_river
+                state, player, action.position, action.to, action.river
             )
         if isinstance(action, AdvanceShipping):
             return self.advance_shipping(state, player)
@@ -420,6 +462,10 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             return self.advance_cult_with_priest(state, player, action.cult)
         if isinstance(action, PowerAction):
             return self.take_power_action(state, player, action.kind)
+        if isinstance(action, TradeVpForCoin):
+            return self.trade_vp_for_coin(state, player)
+        if isinstance(action, TradeCoinsForVp):
+            return self.trade_coins_for_vp(state, player)
         if isinstance(action, Pass):
             return self.pass_turn(state, player)
         raise IllegalActionError("unknown action")
@@ -429,7 +475,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         state: TerraMysticaState,
         player: PlayerId,
         position: Hex,
-        join_river: bool = False,
+        river: Hex | None = None,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -491,7 +537,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             resources,
             victory_points,
             owner.keys,
-            join_river=join_river,
+            river=river,
         )
         owner = replace(
             owner,
@@ -531,10 +577,16 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     {"player": player, "position": position.notation()},
                 )
             )
+            state = replace(state, phase="town_choice", active_player=player)
+            return Transition(state, tuple(events))
         return self.advance_turn(state, player, tuple(events))
 
     def transform_terrain(
-        self, state: TerraMysticaState, player: PlayerId, position: Hex
+        self,
+        state: TerraMysticaState,
+        player: PlayerId,
+        position: Hex,
+        to: Terrain | None = None,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -551,19 +603,22 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 "the tile must be directly or indirectly adjacent to one of "
                 "your structures"
             )
-        if tile.terrain is profile.home_terrain:
-            raise IllegalActionError("that tile is already your home terrain")
+        target = to or profile.home_terrain
+        if target is tile.terrain:
+            raise IllegalActionError("that tile is already that terrain")
+        if profile.terraform_spades is not None and target is not profile.home_terrain:
+            raise IllegalActionError("the Giants can only transform to home terrain")
         tunneling = reach > 0 and not _adjacent_to_own(state.board, player, position)
         spades = spades_for(profile, tile.terrain)
+        if target is not profile.home_terrain:
+            spades = terrain_distance(tile.terrain, target)
         cost = spade_cost(profile, owner.digging, spades)
         if tunneling:
             cost = _add_costs(cost, effective_reach_cost(state.board, player, profile))
         if not can_pay(owner.resources, cost):
             raise IllegalActionError("you cannot pay for that transformation")
         resources = pay(owner.resources, cost)
-        board = state.board.replace_tile(
-            position, replace(tile, terrain=profile.home_terrain)
-        )
+        board = state.board.replace_tile(position, replace(tile, terrain=target))
         victory_points = owner.victory_points + spades * profile.spade_vp_bonus
         if tunneling:
             victory_points += profile.reach_vp
@@ -580,10 +635,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         event = Event(
             "transformed",
             f"{seat_label(player)} transformed {position.notation()} into "
-            f"{profile.home_terrain.value} with {spades} spade(s){route}.",
+            f"{target.value} with {spades} spade(s){route}.",
             {
                 "player": player,
                 "position": position.notation(),
+                "terrain": target.value,
                 "spades": spades,
                 "tunnel": tunneling,
             },
@@ -596,7 +652,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         player: PlayerId,
         position: Hex,
         target: BuildingType,
-        join_river: bool = False,
+        river: Hex | None = None,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -633,7 +689,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             resources,
             victory_points,
             owner.keys,
-            join_river=join_river,
+            river=river,
         )
         owner = replace(
             owner,
@@ -665,6 +721,21 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     {"player": player, "position": position.notation()},
                 )
             )
+        if target is BuildingType.STRONGHOLD:
+            if founded:
+                state = replace(
+                    state,
+                    phase="town_choice",
+                    active_player=player,
+                    pending_stronghold=True,
+                )
+                return Transition(state, tuple(events))
+            state, events = _stronghold_reward(state, player, events)
+            if state.phase in ("cult_spades", "stronghold_cult"):
+                return Transition(state, tuple(events))
+        if founded:
+            state = replace(state, phase="town_choice", active_player=player)
+            return Transition(state, tuple(events))
         return self.advance_turn(state, player, tuple(events))
 
     def advance_shipping(
@@ -770,6 +841,83 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         )
         return self.advance_turn(state, player, (event,))
 
+    def take_town_tile(
+        self, state: TerraMysticaState, player: PlayerId, index: int
+    ) -> Transition[TerraMysticaState]:
+        if index < 0 or index >= len(TOWN_TILES):
+            raise IllegalActionError("there is no such town tile")
+        if state.town_tiles[index] <= 0:
+            raise IllegalActionError("that town tile is already taken")
+        tile = TOWN_TILES[index]
+        owner = state.players[player]
+        owner = replace(
+            owner, victory_points=owner.victory_points + tile.victory_points
+        )
+        resources = income_with_power(
+            owner.resources,
+            Income(
+                coins=tile.coins,
+                workers=tile.workers,
+                priests=tile.priests,
+                power=tile.power,
+            ),
+        )
+        owner = replace(owner, resources=_cap_priests(state, player, resources))
+        gained: list[str] = []
+        if tile.cult_steps:
+            for cult in CULT_ORDER:
+                owner, power = advance_cult(
+                    owner,
+                    cult,
+                    1,
+                    top_occupied=_cult_top_occupied(state, player, cult),
+                )
+                gained.append(f"{cult.value} +1 ({power} power)")
+        state = replace_player(state, player, owner)
+        town_tiles = list(state.town_tiles)
+        town_tiles[index] -= 1
+        state = replace(state, town_tiles=tuple(town_tiles))
+        events = [
+            Event(
+                "town_tile",
+                f"{seat_label(player)} took town tile {index} "
+                f"({tile.victory_points} points).",
+                {
+                    "player": player,
+                    "town_tile": index,
+                    "victory_points": tile.victory_points,
+                    "cults": gained,
+                },
+            )
+        ]
+        if state.pending_stronghold:
+            state = replace(state, pending_stronghold=False)
+            state, events = _stronghold_reward(state, player, events)
+            if state.phase in ("cult_spades", "stronghold_cult"):
+                return Transition(state, tuple(events))
+        state = replace(state, phase="action", active_player=player)
+        return self.advance_turn(state, player, tuple(events))
+
+    def choose_stronghold_cult(
+        self, state: TerraMysticaState, player: PlayerId, cult: Cult
+    ) -> Transition[TerraMysticaState]:
+        owner = state.players[player]
+        owner, gained = advance_cult(
+            owner,
+            cult,
+            1,
+            top_occupied=_cult_top_occupied(state, player, cult),
+        )
+        state = replace_player(state, player, owner)
+        state = replace(state, phase="action", active_player=player)
+        event = Event(
+            "stronghold_cult",
+            f"{seat_label(player)} advanced {cult.value} by 1 as the Darklings' "
+            f"stronghold reward (gain {gained} power).",
+            {"player": player, "cult": cult.value, "power": gained},
+        )
+        return self.advance_turn(state, player, (event,))
+
     def take_power_action(
         self, state: TerraMysticaState, player: PlayerId, kind: PowerActionKind
     ) -> Transition[TerraMysticaState]:
@@ -782,6 +930,32 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError("you do not have enough power to burn")
         spent = spend_power(resources, cost)
         assert spent is not None
+        owner = replace(owner, resources=spent)
+        if kind in ("spade", "double_spade"):
+            amount = 1 if kind == "spade" else 2
+            if owner.profile.type is FactionType.HALFLINGS:
+                owner = replace(
+                    owner,
+                    victory_points=owner.victory_points
+                    + amount * owner.profile.spade_vp_bonus,
+                )
+            state = replace_player(state, player, owner)
+            state = replace(
+                state,
+                used_power_actions=state.used_power_actions | {kind},
+                phase="cult_spades",
+                cult_spades=replace_at(state.cult_spades, player, amount),
+                spade_return="action",
+                spade_actor=player,
+                power_spade_tiles=(),
+                active_player=player,
+            )
+            event = Event(
+                "power_action",
+                f"{seat_label(player)} spent {cost} power for {amount} spade(s).",
+                {"player": player, "kind": kind, "cost": cost, "spades": amount},
+            )
+            return Transition(state, (event,))
         resources = _cap_priests(
             state, player, _add_income(spent, POWER_ACTION_INCOME[kind])
         )
@@ -794,6 +968,42 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             {"player": player, "kind": kind, "cost": cost},
         )
         return self.advance_turn(state, player, (event,))
+
+    def trade_vp_for_coin(
+        self, state: TerraMysticaState, player: PlayerId
+    ) -> Transition[TerraMysticaState]:
+        owner = state.players[player]
+        if owner.victory_points <= 0:
+            raise IllegalActionError("you have no victory point to trade")
+        owner = replace(
+            owner,
+            victory_points=owner.victory_points - 1,
+            resources=replace(owner.resources, coins=owner.resources.coins + 1),
+        )
+        event = Event(
+            "alchemist_trade",
+            f"{seat_label(player)} traded 1 victory point for 1 coin.",
+            {"player": player, "coins": 1, "victory_points": -1},
+        )
+        return Transition(replace_player(state, player, owner), (event,))
+
+    def trade_coins_for_vp(
+        self, state: TerraMysticaState, player: PlayerId
+    ) -> Transition[TerraMysticaState]:
+        owner = state.players[player]
+        if owner.resources.coins < 2:
+            raise IllegalActionError("you have no two coins to trade")
+        owner = replace(
+            owner,
+            victory_points=owner.victory_points + 1,
+            resources=replace(owner.resources, coins=owner.resources.coins - 2),
+        )
+        event = Event(
+            "alchemist_trade",
+            f"{seat_label(player)} traded 2 coins for 1 victory point.",
+            {"player": player, "coins": -2, "victory_points": 1},
+        )
+        return Transition(replace_player(state, player, owner), (event,))
 
     def pass_turn(
         self, state: TerraMysticaState, player: PlayerId
@@ -820,30 +1030,40 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         return Transition(state, (event,))
 
     def use_cult_spade(
-        self, state: TerraMysticaState, player: PlayerId, position: Hex
+        self,
+        state: TerraMysticaState,
+        player: PlayerId,
+        position: Hex,
+        to: Terrain | None = None,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         tile = state.board.tile(position)
         budget = state.cult_spades[player]
         if tile is None or not tile.is_land or tile.building is not None:
             raise IllegalActionError("choose an empty land tile")
-        if tile.terrain is owner.home_terrain:
-            raise IllegalActionError("that tile is already your home terrain")
+        target = to or owner.home_terrain
+        if tile.terrain is target:
+            raise IllegalActionError("that tile is already that terrain")
         if position not in state.board.reachable_land(player, owner.shipping):
             raise IllegalActionError("that tile is not reachable")
+        if (
+            owner.profile.terraform_spades is not None
+            and target is not owner.home_terrain
+        ):
+            raise IllegalActionError("the Giants can only reach home terrain")
         cost = spades_for(owner.profile, tile.terrain)
+        if target is not owner.home_terrain:
+            cost = terrain_distance(tile.terrain, target)
         if budget <= 0:
             raise IllegalActionError("you have no cult-bonus spades left")
         if owner.profile.terraform_spades is not None and budget < cost:
             raise IllegalActionError("the Giants forfeit a single cult-bonus spade")
-        spent = min(budget, cost)
-        terrain = terrain_toward(tile.terrain, owner.home_terrain, spent)
+        if cost > budget:
+            raise IllegalActionError("you do not have enough cult-bonus spades")
+        spent = cost
+        terrain = target
         board = state.board.replace_tile(position, replace(tile, terrain=terrain))
-        points = (
-            0
-            if owner.profile.uses_priests_for_spades
-            else spent * owner.profile.spade_vp_bonus
-        )
+        points = 0
         owner = replace(owner, victory_points=owner.victory_points + points)
         state = replace_player(
             replace(
@@ -854,6 +1074,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             player,
             owner,
         )
+        if state.spade_return == "action" and terrain is owner.home_terrain:
+            state = replace(
+                state,
+                power_spade_tiles=(*state.power_spade_tiles, position),
+            )
         event = Event(
             "cult_spade_used",
             f"{seat_label(player)} used {spent} cult-bonus spade(s) at "
@@ -873,7 +1098,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         self, state: TerraMysticaState, player: PlayerId
     ) -> Transition[TerraMysticaState]:
         remaining = state.cult_spades[player]
-        state = replace(state, cult_spades=replace_at(state.cult_spades, player, 0))
+        state = replace(
+            state,
+            cult_spades=replace_at(state.cult_spades, player, 0),
+            power_spade_tiles=(),
+        )
         event = Event(
             "cult_spade_skipped",
             f"{seat_label(player)} skipped {remaining} cult-bonus spade(s).",
@@ -884,6 +1113,21 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     def _advance_cult_spades(
         self, state: TerraMysticaState, events: tuple[Event, ...]
     ) -> Transition[TerraMysticaState]:
+        if state.spade_return == "action":
+            actor = state.spade_actor
+            assert actor is not None
+            if state.cult_spades[actor] > 0 or state.power_spade_tiles:
+                return Transition(state, events)
+            state = replace(
+                state,
+                phase="action",
+                cult_spades=replace_at(state.cult_spades, actor, 0),
+                spade_return="round",
+                spade_actor=None,
+                power_spade_tiles=(),
+                active_player=actor,
+            )
+            return self.advance_turn(state, actor, events)
         next_player = _next_cult_spade_player(state)
         if next_player is None:
             return _start_next_round(state, events)
@@ -947,6 +1191,10 @@ def start_round(
         passed=frozenset(),
         pass_order=(),
         used_power_actions=frozenset(),
+        cult_spades=(0,) * len(state.players),
+        spade_return="round",
+        spade_actor=None,
+        power_spade_tiles=(),
     )
     events: list[Event] = [
         Event(
@@ -1024,7 +1272,25 @@ def end_round(
             _cult_bonus_amount(state.players[seat], bonus)
             for seat in range(len(state.players))
         )
-        state = replace(state, phase="cult_spades", cult_spades=budgets)
+        for seat, budget in enumerate(budgets):
+            owner = state.players[seat]
+            if owner.profile.type is FactionType.HALFLINGS:
+                state = replace_player(
+                    state,
+                    PlayerId(seat),
+                    replace(
+                        owner,
+                        victory_points=owner.victory_points
+                        + budget * owner.profile.spade_vp_bonus,
+                    ),
+                )
+        state = replace(
+            state,
+            phase="cult_spades",
+            cult_spades=budgets,
+            spade_return="round",
+            spade_actor=None,
+        )
         next_player = _next_cult_spade_player(state)
         if next_player is None:
             return _start_next_round(state, events)
@@ -1050,6 +1316,9 @@ def _start_next_round(
         used_power_actions=frozenset(),
         active_player=state.order[0],
         cult_spades=(0,) * len(state.players),
+        spade_return="round",
+        spade_actor=None,
+        power_spade_tiles=(),
     )
     state, round_events = start_round(state)
     return Transition(state, (*events, *round_events))
@@ -1148,11 +1417,29 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
             continue
         if budget <= 0:
             continue
-        if owner.profile.terraform_spades is not None and budget < spades_for(
-            owner.profile, tile.terrain
-        ):
+        if owner.profile.terraform_spades is not None:
+            if budget >= spades_for(owner.profile, tile.terrain):
+                actions.append(UseCultSpade(tile.position))
             continue
-        actions.append(UseCultSpade(tile.position))
+        for target in TERRAIN_WHEEL:
+            if target is tile.terrain:
+                continue
+            cost = terrain_distance(tile.terrain, target)
+            if cost > budget:
+                continue
+            if target is owner.home_terrain:
+                actions.append(UseCultSpade(tile.position))
+            else:
+                actions.append(UseCultSpade(tile.position, target))
+    if state.spade_return == "action":
+        for position in state.power_spade_tiles:
+            build_cost = building_cost(
+                owner.profile,
+                BuildingType.DWELLING,
+                bool(state.board.adjacent_opponents(position, player)),
+            )
+            if can_pay(owner.resources, build_cost):
+                actions.append(BuildDwelling(position))
     actions.append(SkipCultSpade())
     return actions
 
@@ -1242,6 +1529,14 @@ def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action
         ]
     if state.phase == "cult_spades":
         return _cult_spade_actions(state, player)
+    if state.phase == "stronghold_cult":
+        return [ChooseStrongholdCult(cult) for cult in CULT_ORDER]
+    if state.phase == "town_choice":
+        return [
+            TakeTownTile(index)
+            for index, count in enumerate(state.town_tiles)
+            if count > 0
+        ]
     if state.phase != "action":
         return []
     if player != state.active_player:
@@ -1283,30 +1578,49 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
                 total = _add_costs(total, reach_cost)
             if can_pay(resources, total):
                 actions.append(BuildDwelling(tile.position))
-                if _build_river_choice(
+                for river in _build_river_choices(
                     state.board,
                     player,
                     profile,
                     tile.position,
                     TOWN_SUPPLY - state.towns,
                 ):
-                    actions.append(BuildDwelling(tile.position, join_river=True))
+                    actions.append(BuildDwelling(tile.position, river=river))
 
     for tile in state.board.tiles:
         if not tile.is_land or tile.building is not None:
             continue
         if tile.position not in build_reachable:
             continue
-        if tile.terrain is profile.home_terrain:
+        if profile.terraform_spades is not None:
+            if tile.terrain is profile.home_terrain:
+                continue
+            cost = spade_cost(profile, owner.digging, spades_for(profile, tile.terrain))
+            if profile.reach > 0 and not _adjacent_to_own(
+                state.board, player, tile.position
+            ):
+                cost = _add_costs(cost, reach_cost)
+            if can_pay(resources, cost):
+                actions.append(TransformTerrain(tile.position))
             continue
-        spades = spades_for(profile, tile.terrain)
-        cost = spade_cost(profile, owner.digging, spades)
-        if profile.reach > 0 and not _adjacent_to_own(
-            state.board, player, tile.position
-        ):
-            cost = _add_costs(cost, reach_cost)
-        if can_pay(resources, cost):
-            actions.append(TransformTerrain(tile.position))
+        for target in TERRAIN_WHEEL:
+            if target is tile.terrain:
+                continue
+            cost = spade_cost(
+                profile,
+                owner.digging,
+                terrain_distance(tile.terrain, target),
+            )
+            if profile.reach > 0 and not _adjacent_to_own(
+                state.board, player, tile.position
+            ):
+                cost = _add_costs(cost, reach_cost)
+            if not can_pay(resources, cost):
+                continue
+            if target is profile.home_terrain:
+                actions.append(TransformTerrain(tile.position))
+            else:
+                actions.append(TransformTerrain(tile.position, target))
 
     for position, building in state.board.buildings(player):
         if building.type is BuildingType.DWELLING and can_place_building(
@@ -1389,6 +1703,12 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
         if can_spend_power(owner.resources, POWER_ACTION_COSTS[kind]):
             actions.append(PowerAction(kind))
 
+    if profile.type is FactionType.ALCHEMISTS:
+        if owner.victory_points > 0:
+            actions.append(TradeVpForCoin())
+        if owner.resources.coins >= 2:
+            actions.append(TradeCoinsForVp())
+
     actions.append(Pass())
     return actions
 
@@ -1412,22 +1732,42 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             tile = state.board.tile(action.position)
             if tile is None or not tile.is_land or tile.building is not None:
                 return "There is no empty land tile there."
-            if tile.terrain is owner.home_terrain:
-                return "That tile is already your home terrain."
+            target = action.to or owner.home_terrain
+            if tile.terrain is target:
+                return "That tile is already that terrain."
             if action.position not in state.board.reachable_land(
                 player, owner.shipping
             ):
                 return "That tile is not reachable."
             if state.cult_spades[player] <= 0:
                 return "You have no cult-bonus spades left."
-            if owner.profile.terraform_spades is not None and state.cult_spades[
-                player
-            ] < spades_for(owner.profile, tile.terrain):
-                return "The Giants forfeit a single cult-bonus spade."
+            cost = spades_for(owner.profile, tile.terrain)
+            if target is not owner.home_terrain:
+                cost = terrain_distance(tile.terrain, target)
+            if owner.profile.terraform_spades is not None:
+                if target is not owner.home_terrain:
+                    return "The Giants can only reach home terrain."
+                if state.cult_spades[player] < cost:
+                    return "The Giants forfeit a single cult-bonus spade."
+            if state.cult_spades[player] < cost:
+                return "You do not have enough cult-bonus spades."
             return "That cult-bonus spade cannot be used there now."
         if isinstance(action, SkipCultSpade):
             return "Skipping is always legal."
         return "Spend a cult-bonus spade or skip."
+    if state.phase == "stronghold_cult":
+        if isinstance(action, ChooseStrongholdCult):
+            owner = state.players[player]
+            if owner.cult(action.cult) >= _cult_limit_for(state, player, action.cult):
+                return "That cult track cannot advance further."
+        return "Choose a cult track you can advance."
+    if state.phase == "town_choice":
+        if isinstance(action, TakeTownTile):
+            if action.index < 0 or action.index >= len(TOWN_TILES):
+                return "There is no such town tile."
+            if state.town_tiles[action.index] <= 0:
+                return "That town tile is already taken."
+        return "Choose an available town tile."
     if state.phase != "action":
         return "The game is over."
     if player != state.active_player:
@@ -1442,17 +1782,17 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "You cannot build on a river."
         if tile.building is not None:
             return "That tile is occupied."
-        if action.join_river:
+        if action.river is not None:
             if profile.type is not FactionType.MERMAIDS:
                 return "Only the Mermaids may join a town across the river."
-            if not _build_river_choice(
+            if action.river not in _build_river_choices(
                 state.board,
                 player,
                 profile,
                 action.position,
                 TOWN_SUPPLY - state.towns,
             ):
-                return "There is no river town to join here."
+                return "That river does not change the town here."
         if (
             state.board.count(player, BuildingType.DWELLING)
             >= MAX_BUILDINGS[BuildingType.DWELLING]
@@ -1490,8 +1830,11 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "You cannot transform a river."
         if tile.building is not None:
             return "That tile is occupied."
-        if tile.terrain is profile.home_terrain:
-            return "That tile is already your home terrain."
+        target = action.to or profile.home_terrain
+        if target is tile.terrain:
+            return "That tile is already that terrain."
+        if profile.terraform_spades is not None and target is not profile.home_terrain:
+            return "The Giants can only transform to home terrain."
         reach = effective_reach(state.board, player, profile)
         if action.position not in state.board.reachable_land(
             player, owner.shipping, reach
@@ -1501,10 +1844,15 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 "your structures."
             )
         spades = spades_for(profile, tile.terrain)
-        cost = spade_cost(profile, owner.digging, spades)
+        if target is not profile.home_terrain:
+            spades = terrain_distance(tile.terrain, target)
+        transform_cost = spade_cost(profile, owner.digging, spades)
         if reach > 0 and not _adjacent_to_own(state.board, player, action.position):
-            cost = _add_costs(cost, effective_reach_cost(state.board, player, profile))
-        if not can_pay(owner.resources, cost):
+            transform_cost = _add_costs(
+                transform_cost,
+                effective_reach_cost(state.board, player, profile),
+            )
+        if not can_pay(owner.resources, transform_cost):
             return "You cannot pay for that transformation."
         return "That transformation is not legal now."
     if isinstance(action, UpgradeBuilding):
@@ -1519,10 +1867,10 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             )
         if state.board.count(player, action.to) >= MAX_BUILDINGS[action.to]:
             return f"You have no {action.to.value} left."
-        if action.join_river:
+        if action.river is not None:
             if profile.type is not FactionType.MERMAIDS:
                 return "Only the Mermaids may join a town across the river."
-            if not _upgrade_river_choice(
+            if action.river not in _upgrade_river_choices(
                 state.board,
                 player,
                 profile,
@@ -1530,13 +1878,13 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 action.to,
                 TOWN_SUPPLY - state.towns,
             ):
-                return "There is no river town to join here."
-        cost = building_cost(
+                return "That river does not change the town here."
+        upgrade_cost = building_cost(
             profile,
             action.to,
             bool(state.board.adjacent_opponents(action.position, player)),
         )
-        if not can_pay(owner.resources, cost):
+        if not can_pay(owner.resources, upgrade_cost):
             return "You cannot afford that upgrade."
         return "That upgrade is not legal now."
     if isinstance(action, AdvanceShipping):
@@ -1561,6 +1909,18 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
         if not can_spend_power(owner.resources, POWER_ACTION_COSTS[action.kind]):
             return "You do not have enough power to burn."
         return "That power action is not legal now."
+    if isinstance(action, TradeVpForCoin):
+        if profile.type is not FactionType.ALCHEMISTS:
+            return "Only the Alchemists may trade victory points for coins."
+        if owner.victory_points <= 0:
+            return "You have no victory point to trade."
+        return "That trade is not legal now."
+    if isinstance(action, TradeCoinsForVp):
+        if profile.type is not FactionType.ALCHEMISTS:
+            return "Only the Alchemists may trade coins for victory points."
+        if owner.resources.coins < 2:
+            return "You need 2 coins for that trade."
+        return "That trade is not legal now."
     if isinstance(action, Pass):
         return "Passing is always legal."
     return "That action is not legal now."
@@ -1603,6 +1963,80 @@ def _digging_reason(state: TerraMysticaState, player: PlayerId) -> str | None:
     return None
 
 
+def _stronghold_reward(
+    state: TerraMysticaState,
+    player: PlayerId,
+    events: list[Event],
+) -> tuple[TerraMysticaState, list[Event]]:
+    """Apply a faction's one-time stronghold reward."""
+    owner = state.players[player]
+    profile = owner.profile
+    if profile.type is FactionType.CULTISTS:
+        owner = replace(owner, victory_points=owner.victory_points + 7)
+        events.append(
+            Event(
+                "stronghold_reward",
+                f"{seat_label(player)} scored 7 points from the stronghold.",
+                {"player": player, "victory_points": 7},
+            )
+        )
+    elif profile.type is FactionType.ALCHEMISTS:
+        owner = replace(
+            owner,
+            resources=replace(owner.resources, power1=12, power2=0, power3=0),
+        )
+        events.append(
+            Event(
+                "stronghold_reward",
+                f"{seat_label(player)} took 12 power from the stronghold.",
+                {"player": player, "power": 12},
+            )
+        )
+    elif profile.type is FactionType.MERMAIDS:
+        owner = replace(owner, shipping=owner.shipping + 1)
+        events.append(
+            Event(
+                "stronghold_reward",
+                f"{seat_label(player)} advanced to shipping {owner.shipping}.",
+                {"player": player, "shipping": owner.shipping},
+            )
+        )
+    elif profile.type is FactionType.HALFLINGS:
+        owner = replace(
+            owner,
+            victory_points=owner.victory_points + 3 * profile.spade_vp_bonus,
+        )
+        state = replace_player(state, player, owner)
+        state = replace(
+            state,
+            phase="cult_spades",
+            cult_spades=replace_at(state.cult_spades, player, 3),
+            spade_return="action",
+            spade_actor=player,
+            active_player=player,
+        )
+        events.append(
+            Event(
+                "stronghold_reward",
+                f"{seat_label(player)} gained 3 spades from the stronghold.",
+                {"player": player, "spades": 3},
+            )
+        )
+        return state, events
+    elif profile.type is FactionType.DARKLINGS:
+        state = replace(state, phase="stronghold_cult", active_player=player)
+        events.append(
+            Event(
+                "stronghold_reward",
+                f"{seat_label(player)} chooses a cult for the stronghold.",
+                {"player": player},
+            )
+        )
+        return state, events
+    state = replace_player(state, player, owner)
+    return state, events
+
+
 def _town_rewards(
     state: TerraMysticaState,
     player: PlayerId,
@@ -1612,7 +2046,7 @@ def _town_rewards(
     victory_points: int,
     keys: int,
     *,
-    join_river: bool = False,
+    river: Hex | None = None,
 ) -> tuple[Board, Resources, int, int, bool]:
     """Mark a new town and award its points, key and faction bonus."""
     owner = state.players[player]
@@ -1620,13 +2054,13 @@ def _town_rewards(
         board,
         position,
         player,
-        cross_river=join_river and owner.profile.type is FactionType.MERMAIDS,
+        river=river if owner.profile.type is FactionType.MERMAIDS else None,
         towns_left=TOWN_SUPPLY - state.towns,
     )
     if not founded:
         return board, resources, victory_points, keys, False
     profile = owner.profile
-    victory_points += 5 + profile.town_vp_bonus
+    victory_points += profile.town_vp_bonus
     keys += 1
     resources = _add_income(resources, Income(workers=profile.town_workers_bonus))
     if _round_scoring(state) is ScoringAction.TOWN:
@@ -1662,62 +2096,71 @@ def _town_outcome(
     board: Board,
     position: Hex,
     player: PlayerId,
-    cross_river: bool,
+    river: Hex | None,
     towns_left: int,
 ) -> tuple[Board, bool]:
     return settle_town(
         board,
         position,
         player,
-        cross_river=cross_river,
+        river=river,
         towns_left=towns_left,
     )
 
 
-def _build_river_choice(
+def _changing_rivers(
+    board: Board,
+    position: Hex,
+    player: PlayerId,
+    towns_left: int,
+) -> list[Hex]:
+    """River spaces whose skip would change the town for this component."""
+    direct = _town_outcome(board, position, player, None, towns_left)
+    rivers = {
+        neighbour
+        for member in board.connected(position, player)
+        for neighbour in member.neighbours()
+        if (tile := board.tile(neighbour)) is not None and not tile.is_land
+    }
+    return [
+        river
+        for river in sorted(rivers)
+        if _town_outcome(board, position, player, river, towns_left) != direct
+    ]
+
+
+def _build_river_choices(
     board: Board,
     player: PlayerId,
     profile: FactionProfile,
     position: Hex,
     towns_left: int,
-) -> bool:
-    """Whether joining across the river would change a Mermaid build's town."""
+) -> list[Hex]:
+    """River skips that would change a Mermaid build's town."""
     if profile.type is not FactionType.MERMAIDS:
-        return False
-    if set(board.connected(position, player)) == set(
-        board.connected_area(position, player, 1)
-    ):
-        return False
+        return []
     built = board.place(position, Building(BuildingType.DWELLING, player))
-    return _town_outcome(built, position, player, True, towns_left) != _town_outcome(
-        built, position, player, False, towns_left
-    )
+    return _changing_rivers(built, position, player, towns_left)
 
 
-def _upgrade_river_choice(
+def _upgrade_river_choices(
     board: Board,
     player: PlayerId,
     profile: FactionProfile,
     position: Hex,
     target: BuildingType,
     towns_left: int,
-) -> bool:
-    """Whether joining across the river would change a Mermaid upgrade's town."""
+) -> list[Hex]:
+    """River skips that would change a Mermaid upgrade's town."""
     if profile.type is not FactionType.MERMAIDS:
-        return False
-    if set(board.connected(position, player)) == set(
-        board.connected_area(position, player, 1)
-    ):
-        return False
+        return []
     tile = board.tile(position)
     if tile is None or tile.building is None:
-        return False
+        return []
     upgraded = board.replace_tile(
         position, replace(tile, building=replace(tile.building, type=target))
     )
-    return _town_outcome(upgraded, position, player, True, towns_left) != _town_outcome(
-        upgraded, position, player, False, towns_left
-    )
+    return _changing_rivers(upgraded, position, player, towns_left)
 
 
 def _append_upgrade(
@@ -1729,10 +2172,12 @@ def _append_upgrade(
     target: BuildingType,
     towns_left: int,
 ) -> None:
-    """List an upgrade, plus the Mermaid variant that declines the river skip."""
+    """List an upgrade and each Mermaid river skip that changes its town."""
     actions.append(UpgradeBuilding(position, target))
-    if _upgrade_river_choice(board, player, profile, position, target, towns_left):
-        actions.append(UpgradeBuilding(position, target, join_river=True))
+    for river in _upgrade_river_choices(
+        board, player, profile, position, target, towns_left
+    ):
+        actions.append(UpgradeBuilding(position, target, river=river))
 
 
 def _adjacent_to_own(board: Board, player: PlayerId, position: Hex) -> bool:

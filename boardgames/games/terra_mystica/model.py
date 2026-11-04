@@ -27,7 +27,9 @@ from boardgames.games.terra_mystica.constants import (
     Terrain,
 )
 
-type Phase = Literal["setup", "action", "cult_spades", "game_over"]
+type Phase = Literal[
+    "setup", "action", "cult_spades", "stronghold_cult", "town_choice", "game_over"
+]
 
 
 @dataclass(frozen=True, order=True)
@@ -305,6 +307,11 @@ class TerraMysticaState:
     used_power_actions: frozenset[PowerActionKind]
     used_orders: Mapping[tuple[Cult, int], PlayerId]
     towns: int = 0
+    town_tiles: tuple[int, ...] = (2, 2, 2, 2, 2)
+    pending_stronghold: bool = False
+    spade_return: Literal["round", "action"] = "round"
+    spade_actor: PlayerId | None = None
+    power_spade_tiles: tuple[Hex, ...] = ()
     end_reason: str | None = None
 
 
@@ -315,30 +322,31 @@ class TerraMysticaState:
 class BuildDwelling:
     """Transform a reachable tile if needed, then build a dwelling on it.
 
-    Mermaids may set `join_river` to True to join a town across one river space.
+    Mermaids may set `river` to the one river space they ignore for a town.
     """
 
     position: Hex
-    join_river: bool = False
+    river: Hex | None = None
 
 
 @dataclass(frozen=True)
 class TransformTerrain:
-    """Transform one reachable tile into the faction's home terrain."""
+    """Transform one reachable tile, by default into the faction's home terrain."""
 
     position: Hex
+    to: Terrain | None = None
 
 
 @dataclass(frozen=True)
 class UpgradeBuilding:
     """Upgrade one of the player's structures.
 
-    Mermaids may set `join_river` to True to join a town across one river space.
+    Mermaids may set `river` to the one river space they ignore for a town.
     """
 
     position: Hex
     to: BuildingType
-    join_river: bool = False
+    river: Hex | None = None
 
 
 @dataclass(frozen=True)
@@ -367,6 +375,20 @@ class AdvanceCult:
 
 
 @dataclass(frozen=True)
+class ChooseStrongholdCult:
+    """The Darklings' stronghold reward: advance one chosen cult by 1."""
+
+    cult: Cult
+
+
+@dataclass(frozen=True)
+class TakeTownTile:
+    """Choose one of the remaining town tiles after founding a town."""
+
+    index: int
+
+
+@dataclass(frozen=True)
 class PowerAction:
     """Spend charged power for a resource from the shared power actions."""
 
@@ -375,14 +397,25 @@ class PowerAction:
 
 @dataclass(frozen=True)
 class UseCultSpade:
-    """Spend one or more cult-bonus spades to transform a reachable tile."""
+    """Spend cult-bonus spades to transform a reachable tile."""
 
     position: Hex
+    to: Terrain | None = None
 
 
 @dataclass(frozen=True)
 class SkipCultSpade:
     """Forfeit the rest of this player's cult-bonus spades."""
+
+
+@dataclass(frozen=True)
+class TradeVpForCoin:
+    """The Alchemists' free trade: 1 victory point for 1 coin."""
+
+
+@dataclass(frozen=True)
+class TradeCoinsForVp:
+    """The Alchemists' free trade: 2 coins for 1 victory point."""
 
 
 @dataclass(frozen=True)
@@ -398,9 +431,13 @@ type Action = (
     | AdvanceDigging
     | SendPriest
     | AdvanceCult
+    | ChooseStrongholdCult
+    | TakeTownTile
     | PowerAction
     | UseCultSpade
     | SkipCultSpade
+    | TradeVpForCoin
+    | TradeCoinsForVp
     | Pass
 )
 
@@ -682,24 +719,48 @@ def mark_town(board: Board, positions: tuple[Hex, ...]) -> Board:
     return board
 
 
+def town_component(
+    board: Board,
+    position: Hex,
+    player: PlayerId,
+    river: Hex | None = None,
+) -> tuple[Hex, ...]:
+    """The structures in a town component, optionally crossing one river."""
+    direct = set(board.connected(position, player))
+    if river is None:
+        return tuple(direct)
+    river_tile = board.tile(river)
+    if river_tile is None or river_tile.is_land:
+        return tuple(direct)
+    across = {
+        neighbour
+        for neighbour in river.neighbours()
+        if (tile := board.tile(neighbour)) is not None
+        and tile.building is not None
+        and tile.building.owner == player
+    }
+    if not (direct & across):
+        return tuple(direct)
+    component = set(direct)
+    for start in across:
+        component |= set(board.connected(start, player))
+    return tuple(component)
+
+
 def settle_town(
     board: Board,
     position: Hex,
     player: PlayerId,
     *,
     towns_left: int,
-    cross_river: bool = False,
+    river: Hex | None = None,
 ) -> tuple[Board, bool]:
     """Mark a new or expanded town; True when a new town was founded.
 
-    Towns need direct adjacency. Mermaids are the exception: they may join one
-    river space, so `cross_river` uses shipping for a single river crossing.
+    Towns need direct adjacency. Mermaids are the exception: they may ignore one
+    river space, named by `river`.
     """
-    component = (
-        board.connected_area(position, player, 1)
-        if cross_river
-        else board.connected(position, player)
-    )
+    component = town_component(board, position, player, river)
     already = any(
         (tile := board.tile(hex_position)) is not None
         and tile.building is not None
