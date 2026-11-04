@@ -1518,7 +1518,7 @@ def test_craftsman_privilege_needs_a_producible_good_in_the_bank() -> None:
     ]
 
 
-def test_one_good_type_per_ship_and_wharf_goods_to_the_supply() -> None:
+def test_one_good_type_per_ship() -> None:
     state = start(seed=9)
     player = state.order[0]
     state = with_goods(state, player, indigo=3, corn=1)
@@ -1532,6 +1532,8 @@ def test_one_good_type_per_ship_and_wharf_goods_to_the_supply() -> None:
     assert can_ship(state, player, "indigo") == (0,)
     assert can_ship(state, player, "corn") == (1, 2)
 
+
+def test_wharf_goods_return_to_the_supply() -> None:
     state = start(seed=9)
     player = state.order[0]
     state = with_goods(state, player, sugar=2)
