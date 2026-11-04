@@ -1,7 +1,7 @@
 """Immutable data model for Catan: resources, actions, state and scoring."""
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, NewType, cast
 
 from boardgames.core import PlayerId, Rng
 
@@ -21,7 +21,9 @@ type Phase = Literal[
     "trade_response",
     "game_over",
 ]
-type Hand = tuple[int, int, int, int, int]
+type Five = tuple[int, int, int, int, int]
+Hand = NewType("Hand", Five)
+DevHand = NewType("DevHand", Five)
 
 RESOURCES: tuple[Resource, ...] = ("wood", "brick", "sheep", "wheat", "ore")
 RESOURCE_INDEX = {resource: index for index, resource in enumerate(RESOURCES)}
@@ -89,10 +91,10 @@ NUMBER_TOKENS: tuple[int, ...] = (
 # The most frequent rolls; their tokens are printed red and never touch.
 RED_NUMBERS: tuple[int, ...] = (6, 8)
 
-ROAD_COST: Hand = (1, 1, 0, 0, 0)
-SETTLEMENT_COST: Hand = (1, 1, 1, 1, 0)
-CITY_COST: Hand = (0, 0, 0, 2, 3)
-DEV_COST: Hand = (0, 0, 1, 1, 1)
+ROAD_COST: Hand = Hand((1, 1, 0, 0, 0))
+SETTLEMENT_COST: Hand = Hand((1, 1, 1, 1, 0))
+CITY_COST: Hand = Hand((0, 0, 0, 2, 3))
+DEV_COST: Hand = Hand((0, 0, 1, 1, 1))
 
 MAX_ROADS = 15
 MAX_SETTLEMENTS = 5
@@ -301,11 +303,11 @@ class CatanState:
     buildings: tuple[Building | None, ...]
     roads: tuple[PlayerId | None, ...]
     hands: tuple[Hand, ...]
-    dev_hands: tuple[Hand, ...]
+    dev_hands: tuple[DevHand, ...]
     knights_played: tuple[int, ...]
     longest_road: PlayerId | None
     largest_army: PlayerId | None
-    dev_bought: Hand
+    dev_bought: DevHand
     dev_played_this_turn: bool
     free_roads: int
     offers_this_turn: int
@@ -316,21 +318,26 @@ class CatanState:
 
 
 def empty_hand() -> Hand:
-    """Five zeroes, one per resource or development-card type."""
-    return (0, 0, 0, 0, 0)
+    """Five zeroes, one per resource."""
+    return Hand((0, 0, 0, 0, 0))
+
+
+def empty_dev_hand() -> DevHand:
+    """Five zeroes, one per development-card type."""
+    return DevHand((0, 0, 0, 0, 0))
 
 
 def hand_from(**counts: int) -> Hand:
     """Build a hand from named resources, for tests and setup."""
-    return tuple(counts.get(resource, 0) for resource in RESOURCES)  # type: ignore[return-value]
+    return Hand(cast(Five, tuple(counts.get(resource, 0) for resource in RESOURCES)))
 
 
-def dev_hand_from(**counts: int) -> Hand:
+def dev_hand_from(**counts: int) -> DevHand:
     """Build a development-card hand from named cards, for tests and setup."""
-    return tuple(counts.get(card, 0) for card in DEV_CARDS)  # type: ignore[return-value]
+    return DevHand(cast(Five, tuple(counts.get(card, 0) for card in DEV_CARDS)))
 
 
-def hand_total(hand: Hand) -> int:
+def hand_total(hand: Hand | DevHand) -> int:
     """Number of cards in a hand."""
     return sum(hand)
 
@@ -340,35 +347,55 @@ def hand_get(hand: Hand, resource: Resource) -> int:
     return hand[RESOURCE_INDEX[resource]]
 
 
-def dev_get(hand: Hand, card: DevCard) -> int:
+def dev_get(hand: DevHand, card: DevCard) -> int:
     """Copies of one development card in a hand."""
     return hand[DEV_INDEX[card]]
 
 
 def hand_plus(first: Hand, second: Hand) -> Hand:
     """Sum of two hands."""
-    return tuple(a + b for a, b in zip(first, second, strict=True))  # type: ignore[return-value]
+    return cast(Hand, tuple(a + b for a, b in zip(first, second, strict=True)))
 
 
 def hand_minus(hand: Hand, cost: Hand) -> Hand | None:
     """`hand - cost`, or None when a card is missing."""
     if any(have < need for have, need in zip(hand, cost, strict=True)):
         return None
-    return tuple(have - need for have, need in zip(hand, cost, strict=True))  # type: ignore[return-value]
+    return cast(Hand, tuple(have - need for have, need in zip(hand, cost, strict=True)))
 
 
 def hand_with(hand: Hand, resource: Resource, count: int = 1) -> Hand:
-    """A hand with `count` more or fewer cards of one resource (never below 0)."""
+    """A hand with `count` more or fewer cards of one resource."""
     values = list(hand)
-    values[RESOURCE_INDEX[resource]] = max(0, values[RESOURCE_INDEX[resource]] + count)
-    return tuple(values)  # type: ignore[return-value]
+    updated = values[RESOURCE_INDEX[resource]] + count
+    if updated < 0:
+        raise ValueError(f"cannot remove {resource} from a hand that lacks it")
+    values[RESOURCE_INDEX[resource]] = updated
+    return Hand(cast(Five, tuple(values)))
 
 
-def dev_with(hand: Hand, card: DevCard, count: int = 1) -> Hand:
+def dev_with(hand: DevHand, card: DevCard, count: int = 1) -> DevHand:
     """A development-card hand with `count` more or fewer of one type."""
     values = list(hand)
-    values[DEV_INDEX[card]] = max(0, values[DEV_INDEX[card]] + count)
-    return tuple(values)  # type: ignore[return-value]
+    updated = values[DEV_INDEX[card]] + count
+    if updated < 0:
+        raise ValueError(f"cannot remove {card} from a hand that lacks it")
+    values[DEV_INDEX[card]] = updated
+    return DevHand(cast(Five, tuple(values)))
+
+
+def dev_minus(hand: DevHand, cost: DevHand) -> DevHand | None:
+    """`hand - cost`, or None when a development card is missing."""
+    if any(have < need for have, need in zip(hand, cost, strict=True)):
+        return None
+    return DevHand(
+        cast(Five, tuple(have - need for have, need in zip(hand, cost, strict=True)))
+    )
+
+
+def playable_dev_hand(state: CatanState, player: PlayerId) -> DevHand:
+    """Development cards owned before this turn, which may still be played."""
+    return dev_minus(state.dev_hands[player], state.dev_bought) or empty_dev_hand()
 
 
 def hand_cards(hand: Hand) -> list[Resource]:
@@ -384,7 +411,7 @@ def hand_json(hand: Hand) -> dict[str, int]:
     return {resource: count for resource, count in zip(RESOURCES, hand, strict=True)}
 
 
-def dev_hand_json(hand: Hand) -> dict[str, int]:
+def dev_hand_json(hand: DevHand) -> dict[str, int]:
     """Development cards as a JSON object keyed by card type."""
     return {card: count for card, count in zip(DEV_CARDS, hand, strict=True)}
 

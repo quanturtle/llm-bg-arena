@@ -12,7 +12,7 @@ from hypothesis import strategies as st
 
 from boardgames.arena.runner import play_match
 from boardgames.core import PlayerId, Rng, seats
-from boardgames.games.catan import Catan, CatanConfig, CatanState
+from boardgames.games.catan import Catan, CatanConfig, CatanState, DevHand, Hand
 from boardgames.logs.schema import EventRecord
 from tests.arena.support import FakeClock, MemorySink, RecordingAgent
 
@@ -43,11 +43,11 @@ def without_catan_secrets_of_others(
     Hand and card counts stay the same; the deck order and the RNG change.
     """
     hands = tuple(
-        hand if player == viewer else (*hand[1:], hand[0])
+        hand if player == viewer else Hand((*hand[1:], hand[0]))
         for player, hand in enumerate(state.hands)
     )
     dev_hands = tuple(
-        hand if player == viewer else (*hand[1:], hand[0])
+        hand if player == viewer else DevHand((*hand[1:], hand[0]))
         for player, hand in enumerate(state.dev_hands)
     )
     return replace(

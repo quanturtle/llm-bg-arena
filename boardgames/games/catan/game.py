@@ -84,6 +84,7 @@ from boardgames.games.catan.model import (
     can_afford,
     dev_get,
     dev_with,
+    empty_dev_hand,
     empty_hand,
     hand_cards,
     hand_get,
@@ -92,6 +93,7 @@ from boardgames.games.catan.model import (
     hand_plus,
     hand_total,
     hand_with,
+    playable_dev_hand,
     point_breakdown,
     total_points,
 )
@@ -169,11 +171,11 @@ class Catan:
             buildings=(None,) * len(VERTEX_HEXES),
             roads=(None,) * len(EDGE_VERTICES),
             hands=(empty_hand(),) * player_count,
-            dev_hands=(empty_hand(),) * player_count,
+            dev_hands=(empty_dev_hand(),) * player_count,
             knights_played=(0,) * player_count,
             longest_road=None,
             largest_army=None,
-            dev_bought=empty_hand(),
+            dev_bought=empty_dev_hand(),
             dev_played_this_turn=False,
             free_roads=0,
             offers_this_turn=0,
@@ -938,7 +940,7 @@ class Catan:
                 dice=None,
                 free_roads=0,
                 offers_this_turn=0,
-                dev_bought=empty_hand(),
+                dev_bought=empty_dev_hand(),
                 dev_played_this_turn=False,
                 pending_offer=None,
                 discard_remaining=(0,) * state.config.num_players,
@@ -1134,7 +1136,7 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
                         continue
                     actions.append(OfferTrade(give, take, target))
     if not state.dev_played_this_turn:
-        playable = hand_minus(state.dev_hands[player], state.dev_bought) or empty_hand()
+        playable = playable_dev_hand(state, player)
         if dev_get(playable, "knight") > 0:
             actions.extend(robber_actions(state, player, knight=True))
         if dev_get(playable, "road_building") > 0 and legal_free_road_edges(
@@ -1526,40 +1528,19 @@ def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
         case PlayRoadBuilding():
             if state.dev_played_this_turn:
                 return "You may play only one development card per turn."
-            if (
-                dev_get(
-                    hand_minus(state.dev_hands[player], state.dev_bought)
-                    or empty_hand(),
-                    "road_building",
-                )
-                < 1
-            ):
+            if dev_get(playable_dev_hand(state, player), "road_building") < 1:
                 return "You have no playable Road Building card."
             return "You cannot play Road Building now."
         case PlayYearOfPlenty(first=first, second=second):
             if state.dev_played_this_turn:
                 return "You may play only one development card per turn."
-            if (
-                dev_get(
-                    hand_minus(state.dev_hands[player], state.dev_bought)
-                    or empty_hand(),
-                    "year_of_plenty",
-                )
-                < 1
-            ):
+            if dev_get(playable_dev_hand(state, player), "year_of_plenty") < 1:
                 return "You have no playable Year of Plenty card."
             return f"You cannot play Year of Plenty for {first} and {second} now."
         case PlayMonopoly(resource=resource):
             if state.dev_played_this_turn:
                 return "You may play only one development card per turn."
-            if (
-                dev_get(
-                    hand_minus(state.dev_hands[player], state.dev_bought)
-                    or empty_hand(),
-                    "monopoly",
-                )
-                < 1
-            ):
+            if dev_get(playable_dev_hand(state, player), "monopoly") < 1:
                 return "You have no playable Monopoly card."
             return f"You cannot play Monopoly on {resource} now."
     return f"{format_action(action)!r} is not a legal action now."
@@ -1634,14 +1615,7 @@ def explain_robber(
     label = "knight" if knight else "robber"
     if knight and state.dev_played_this_turn:
         return "You may play only one development card per turn."
-    if (
-        knight
-        and dev_get(
-            hand_minus(state.dev_hands[player], state.dev_bought) or empty_hand(),
-            "knight",
-        )
-        < 1
-    ):
+    if knight and dev_get(playable_dev_hand(state, player), "knight") < 1:
         return "You have no playable knight card."
     if not knight and state.phase != "move_robber":
         return "You can only move the robber after rolling a 7."

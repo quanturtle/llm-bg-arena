@@ -33,9 +33,9 @@ from boardgames.games.catan.model import (
     BuyDev,
     CatanState,
     DeclineOffer,
+    DevHand,
     Discard,
     EndTurn,
-    Hand,
     MoveRobber,
     OfferTrade,
     PlaceRoad,
@@ -46,10 +46,10 @@ from boardgames.games.catan.model import (
     PlayYearOfPlenty,
     Roll,
     dev_hand_json,
-    empty_hand,
+    empty_dev_hand,
     hand_json,
-    hand_minus,
     hand_total,
+    playable_dev_hand,
     point_breakdown,
     total_points,
 )
@@ -144,11 +144,11 @@ def viewer_data(state: CatanState, viewer: PlayerId) -> dict[str, JsonValue]:
     }
 
 
-def playable_dev(state: CatanState, player: PlayerId) -> Hand:
+def playable_dev(state: CatanState, player: PlayerId) -> DevHand:
     """Development cards the player may play right now."""
     if player != state.active or state.phase != "actions" or state.dev_played_this_turn:
-        return empty_hand()
-    return hand_minus(state.dev_hands[player], state.dev_bought) or empty_hand()
+        return empty_dev_hand()
+    return playable_dev_hand(state, player)
 
 
 def offer_data(state: CatanState) -> dict[str, JsonValue] | None:

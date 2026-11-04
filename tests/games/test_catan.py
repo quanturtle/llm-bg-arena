@@ -64,8 +64,12 @@ from boardgames.games.catan.model import (
     NUMBER_TOKENS,
     RESOURCES,
     ROAD_COST,
+    SETTLEMENT_COST,
     TERRAIN_RESOURCE,
+    DevHand,
     dev_hand_from,
+    dev_with,
+    empty_dev_hand,
     empty_hand,
     hand_from,
     hand_total,
@@ -127,12 +131,10 @@ def set_hand(state: CatanState, player: PlayerId, hand: tuple[int, ...]) -> Cata
     return replace(state, hands=hands)  # type: ignore[arg-type]
 
 
-def set_dev_hand(
-    state: CatanState, player: PlayerId, hand: tuple[int, ...]
-) -> CatanState:
+def set_dev_hand(state: CatanState, player: PlayerId, hand: DevHand) -> CatanState:
     """Replace one player's development-card hand."""
     hands = (*state.dev_hands[:player], hand, *state.dev_hands[player + 1 :])
-    return replace(state, dev_hands=hands)  # type: ignore[arg-type]
+    return replace(state, dev_hands=hands)
 
 
 def listing(state: CatanState) -> tuple[Any, ...]:
@@ -529,7 +531,7 @@ def test_robber_never_lists_the_mover_as_a_victim() -> None:
         moving,
         phase="actions",
         dice=(1, 2),
-        dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(knight=1), empty_dev_hand(), empty_dev_hand()),
     )
     knights = [a for a in listing(armed) if isinstance(a, PlayKnight)]
     assert [a for a in knights if a.hex == hex_id] == [PlayKnight(hex_id, None)]
@@ -543,14 +545,14 @@ def test_knight_moves_robber_and_counts_for_largest_army() -> None:
         state,
         phase="actions",
         dice=(1, 2),
-        dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(knight=1), empty_dev_hand(), empty_dev_hand()),
     )
     knight = next(action for action in listing(armed) if isinstance(action, PlayKnight))
     transition = GAME.apply(armed, P1, knight)
     after = transition.state
     assert after.robber == knight.hex
     assert after.knights_played[P1] == 1
-    assert after.dev_hands[P1] == empty_hand()
+    assert after.dev_hands[P1] == empty_dev_hand()
     assert after.dev_played_this_turn is True
     assert not any(isinstance(action, PlayKnight) for action in listing(after))
 
@@ -561,7 +563,7 @@ def test_road_building_places_two_free_roads() -> None:
         state,
         phase="actions",
         dice=(1, 2),
-        dev_hands=(dev_hand_from(road_building=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(road_building=1), empty_dev_hand(), empty_dev_hand()),
     )
     playing = GAME.apply(armed, P1, PlayRoadBuilding()).state
     assert playing.phase == "free_road"
@@ -585,18 +587,18 @@ def test_year_of_plenty_and_monopoly() -> None:
         phase="actions",
         dice=(1, 2),
         hands=(empty_hand(), empty_hand(), empty_hand()),
-        dev_hands=(dev_hand_from(year_of_plenty=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(year_of_plenty=1), empty_dev_hand(), empty_dev_hand()),
     )
     after_plenty = GAME.apply(plenty, P1, PlayYearOfPlenty("wood", "ore")).state
     assert after_plenty.hands[P1] == hand_from(wood=1, ore=1)
-    assert after_plenty.dev_hands[P1] == empty_hand()
+    assert after_plenty.dev_hands[P1] == empty_dev_hand()
 
     monopoly = replace(
         state,
         phase="actions",
         dice=(1, 2),
         hands=(empty_hand(), hand_from(wood=3), empty_hand()),
-        dev_hands=(dev_hand_from(monopoly=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(monopoly=1), empty_dev_hand(), empty_dev_hand()),
     )
     after_monopoly = GAME.apply(monopoly, P1, PlayMonopoly("wood")).state
     assert after_monopoly.hands[P1] == hand_from(wood=3)
@@ -619,7 +621,7 @@ def test_victory_point_cards_are_hidden_from_opponents() -> None:
     state, _ = play_setup()
     hidden = replace(
         state,
-        dev_hands=(dev_hand_from(victory_point=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(victory_point=1), empty_dev_hand(), empty_dev_hand()),
     )
     public = GAME.observe(hidden, P2).data
     own = json_object(GAME.observe(hidden, P1).data, "you")
@@ -636,7 +638,7 @@ def test_bought_cards_cannot_be_played_the_same_turn() -> None:
         state,
         phase="actions",
         dice=(1, 2),
-        dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(knight=1), empty_dev_hand(), empty_dev_hand()),
         dev_bought=dev_hand_from(knight=1),
     )
     assert [action for action in listing(armed) if isinstance(action, PlayKnight)] == []
@@ -778,12 +780,12 @@ def test_observation_ignores_other_players_hidden_cards() -> None:
         state,
         phase="actions",
         hands=(hand_from(wood=3), hand_from(ore=2), empty_hand()),
-        dev_hands=(dev_hand_from(knight=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(knight=1), empty_dev_hand(), empty_dev_hand()),
     )
     changed = replace(
         original,
         hands=(hand_from(ore=3), hand_from(ore=2), empty_hand()),
-        dev_hands=(dev_hand_from(victory_point=1), empty_hand(), empty_hand()),
+        dev_hands=(dev_hand_from(victory_point=1), empty_dev_hand(), empty_dev_hand()),
         dev_deck=tuple(reversed(original.dev_deck)),
         rng=Rng(original.rng.state + 1),
     )
@@ -828,7 +830,11 @@ def test_render_and_rules_name_development_cards_as_notation_does() -> None:
     armed = action_state(
         replace(
             state,
-            dev_hands=(dev_hand_from(road_building=1), empty_hand(), empty_hand()),
+            dev_hands=(
+                dev_hand_from(road_building=1),
+                empty_dev_hand(),
+                empty_dev_hand(),
+            ),
         )
     )
     observation = GAME.observe(armed, P1)
