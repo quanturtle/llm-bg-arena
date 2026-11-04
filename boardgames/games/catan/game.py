@@ -45,6 +45,7 @@ from boardgames.games.catan.model import (
     CITY_COST,
     DEV_COST,
     DEV_DECK_COUNTS,
+    DISCARD_THRESHOLD,
     LARGEST_ARMY_MINIMUM,
     LONGEST_ROAD_MINIMUM,
     NUMBER_TOKENS,
@@ -120,8 +121,6 @@ from boardgames.games.catan.view import (
     observe,
     render_text,
 )
-
-DISCARD_THRESHOLD = 7
 
 
 @register_game
@@ -1035,13 +1034,11 @@ def decision_prompt(state: CatanState) -> str:
 
 
 def default_action(state: CatanState, actions: list[Action]) -> Action | None:
-    """A safe fallback for each phase."""
-    if state.phase == "roll":
-        return Roll()
-    if state.phase == "actions":
-        return EndTurn()
+    """The safe action listed for this phase, if any."""
+    if state.phase in ("roll", "actions"):
+        return actions[0] if actions else None
     if state.phase == "trade_response":
-        return DeclineOffer()
+        return actions[-1] if actions else None
     return None
 
 
@@ -1658,13 +1655,3 @@ def dev_name(card: DevCard) -> str:
 def replace_at[T](items: tuple[T, ...], index: int, value: T) -> tuple[T, ...]:
     """A tuple with one item replaced."""
     return (*items[:index], value, *items[index + 1 :])
-
-
-def board_summary(state: CatanState) -> str:
-    """One-line board summary used by tests and debugging output."""
-    counts = {
-        terrain: sum(1 for board_hex in state.hexes if board_hex.terrain == terrain)
-        for terrain in {board_hex.terrain for board_hex in state.hexes}
-    }
-    parts = ", ".join(f"{terrain} {count}" for terrain, count in sorted(counts.items()))
-    return f"{parts}; robber {hex_name(state, state.robber)}"
