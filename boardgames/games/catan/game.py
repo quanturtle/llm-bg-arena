@@ -278,11 +278,7 @@ class Catan:
                 f"{seat_label(player)} proposed an unknown action: {error}"
             ) from error
         if not is_legal:
-            try:
-                reason = space.explain(action)
-            except (TypeError, ValueError, IndexError, AttributeError) as error:
-                reason = f"that action is not legal now ({error})"
-            raise IllegalActionError(reason)
+            raise IllegalActionError(space.explain(action))
         return self.apply_legal(state, player, action)
 
     def apply_legal(
@@ -1456,18 +1452,6 @@ def finish_if_won(
 
 def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
     """Why an action is illegal, in terms useful to a retrying LLM."""
-    try:
-        return explain_illegal_inner(state, player, action)
-    except (IndexError, KeyError, TypeError, ValueError):
-        try:
-            notation = format_action(action)
-        except (TypeError, ValueError):
-            notation = repr(action)
-        return f"{notation!r} is not a legal action now."
-
-
-def explain_illegal_inner(state: CatanState, player: PlayerId, action: Action) -> str:
-    """The detailed branch of `explain_illegal`."""
     hand = state.hands[player]
     match action:
         case Roll():
