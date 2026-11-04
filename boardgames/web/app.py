@@ -127,7 +127,7 @@ class StartRequest(BaseModel):
 
 
 class TimelineCache:
-    """Timelines by match id, rebuilt when the match's step count or status changes."""
+    """Timelines by match id, rebuilt when the match's log file changes."""
 
     def __init__(self, size: int = TIMELINE_CACHE_SIZE) -> None:
         self._size = size
