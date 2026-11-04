@@ -174,6 +174,42 @@ def test_completion_from_reads_tool_arguments_usage_cost_and_reasoning() -> None
     return
 
 
+def test_a_null_tool_call_id_keeps_the_reply_and_its_cost() -> None:
+    payload = reply_payload(content=None)
+    payload["choices"][0]["message"]["tool_calls"] = [  # type: ignore[index]
+        {
+            "id": None,
+            "function": {"name": "submit_action", "arguments": '{"action": "b2"}'},
+        }
+    ]
+    completion = complete(
+        model_with(lambda request: httpx.Response(200, json=payload))
+    )
+    assert completion.tool_calls == (
+        ToolCall("call_0", "submit_action", '{"action": "b2"}'),
+    )
+    assert completion.cost_usd == pytest.approx(0.0015)
+    return
+
+
+def test_a_string_error_code_is_read_and_rate_limits_are_transient() -> None:
+    body = {"error": {"code": "rate_limit_exceeded", "message": "slow down"}}
+    with pytest.raises(TransientModelError, match="slow down"):
+        complete(model_with(lambda request: httpx.Response(200, json=body)))
+    return
+
+
+def test_one_bad_usage_field_does_not_throw_away_the_reply() -> None:
+    payload = reply_payload()
+    payload["usage"] = {"prompt_tokens": "many", "completion_tokens": 100}
+    completion = complete(
+        model_with(lambda request: httpx.Response(200, json=payload))
+    )
+    assert completion.text == "b2"
+    assert completion.cost_usd is None
+    return
+
+
 def test_completion_without_choices_is_rejected() -> None:
     with pytest.raises(ModelRequestError, match="no choices"):
         completion_from(ResponsePayload(), "m")

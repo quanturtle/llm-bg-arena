@@ -40,7 +40,7 @@ class FunctionPayload(BaseModel):
 
 
 class ToolCallPayload(BaseModel):
-    id: str = ""
+    id: str | None = None
     function: FunctionPayload
 
 
@@ -62,7 +62,7 @@ class UsagePayload(BaseModel):
 
 
 class ErrorPayload(BaseModel):
-    code: int | None = None
+    code: int | str | None = None
     message: str | None = None
     # `raw` here carries the provider's own reason behind "Provider returned error"
     metadata: dict[str, object] | None = None
@@ -171,11 +171,113 @@ def reasoning_json(settings: ModelSettings) -> dict[str, JsonValue]:
 
 
 def parse_payload(response: httpx.Response) -> ResponsePayload:
-    """The response body; a body that is not a JSON object counts as empty."""
+    """The response body, keeping every field it can read.
+
+    A body that is not a JSON object counts as empty. One wrongly typed field
+    (a null tool-call id, a string error code) must not throw away the rest of
+    the reply, including its usage and cost.
+    """
     try:
-        return ResponsePayload.model_validate(response.json())
-    except (ValueError, ValidationError):
+        raw = response.json()
+    except (ValueError, UnicodeError):
         return ResponsePayload()
+    if not isinstance(raw, dict):
+        return ResponsePayload()
+    try:
+        return ResponsePayload.model_validate(raw)
+    except ValidationError:
+        return salvage_payload(raw)
+
+
+def salvage_payload(raw: dict[str, object]) -> ResponsePayload:
+    """Read the known fields of a response that did not validate as a whole."""
+    choices = raw.get("choices")
+    salvaged = [
+        salvage_choice(choice)
+        for choice in choices
+        if isinstance(choice, dict)
+    ] if isinstance(choices, list) else []
+    return ResponsePayload(
+        choices=salvaged,
+        usage=salvage_usage(raw.get("usage")),
+        error=salvage_error(raw.get("error")),
+    )
+
+
+def salvage_choice(raw: dict[str, object]) -> ChoicePayload:
+    message = raw.get("message")
+    data = message if isinstance(message, dict) else {}
+    calls = data.get("tool_calls")
+    return ChoicePayload(
+        message=MessagePayload(
+            content=optional_string(data.get("content")),
+            reasoning=optional_string(data.get("reasoning")),
+            tool_calls=[
+                call
+                for call in (
+                    salvage_tool_call(call)
+                    for call in calls
+                    if isinstance(call, dict)
+                )
+                if call is not None
+            ] if isinstance(calls, list) else None,
+        ),
+        error=salvage_error(raw.get("error")),
+    )
+
+
+def salvage_tool_call(raw: dict[str, object]) -> ToolCallPayload | None:
+    function = raw.get("function")
+    data = function if isinstance(function, dict) else {}
+    name = optional_string(data.get("name"))
+    arguments = optional_string(data.get("arguments"))
+    if name is None or arguments is None:
+        return None
+    return ToolCallPayload(
+        id=optional_string(raw.get("id")),
+        function=FunctionPayload(name=name, arguments=arguments),
+    )
+
+
+def salvage_usage(raw: object) -> UsagePayload | None:
+    if not isinstance(raw, dict):
+        return None
+    return UsagePayload(
+        prompt_tokens=optional_int(raw.get("prompt_tokens")) or 0,
+        completion_tokens=optional_int(raw.get("completion_tokens")) or 0,
+        cost=optional_number(raw.get("cost")),
+    )
+
+
+def salvage_error(raw: object) -> ErrorPayload | None:
+    if not isinstance(raw, dict):
+        return None
+    code = raw.get("code")
+    metadata = raw.get("metadata")
+    known_code = (
+        code
+        if isinstance(code, int | str) and not isinstance(code, bool)
+        else None
+    )
+    return ErrorPayload(
+        code=known_code,
+        message=optional_string(raw.get("message")),
+        metadata=dict(metadata) if isinstance(metadata, dict) else None,
+    )
+
+
+def optional_string(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def optional_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def optional_number(value: object) -> float | None:
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return float(value)
+    return None
 
 
 def failure(status: int, payload: ResponsePayload) -> tuple[FailureKind, str] | None:
@@ -188,16 +290,38 @@ def failure(status: int, payload: ResponsePayload) -> tuple[FailureKind, str] | 
         error = payload.choices[0].error
     if status < 400 and error is None:
         return None
-    code, message = status, f"HTTP {status}"
+    code: int | str = status
+    message = f"HTTP {status}"
     if error is not None:
         code = error.code if error.code is not None else code
         message = error.message or message
         raw = (error.metadata or {}).get("raw")
         if isinstance(raw, str) and raw:
             message = f"{message}: {raw}"
-    if code in TRANSIENT_STATUSES or code >= 500:
+    if transient_code(code, status):
         return "transient", message
     return "rejected", message
+
+
+def transient_code(code: int | str, status: int) -> bool:
+    """Whether a status or provider error code is worth retrying."""
+    if isinstance(code, int):
+        return code in TRANSIENT_STATUSES or code >= 500
+    text = code.lower()
+    if text.isdigit():
+        return transient_code(int(text), status)
+    return any(
+        word in text
+        for word in (
+            "rate",
+            "limit",
+            "timeout",
+            "unavailable",
+            "overload",
+            "temporar",
+            "server",
+        )
+    )
 
 
 def completion_from(payload: ResponsePayload, model: str) -> Completion:
