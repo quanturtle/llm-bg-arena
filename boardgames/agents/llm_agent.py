@@ -155,24 +155,30 @@ class LlmAgent:
         messages: tuple[Message, ...] = prompt.messages
         logged = 0
         attempts: list[Attempt[A]] = []
-        for _ in range(self._settings.max_illegal_retries + 1):
-            completion = await self._model.complete(
-                messages, self._settings.model, tools, tool_choice
-            )
-            attempt = await self._interpret(
-                completion, request, prompt.numbered, messages[logged:]
-            )
-            logged = len(messages)
-            attempts.append(attempt)
-            if isinstance(attempt.resolution, Resolved):
-                self._remember(attempt.reply)
-                reasoning = attempt.reply.reasoning if attempt.reply else None
-                trace = decision_trace(attempts, reasoning, self._memory, None)
-                return Chosen(attempt.resolution.action, trace)
-            if isinstance(attempt.resolution, Rejected):
-                feedback = attempt.resolution.feedback
-                messages = retry_messages(messages, reply_text(completion), feedback)
-        return self._fall_back(request, attempts)
+        try:
+            for _ in range(self._settings.max_illegal_retries + 1):
+                completion = await self._model.complete(
+                    messages, self._settings.model, tools, tool_choice
+                )
+                attempt = await self._interpret(
+                    completion, request, prompt.numbered, messages[logged:]
+                )
+                logged = len(messages)
+                attempts.append(attempt)
+                if isinstance(attempt.resolution, Resolved):
+                    self._remember(attempt.reply)
+                    reasoning = attempt.reply.reasoning if attempt.reply else None
+                    trace = decision_trace(attempts, reasoning, self._memory, None)
+                    return Chosen(attempt.resolution.action, trace)
+                if isinstance(attempt.resolution, Rejected):
+                    feedback = attempt.resolution.feedback
+                    messages = retry_messages(
+                        messages, reply_text(completion), feedback
+                    )
+            return self._fall_back(request, attempts)
+        except BaseException as error:
+            self._attach_partial_trace(error, attempts)
+            raise
 
     async def _decide_with_tools[A](
         self, request: DecisionRequest[A]
@@ -188,25 +194,33 @@ class LlmAgent:
         logged = 0
         progress: DecisionProgress[A] = DecisionProgress()
         attempts: list[Attempt[A]] = []
-        while progress.phase == "exploring":
-            completion = await self._model.complete(
-                messages, self._settings.model, tools, "auto"
-            )
-            results = answer_tool_calls(completion.tool_calls, request, prompt_settings)
-            if results:
-                progress = after_tool_calls(progress, results, budget)
-                messages = (*messages, *tool_round_messages(completion, results))
-            else:
-                progress = after_text_reply(progress, budget)
-                messages = (*messages, *nudge_messages(completion))
-            attempts.append(tool_round_attempt(completion, results, messages[logged:]))
-            logged = len(messages)
-        if progress.chosen is not None:
-            self._remember(progress.reply)
-            reasoning = progress.reply.reasoning if progress.reply else None
-            trace = decision_trace(attempts, reasoning, self._memory, None)
-            return Chosen(progress.chosen.action, trace)
-        return self._fall_back(request, attempts)
+        try:
+            while progress.phase == "exploring":
+                completion = await self._model.complete(
+                    messages, self._settings.model, tools, "auto"
+                )
+                results = answer_tool_calls(
+                    completion.tool_calls, request, prompt_settings
+                )
+                if results:
+                    progress = after_tool_calls(progress, results, budget)
+                    messages = (*messages, *tool_round_messages(completion, results))
+                else:
+                    progress = after_text_reply(progress, budget)
+                    messages = (*messages, *nudge_messages(completion))
+                attempts.append(
+                    tool_round_attempt(completion, results, messages[logged:])
+                )
+                logged = len(messages)
+            if progress.chosen is not None:
+                self._remember(progress.reply)
+                reasoning = progress.reply.reasoning if progress.reply else None
+                trace = decision_trace(attempts, reasoning, self._memory, None)
+                return Chosen(progress.chosen.action, trace)
+            return self._fall_back(request, attempts)
+        except BaseException as error:
+            self._attach_partial_trace(error, attempts)
+            raise
 
     async def _interpret[A](
         self,
@@ -241,6 +255,14 @@ class LlmAgent:
         }
         rejections = 1 if isinstance(resolution, Rejected) else 0
         return Attempt(resolution, parsed, record, tuple(completions), rejections)
+
+    def _attach_partial_trace[A](
+        self, error: BaseException, attempts: list[Attempt[A]]
+    ) -> None:
+        """Keep what earlier calls cost on the exception, for the runner's log."""
+        if attempts:
+            error.decision_trace = decision_trace(attempts, None, self._memory, None)
+        return
 
     def _remember(self, reply: ParsedReply | None) -> None:
         """Replace the notes with the reply's notes, cut to the memory limit."""

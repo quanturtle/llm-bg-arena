@@ -11,6 +11,7 @@ from boardgames.games.puerto_rico import Pass
 from boardgames.games.tic_tac_toe import Mark, TicTacToe, TicTacToeConfig
 from boardgames.llm.model import (
     Completion,
+    ModelRequestError,
     ModelSettings,
     ToolCall,
     TransientModelError,
@@ -21,7 +22,7 @@ from boardgames.llm.prompting import PromptSettings
 from boardgames.llm.retry import RetryingChatModel
 from boardgames.llm.tools import NO_TOOL_NUDGE
 from boardgames.logs.replay import replay_match
-from boardgames.logs.schema import DecisionRecord
+from boardgames.logs.schema import DecisionRecord, ForfeitRecord, MatchStopped
 from tests.arena.support import FakeClock, MemorySink, ScriptedAgent
 from tests.llm.fakes import QueuedChatModel, reply, tool_calls_reply
 from tests.llm.requests import puerto_rico_request, tic_tac_toe_request
@@ -172,6 +173,30 @@ def test_unknown_price_makes_the_decision_cost_unknown() -> None:
     llm, _ = agent([priced, unpriced])
     choice = decide(llm, tic_tac_toe_request([]))
     assert choice.trace.cost_usd is None
+    return
+
+
+def test_a_failed_call_keeps_the_cost_of_its_earlier_attempts() -> None:
+    first = reply(tool_arguments=json.dumps({"action": "z9"}), cost=0.05)
+    second = reply(tool_arguments=json.dumps({"action": "zz"}), cost=0.07)
+    model = QueuedChatModel([first, second, ModelRequestError("rejected")])
+    llm = LlmAgent(model, LlmAgentSettings(model=MODEL), seed=1)
+    sink = MemorySink()
+    with pytest.raises(ModelRequestError, match="rejected"):
+        asyncio.run(
+            play_match(
+                TicTacToe(),
+                TicTacToeConfig(),
+                3,
+                [llm, ScriptedAgent(["a2", "b2"])],
+                match_id="m",
+                sink=sink,
+                clock=FakeClock(),
+            )
+        )
+    forfeit = next(r for r in sink.records if isinstance(r, ForfeitRecord))
+    assert forfeit.trace.cost_usd == pytest.approx(0.12)
+    assert isinstance(sink.records[-1], MatchStopped)
     return
 
 

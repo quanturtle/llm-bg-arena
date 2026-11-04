@@ -15,6 +15,7 @@ from boardgames.agents import (
     AgentChoice,
     Chosen,
     DecisionRequest,
+    DecisionTrace,
     Forfeited,
 )
 from boardgames.arena.clock import Clock
@@ -195,7 +196,8 @@ async def play_rounds[S, A, C: GameConfig](
         while not context.game.is_terminal(progress.state) and not forfeited:
             await control.wait_until_resumed()
             progress, forfeited = await play_round(context, progress)
-    except BaseException:
+    except BaseException as error:
+        record_failed_decision(context, error, progress)
         stopped = MatchStopped(steps=progress.step, stopped_at=context.clock.now_iso())
         context.sink.write(stopped)
         raise
@@ -263,8 +265,46 @@ async def timed_decide[A](
 ) -> tuple[AgentChoice[A], float]:
     """The agent's choice and how many seconds it took."""
     started = clock.monotonic()
-    choice = await agent.decide(request)
+    try:
+        choice = await agent.decide(request)
+    except BaseException as error:
+        error.decision_request = request
+        error.decision_latency = clock.monotonic() - started
+        raise
     return choice, clock.monotonic() - started
+
+
+def record_failed_decision(
+    context: MatchContext[object, object, GameConfig],
+    error: BaseException,
+    progress: Progress[object],
+) -> None:
+    """Keep the paid attempts of a decision that failed or was cancelled.
+
+    The agent attaches its partial trace to the exception; without one, the
+    decision made no model call and there is nothing to log.
+    """
+    trace = getattr(error, "decision_trace", None)
+    request = getattr(error, "decision_request", None)
+    if not isinstance(trace, DecisionTrace) or not isinstance(
+        request, DecisionRequest
+    ):
+        return
+    observed_at = getattr(error, "decision_observed_at", progress.step)
+    latency = getattr(error, "decision_latency", 0.0)
+    context.sink.write(
+        ForfeitRecord(
+            step=progress.step,
+            observed_at_step=observed_at,
+            player=request.decision.player,
+            kind=request.decision.kind,
+            reason=f"the decision failed: {error}",
+            observation_digest=request.observation.digest(),
+            latency_seconds=latency,
+            trace=trace_record(trace),
+        )
+    )
+    return
 
 
 def record_forfeit[S, A, C: GameConfig](
