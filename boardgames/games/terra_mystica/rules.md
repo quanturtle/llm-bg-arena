@@ -47,6 +47,8 @@ Each round has an income phase, an action phase and cleanup.
   Advancing past the 3rd, 5th, 7th and 10th spaces grants power. Space 10 needs a
   town key.
 - **Power action**: spend charged power for a priest, two workers or seven coins.
+  If Bowl III is short, you may burn Bowl II power to reach it; each step moved
+  this way also removes one token from your power cycle.
 - **Pass** to stop acting for the round.
 
 ## Towns and keys

@@ -72,8 +72,10 @@ from boardgames.games.terra_mystica.model import (
     advance_cult,
     building_cost,
     building_counts,
+    burn_power,
     can_pay,
     can_place_building,
+    can_spend_power,
     cult_limit,
     income_with_power,
     pay,
@@ -707,10 +709,12 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         cost = POWER_ACTION_COSTS[kind]
         if kind in state.used_power_actions:
             raise IllegalActionError("that power action was already used this round")
-        resources = spend_power(owner.resources, cost)
+        resources = burn_power(owner.resources, cost)
         if resources is None:
-            raise IllegalActionError("you do not have enough power in Bowl III")
-        resources = _add_income(resources, POWER_ACTION_INCOME[kind])
+            raise IllegalActionError("you do not have enough power to burn")
+        spent = spend_power(resources, cost)
+        assert spent is not None
+        resources = _add_income(spent, POWER_ACTION_INCOME[kind])
         owner = replace(owner, resources=resources)
         state = replace_player(state, player, owner)
         state = replace(state, used_power_actions=state.used_power_actions | {kind})
@@ -1047,7 +1051,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     for kind in ("priest", "workers", "coins"):
         if kind in state.used_power_actions:
             continue
-        if owner.resources.power3 >= POWER_ACTION_COSTS[kind]:
+        if can_spend_power(owner.resources, POWER_ACTION_COSTS[kind]):
             actions.append(PowerAction(kind))
 
     actions.append(Pass())
@@ -1170,8 +1174,8 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
     if isinstance(action, PowerAction):
         if action.kind in state.used_power_actions:
             return "That power action was already used this round."
-        if owner.resources.power3 < POWER_ACTION_COSTS[action.kind]:
-            return "You do not have enough power in Bowl III."
+        if not can_spend_power(owner.resources, POWER_ACTION_COSTS[action.kind]):
+            return "You do not have enough power to burn."
         return "That power action is not legal now."
     if isinstance(action, Pass):
         return "Passing is always legal."

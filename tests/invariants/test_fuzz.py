@@ -110,7 +110,7 @@ def check_terra_mystica(state: TerraMysticaState) -> None:
         assert resources.coins >= 0
         assert resources.workers >= 0
         assert resources.priests >= 0
-        assert resources.power == 12
+        assert resources.power <= 12
         assert 0 <= min(player.cults) <= max(player.cults) <= 10
         assert player.keys >= 0
     for seat in seats(state.config.num_players):

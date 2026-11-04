@@ -547,7 +547,7 @@ def test_random_play_keeps_state_invariants() -> None:
             assert resources.coins >= 0
             assert resources.workers >= 0
             assert resources.priests >= 0
-            assert resources.power == 12
+            assert resources.power <= 12
             assert 0 <= min(player.cults) <= max(player.cults) <= 10
             assert player.keys >= 0
         for seat in seats(len(state.players)):
