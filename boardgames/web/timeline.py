@@ -275,7 +275,7 @@ def build_timeline(records: Sequence[LogRecord]) -> Timeline:
     ]
     is_ended = any(isinstance(r, MatchFinished | MatchStopped) for r in records)
     finish = next((r for r in records if isinstance(r, MatchFinished)), None)
-    if finish is not None and frames:
+    if finish is not None and replayed.last_step == finish.steps:
         frames[-1] = frames[-1].model_copy(
             update={
                 "scores": [

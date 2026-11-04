@@ -44,6 +44,8 @@ def test_an_ended_log_that_diverges_shows_its_steps_up_to_there() -> None:
     assert (timeline.match.status, len(timeline.frames)) == ("finished", 3)
     assert timeline.replay_error is not None
     assert outline(timeline).replay_error == timeline.replay_error
+    step_two = build_timeline(records).frames[2]
+    assert timeline.frames[-1].scores == step_two.scores
     return
 
 
