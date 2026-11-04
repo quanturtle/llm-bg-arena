@@ -4,6 +4,7 @@ arena games
 arena play examples/tic_tac_toe.yaml
 arena play examples/catan.yaml --seed 3 --log runs/catan.jsonl
 arena replay runs/<log>.jsonl
+arena upgrade-log runs/<log>.jsonl
 arena serve
 arena serve examples/catan_game.jsonl
 
@@ -40,6 +41,8 @@ from boardgames.llm.catalog import OpenRouterCatalog
 from boardgames.llm.model import ChatModel
 from boardgames.logs.replay import first_record, read_log, replay_match
 from boardgames.logs.schema import MatchStarted
+from boardgames.logs.sink import rewrite_log
+from boardgames.logs.upgrade import upgrade_records
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
@@ -125,6 +128,16 @@ def add_replay_command(commands: Commands) -> None:
     return
 
 
+def add_upgrade_log_command(commands: Commands) -> None:
+    """`arena upgrade-log LOG...`: re-record older logs under the current rules."""
+    parser = commands.add_parser(
+        "upgrade-log", help="re-record logs from older rules under the current rules"
+    )
+    parser.add_argument("logs", type=Path, nargs="+")
+    parser.set_defaults(handler=upgrade_logs)
+    return
+
+
 def add_serve_command(commands: Commands) -> None:
     """`arena serve`: the web viewer over a directory of logs, able to start matches."""
     parser = commands.add_parser("serve", help="serve the web viewer")
@@ -167,6 +180,7 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     add_games_command(commands)
     add_play_command(commands)
     add_replay_command(commands)
+    add_upgrade_log_command(commands)
     add_serve_command(commands)
     return parser.parse_args(argv)
 
@@ -206,6 +220,30 @@ def check_replay(args: argparse.Namespace, config: AppConfig) -> None:
     print(
         f"Replay matches the log: {report.game_id}, {report.steps} steps, "
         f"{report.events} events.{stopped}"
+    )
+    return
+
+
+def upgrade_logs(args: argparse.Namespace, config: AppConfig) -> None:
+    """Upgrade each log in turn; logs already on the current rules stay untouched."""
+    for path in args.logs:
+        upgrade_log(path)
+    return
+
+
+def upgrade_log(path: Path) -> None:
+    """Re-record one log under the current rules and replace the file."""
+    records = read_log(path)
+    upgraded = upgrade_records(records)
+    before = first_record(records, MatchStarted)
+    after = first_record(upgraded, MatchStarted)
+    if before.rules_version == after.rules_version:
+        print(f"{path}: already on {after.game_id} rules v{after.rules_version}.")
+        return
+    rewrite_log(path, upgraded)
+    print(
+        f"{path}: upgraded from {after.game_id} rules v{before.rules_version} "
+        f"to v{after.rules_version}."
     )
     return
 

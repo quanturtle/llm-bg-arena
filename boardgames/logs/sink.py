@@ -1,5 +1,6 @@
 """Where log records go: a JSONL file, the console, or several at once."""
 
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from types import TracebackType
@@ -68,3 +69,19 @@ class Broadcast:
         for sink in self._sinks:
             sink.write(record)
         return
+
+
+def rewrite_log(path: Path, records: Sequence[LogRecord]) -> None:
+    """Replace a log in one rename, so a crash leaves the old file or the new one.
+
+    Only log upgrades rewrite a log; a match never overwrites one."""
+    temporary = path.with_name(path.name + ".upgrading")
+    try:
+        with temporary.open("w", encoding="utf-8") as file:
+            for record in records:
+                file.write(record.model_dump_json() + "\n")
+        os.replace(temporary, path)
+    except OSError as error:
+        temporary.unlink(missing_ok=True)
+        raise LogFileError(f"cannot rewrite {path}: {error.strerror}") from error
+    return

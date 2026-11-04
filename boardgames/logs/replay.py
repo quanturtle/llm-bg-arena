@@ -160,7 +160,8 @@ def check_rules_version(game: AnyGame, start: MatchStarted) -> None:
     if start.rules_version != game.rules_version:
         raise RulesVersionError(
             f"recorded under {game.id} rules v{start.rules_version}; "
-            f"the current rules are v{game.rules_version}"
+            f"the current rules are v{game.rules_version}; "
+            "`arena upgrade-log` re-records it if its moves are still legal"
         )
     return
 
