@@ -187,7 +187,8 @@ def render_text(observation: Observation) -> str:
         "ship <good> s<n> = load a cargo ship. wharf <good> = load the Wharf. "
         "place/pick plantation|building <i>, place/pick quarry. "
         "discard none = keep nothing unprotected; discard [protected...] none = "
-        "keep only warehouses; add keep <good> to keep one good."
+        "keep only warehouses; replace none with keep <good> to keep one good, "
+        "for example discard corn keep indigo."
     )
     return "\n".join(lines)
 

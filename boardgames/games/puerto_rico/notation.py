@@ -150,19 +150,18 @@ def _good(text: str) -> Good:
 
 def _discard(text: str | None) -> DiscardGoods:
     tokens = text.split(" ") if text else []
-    if "keep" in tokens and "none" in tokens:
-        raise NotationError("discard cannot both keep a good and keep none")
     if "keep" in tokens:
+        if "none" in tokens:
+            raise NotationError("discard cannot both keep a good and keep none")
         index = tokens.index("keep")
+        if index != len(tokens) - 2:
+            raise NotationError("discard ends with keep and one good")
         protected_tokens = tokens[:index]
-        keep_tokens = tokens[index + 1 :]
-        if len(keep_tokens) != 1:
-            raise NotationError("discard names one good to keep")
-        keep: Good | None = _good(keep_tokens[0])
+        keep: Good | None = _good(tokens[-1])
     else:
-        protected_tokens = [token for token in tokens if token != "none"]
-        if "none" in tokens and len(protected_tokens) != len(tokens) - 1:
-            raise NotationError("discard names none once")
+        if not tokens or tokens[-1] != "none" or tokens.count("none") != 1:
+            raise NotationError("discard ends with none or keep and one good")
+        protected_tokens = tokens[:-1]
         keep = None
     if len(set(protected_tokens)) != len(protected_tokens):
         raise NotationError("discard names each protected good once")

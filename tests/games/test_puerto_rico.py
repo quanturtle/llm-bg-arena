@@ -385,6 +385,24 @@ def test_parse_rejects_non_canonical_text(text: str) -> None:
         GAME.parse_action(text)
 
 
+def test_discard_notation_is_canonical() -> None:
+    for text in (
+        "discard none",
+        "discard corn none",
+        "discard keep indigo",
+        "discard corn keep indigo",
+    ):
+        assert GAME.format_action(GAME.parse_action(text)) == text
+    for text in (
+        "discard",
+        "discard corn",
+        "discard keep corn none",
+        "discard none keep corn",
+    ):
+        with pytest.raises(NotationError):
+            GAME.parse_action(text)
+
+
 def test_off_board_indices_parse_but_are_illegal() -> None:
     state = start(seed=5)
     state = select_role(state, "mayor")
