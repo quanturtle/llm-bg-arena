@@ -146,6 +146,7 @@ class TokenClaim:
     """Every seat claims a free token at the same time, so two can clash."""
 
     id: ClassVar[str] = "token_claim"
+    rules_version: ClassVar[int] = 1
 
     def parse_config(self, raw: JsonObject) -> ClaimConfig:
         return ClaimConfig()

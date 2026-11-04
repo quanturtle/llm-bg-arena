@@ -128,6 +128,7 @@ class Catan:
     """Standard Catan with settlements, cities, roads, trade and development cards."""
 
     id: ClassVar[str] = "catan"
+    rules_version: ClassVar[int] = 1
 
     def parse_config(self, raw: JsonObject) -> CatanConfig:
         config = dataclass_from_json(CatanConfig, raw)

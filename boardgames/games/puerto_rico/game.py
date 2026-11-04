@@ -130,6 +130,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     """Puerto Rico with all base-game roles, buildings and end-game bonuses."""
 
     id: ClassVar[str] = "puerto_rico"
+    rules_version: ClassVar[int] = 1
 
     # Config ---------------------------------------------------------------
 

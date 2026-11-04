@@ -98,6 +98,7 @@ class TicTacToe:
     """Tic-tac-toe for two players on a 3x3 board."""
 
     id: ClassVar[str] = "tic_tac_toe"
+    rules_version: ClassVar[int] = 1
 
     def parse_config(self, raw: JsonObject) -> TicTacToeConfig:
         config = dataclass_from_json(TicTacToeConfig, raw)

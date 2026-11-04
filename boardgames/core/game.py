@@ -37,6 +37,8 @@ class Game[S, A, C: GameConfig](Protocol):
     """
 
     id: ClassVar[str]
+    # raise it whenever a change makes logs recorded earlier replay differently
+    rules_version: ClassVar[int]
 
     def parse_config(self, raw: JsonObject) -> C:
         """Validated config from JSON; invalid values raise ConfigError."""

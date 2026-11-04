@@ -99,6 +99,16 @@ def test_random_match_logs_start_steps_and_finish() -> None:
     return
 
 
+def test_match_start_records_the_rules_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(TicTacToe, "rules_version", 7)
+    sink = MemorySink()
+    run(TicTacToe(), TicTacToeConfig(), random_agents(2), sink)
+    start = sink.records[0]
+    assert isinstance(start, MatchStarted)
+    assert start.rules_version == 7
+    return
+
+
 def test_scripted_win_ranks_the_winner_first() -> None:
     agents = [ScriptedAgent(["a1", "b1", "c1"]), ScriptedAgent(["a2", "b2"])]
     result = run(TicTacToe(), TicTacToeConfig(), agents)

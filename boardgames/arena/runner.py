@@ -190,6 +190,7 @@ def start_record[S, A, C: GameConfig](
     return MatchStarted(
         match_id=match_id,
         game_id=context.game.id,
+        rules_version=context.game.rules_version,
         config=plain_object(context.game.config_json(config)),
         seed=seed,
         seats=[
