@@ -37,7 +37,13 @@ from boardgames.web.launcher import (
 )
 from boardgames.web.layouts import game_layout
 from boardgames.web.stats import AgentDetail, Leaderboard, agent_detail, leaderboard
-from boardgames.web.store import Catalog, MatchStore, MatchSummary, UnknownMatchError
+from boardgames.web.store import (
+    Catalog,
+    MatchStore,
+    MatchSummary,
+    ReadOnlyLogError,
+    UnknownMatchError,
+)
 from boardgames.web.timeline import (
     Frame,
     Outline,
@@ -467,6 +473,7 @@ def create_app(
     app.add_exception_handler(UnknownGameError, not_found)
     app.add_exception_handler(UnknownModelError, not_found)
     app.add_exception_handler(MatchStillPlayingError, conflict)
+    app.add_exception_handler(ReadOnlyLogError, conflict)
     app.add_exception_handler(CatalogUnavailableError, unavailable)
     app.add_exception_handler(ArenaError, unprocessable)
     app.middleware("http")(revalidate_assets)

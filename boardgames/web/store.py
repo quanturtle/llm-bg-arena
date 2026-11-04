@@ -30,6 +30,10 @@ class UnknownMatchError(ArenaError):
     """No log in the store has this match id."""
 
 
+class ReadOnlyLogError(ArenaError):
+    """The match's log was opened read-only, so the viewer cannot delete it."""
+
+
 class Summary(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -217,10 +221,11 @@ def index_log(path: Path) -> Indexed:
 
 
 class MatchStore:
-    """Repository over `directory/*.jsonl`, rescanned on every call."""
+    """Repository over `directory/*.jsonl` and `read_only` logs, rescanned per call."""
 
-    def __init__(self, directory: Path) -> None:
+    def __init__(self, directory: Path, read_only: tuple[Path, ...] = ()) -> None:
         self._directory = directory
+        self._read_only = read_only
         self._cache: dict[Path, tuple[FileStamp, Indexed]] = {}
         self._paths: dict[str, Path] = {}
         return
@@ -230,12 +235,18 @@ class MatchStore:
         return self._directory
 
     def catalog(self) -> Catalog:
-        """Every match, newest first, plus the logs that failed to parse."""
+        """Every match, newest first, plus the logs that failed to parse.
+
+        Two logs of one match list once, from the first path found."""
         matches: list[MatchSummary] = []
         unreadable: list[UnreadableLog] = []
+        listed: set[str] = set()
         for path in self._log_paths():
             indexed = self._indexed(path)
             if isinstance(indexed, MatchSummary):
+                if indexed.match_id in listed:
+                    continue
+                listed.add(indexed.match_id)
                 matches.append(indexed)
                 self._paths[indexed.match_id] = path
             else:
@@ -264,9 +275,11 @@ class MatchStore:
     def delete(self, match_id: str) -> None:
         """Remove a match's log and thoughts file; unknown ids raise UnknownMatchError.
 
-        Only files found in the store's directory are removed.
+        Only files found in the store's directory are removed; read-only logs raise.
         """
         path = self._path_of(match_id)
+        if path.resolve() in {log.resolve() for log in self._read_only}:
+            raise ReadOnlyLogError(f"match {match_id!r} was opened read-only")
         path.unlink(missing_ok=True)
         thoughts_path(path).unlink(missing_ok=True)
         self._cache.pop(path, None)
@@ -274,9 +287,11 @@ class MatchStore:
         return
 
     def _log_paths(self) -> list[Path]:
-        if not self._directory.is_dir():
-            return []
-        return sorted(self._directory.glob("*.jsonl"))
+        found = (
+            sorted(self._directory.glob("*.jsonl")) if self._directory.is_dir() else []
+        )
+        listed = {path.resolve() for path in found}
+        return found + [log for log in self._read_only if log.resolve() not in listed]
 
     def _path_of(self, match_id: str) -> Path:
         if match_id not in self._paths:

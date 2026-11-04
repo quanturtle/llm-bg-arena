@@ -5,6 +5,7 @@ arena play examples/tic_tac_toe.yaml
 arena play examples/catan.yaml --seed 3 --log runs/catan.jsonl
 arena replay runs/<log>.jsonl
 arena serve
+arena serve examples/catan_game.jsonl
 
 A match config file names the game, its config and the seats; see
 docs/ARCHITECTURE.md. The OpenRouter key comes from the environment or a
@@ -14,7 +15,11 @@ local .env file.
 import argparse
 import asyncio
 import os
+import socket
 import sys
+import threading
+import time
+import webbrowser
 from pathlib import Path
 
 import uvicorn
@@ -32,7 +37,8 @@ from boardgames.core import ArenaError, ConfigError
 from boardgames.games import game_ids
 from boardgames.llm.catalog import OpenRouterCatalog
 from boardgames.llm.model import ChatModel
-from boardgames.logs.replay import read_log, replay_match
+from boardgames.logs.replay import first_record, read_log, replay_match
+from boardgames.logs.schema import MatchStarted
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
@@ -44,6 +50,8 @@ DEFAULT_VIEWER_DIR = VIEWER_SOURCES / "out"
 VIEWER_BUILD_COMMAND = "pnpm --dir web install && pnpm --dir web build"
 # 8000 is where local model servers listen, and coding tools probe it for /v1/models
 DEFAULT_PORT = 8765
+# how long to wait for the server to accept connections before opening the browser
+BROWSER_WAIT_SECONDS = 10.0
 ENV_FILE = Path(".env")
 
 type Commands = argparse._SubParsersAction[argparse.ArgumentParser]
@@ -93,6 +101,13 @@ def add_replay_command(commands: Commands) -> None:
 def add_serve_command(commands: Commands) -> None:
     """`arena serve`: the web viewer over a directory of logs, able to start matches."""
     parser = commands.add_parser("serve", help="serve the web viewer")
+    parser.add_argument(
+        "log",
+        type=Path,
+        nargs="?",
+        metavar="LOG",
+        help="a match log to open in the browser, read-only",
+    )
     parser.add_argument(
         "--runs", type=Path, default=DEFAULT_LOG_DIR, help="log directory"
     )
@@ -191,13 +206,41 @@ def current_viewer(directory: Path) -> Path:
     return viewer_build(directory)
 
 
+def open_replays(logs: tuple[Path, ...], host: str, port: int) -> None:
+    """Open each log's replay, from its first step, once the server accepts."""
+    for log in logs:
+        match_id = first_record(read_log(log), MatchStarted).match_id
+        url = f"http://{host}:{port}/match/?id={match_id}&step=0"
+        print(f"Opening {url}")
+        threading.Thread(
+            target=open_when_listening, args=(url, host, port), daemon=True
+        ).start()
+    return
+
+
+def open_when_listening(url: str, host: str, port: int) -> None:
+    """Wait until `host:port` accepts a connection, up to a limit, then open `url`."""
+    deadline = time.monotonic() + BROWSER_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        try:
+            socket.create_connection((host, port), timeout=1).close()
+            break
+        except OSError:
+            time.sleep(0.1)
+    webbrowser.open(url)
+    return
+
+
 def serve(args: argparse.Namespace) -> None:
     """Serve the web viewer until interrupted; matches started there run in-process."""
     game_ids()
     viewer = current_viewer(args.viewer)
+    opened = () if args.log is None else (args.log,)
     launcher = MatchLauncher(args.runs, chat_model_from_environment(), args.examples)
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
-    app = create_app(MatchStore(args.runs), launcher, OpenRouterCatalog(), viewer)
+    open_replays(opened, args.host, args.port)
+    store = MatchStore(args.runs, read_only=opened)
+    app = create_app(store, launcher, OpenRouterCatalog(), viewer)
     uvicorn.run(app, host=args.host, port=args.port)
     return
 

@@ -3,7 +3,12 @@ from pathlib import Path
 import pytest
 
 from boardgames.logs.schema import MatchFinished, MatchStarted
-from boardgames.web.store import MatchStore, UnknownMatchError, summarize
+from boardgames.web.store import (
+    MatchStore,
+    ReadOnlyLogError,
+    UnknownMatchError,
+    summarize,
+)
 from tests.web.support import costly_agents, without_finish, write_match
 
 
@@ -56,4 +61,15 @@ def test_catalog_is_newest_first_and_skips_unreadable_logs(tmp_path: Path) -> No
     assert [u.path for u in catalog.unreadable] == ["broken.jsonl"]
     with pytest.raises(UnknownMatchError):
         store.match("nope")
+    return
+
+
+def test_read_only_log_is_listed_and_cannot_be_deleted(tmp_path: Path) -> None:
+    write_match(tmp_path, "example")
+    log = tmp_path / "example.jsonl"
+    store = MatchStore(tmp_path / "runs", read_only=(log,))
+    assert [m.match_id for m in store.catalog().matches] == ["example"]
+    with pytest.raises(ReadOnlyLogError):
+        store.delete("example")
+    assert log.exists()
     return
