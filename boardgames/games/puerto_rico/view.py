@@ -65,6 +65,7 @@ def observe(state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
         ],
         "colonist_ship": state.colonist_ship,
         "colonist_supply": state.colonist_supply,
+        "colonist_shortage": state.colonist_shortage,
         "vp_supply": state.vp_supply,
         "trading_house": list(state.trading_house),
         "cargo_ships": [
@@ -179,11 +180,14 @@ def render_text(observation: Observation) -> str:
     lines.append("")
     lines.append(
         "Legend: role = role card, doubloons = money. "
-        "take <good> = take a face-up plantation, take quarry = take a quarry. "
-        "build <name> = build a building. sell <good> = sell to the trading house. "
+        "take <good> = take a face-up plantation, take quarry = take a quarry; "
+        "`nohospice` declines the optional Hospice colonist. "
+        "build <name> = build a building; `nouniversity` declines its optional "
+        "colonist. sell <good> = sell to the trading house. "
         "ship <good> s<n> = load a cargo ship. wharf <good> = load the Wharf. "
         "place/pick plantation|building <i>, place/pick quarry. "
-        "discard [goods...] = keep goods after shipping."
+        "discard none = keep nothing unprotected; discard [protected...] none = "
+        "keep only warehouses; add keep <good> to keep one good."
     )
     return "\n".join(lines)
 
@@ -228,13 +232,18 @@ def supplies_line(data: JsonObject) -> str:
         filled = json_int(ship, "filled")
         capacity = json_int(ship, "capacity")
         ships.append(f"{good or 'empty'} {filled}/{capacity}")
+    shortage = (
+        " The colonist supply cannot refill the ship; the game ends this round."
+        if json_bool(data, "colonist_shortage")
+        else ""
+    )
     return (
         f"Supply: colonists ship {json_int(data, 'colonist_ship')}, "
         f"colonists {json_int(data, 'colonist_supply')}, "
         f"VP {json_int(data, 'vp_supply')}, quarries "
         f"{json_int(data, 'quarry_supply')}. Goods: {goods_text}. "
         f"Trading house: {', '.join(trading) or 'empty'}. "
-        f"Ships: {', '.join(ships)}."
+        f"Ships: {', '.join(ships)}.{shortage}"
     )
 
 
@@ -315,16 +324,22 @@ def describe_action(observation: Observation, action: Action) -> str:
     match action:
         case SelectRole(role=role):
             return f"Choose the {role} role."
-        case TakePlantation(good=good):
-            return f"Take a face-up {good} plantation."
-        case TakeQuarry():
-            return "Take a quarry."
+        case TakePlantation(good=good, use_hospice=use_hospice):
+            return f"Take a face-up {good} plantation" + (
+                "." if use_hospice else " without the Hospice colonist."
+            )
+        case TakeQuarry(use_hospice=use_hospice):
+            return "Take a quarry" + (
+                "." if use_hospice else " without the Hospice colonist."
+            )
         case UseHacienda():
             return "Draw an extra plantation with the Hacienda."
         case Pass():
             return "Pass."
-        case Build(building=building):
-            return f"Build {building}."
+        case Build(building=building, use_university=use_university):
+            return f"Build {building}" + (
+                "." if use_university else " without the University colonist."
+            )
         case ProducePrivilege(good=good):
             return f"Take an extra {good} as the Craftsman privilege."
         case Sell(good=good):
@@ -343,11 +358,16 @@ def describe_action(observation: Observation, action: Action) -> str:
             return f"Pick up a colonist from {target} {index}."
         case FinishPlacement():
             return "Finish placing colonists."
-        case DiscardGoods(protected=protected):
+        case DiscardGoods(protected=protected, keep=keep, legacy=legacy):
+            if legacy:
+                return "Keep one of each type plus the warehouse-protected types."
+            parts: list[str] = []
+            if keep is not None:
+                parts.append(f"keep 1 {keep}")
+            if protected:
+                parts.append(f"warehouse protects {', '.join(sorted(protected))}")
             return "Keep goods after shipping" + (
-                f" (warehouse protects {', '.join(sorted(protected))})."
-                if protected
-                else "."
+                f" ({'; '.join(parts)})." if parts else " (keep nothing)."
             )
     return "Take an action."
 

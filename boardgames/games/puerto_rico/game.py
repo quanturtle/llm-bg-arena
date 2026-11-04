@@ -62,6 +62,7 @@ from boardgames.games.puerto_rico.model import (
     LoadWharf,
     OwnedBuilding,
     Pass,
+    Phase,
     PickUpColonist,
     PlaceColonist,
     Plantation,
@@ -77,6 +78,7 @@ from boardgames.games.puerto_rico.model import (
     UseHacienda,
     available_to_build,
     build_cost,
+    building_points,
     can_load_anything,
     can_ship,
     city_spaces_used,
@@ -94,7 +96,6 @@ from boardgames.games.puerto_rico.model import (
     next_player_in_order,
     next_role_picker,
     next_unacted,
-    owns_active,
     production,
     public_points,
     replace_at,
@@ -108,16 +109,19 @@ from boardgames.games.puerto_rico.model import (
     wharf_goods,
 )
 from boardgames.games.puerto_rico.notation import format_action, parse_action
+from boardgames.games.puerto_rico.view import (
+    describe_action,
+    observe,
+    render_text,
+)
 
-ROLE_PHASE: dict[Role, str] = {
+ROLE_PHASE: dict[Role, Phase] = {
     "settler": "settler_action",
     "mayor": "mayor_action",
     "builder": "builder_action",
     "craftsman": "craftsman_action",
     "trader": "trader_action",
     "captain": "captain_action",
-    "prospector": "role_selection",
-    "prospector_2": "role_selection",
 }
 
 
@@ -195,6 +199,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             vp_supply=vp_supply,
             players_acted=frozenset(),
             captain_passes=0,
+            colonist_shortage=False,
             end_reason=None,
             winner=None,
         )
@@ -260,12 +265,8 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             raise IllegalActionError(
                 f"{seat_label(player)} proposed an unknown action: {error}"
             ) from error
-        if not is_legal:
-            try:
-                reason = space.explain(action)
-            except (TypeError, ValueError, IndexError, AttributeError) as error:
-                reason = f"that action is not legal now ({error})"
-            raise IllegalActionError(reason)
+        if not is_legal and not (isinstance(action, DiscardGoods) and action.legacy):
+            raise IllegalActionError(space.explain(action))
         return self.apply_legal(state, player, action)
 
     def apply_legal(
@@ -306,10 +307,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             points[player_id] = base
             breakdown[player_id] = {
                 "vp_chips": player.vp_chips,
-                "buildings": sum(
-                    BUILDINGS[building.name].victory_points
-                    for building in player.buildings
-                ),
+                "buildings": building_points(player),
                 "bonus": end_game_bonus(player),
             }
             tiebreakers[player_id] = tuple(
@@ -335,13 +333,9 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         )
 
     def observe(self, state: PuertoRicoState, viewer: PlayerId | None) -> Observation:
-        from boardgames.games.puerto_rico.view import observe
-
         return observe(state, viewer)
 
     def render_text(self, observation: Observation) -> str:
-        from boardgames.games.puerto_rico.view import render_text
-
         return render_text(observation)
 
     def rules_text(self) -> str:
@@ -355,12 +349,29 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         return parse_action(text)
 
     def describe_action(self, observation: Observation, action: Action) -> str:
-        from boardgames.games.puerto_rico.view import describe_action
-
         return describe_action(observation, action)
 
     def action_json(self, action: Action) -> dict[str, JsonValue]:
-        return tagged_json_object(action)
+        if isinstance(action, DiscardGoods):
+            data: dict[str, JsonValue] = {
+                "type": "discard_goods",
+                "protected": list(action.protected),
+            }
+            if not action.legacy:
+                data["keep"] = action.keep
+            return data
+        data = tagged_json_object(action)
+        if isinstance(action, TakePlantation | TakeQuarry) and action.use_hospice:
+            data.pop("use_hospice", None)
+        elif isinstance(action, Build) and action.use_university:
+            data.pop("use_university", None)
+        return data
+
+    def adapt_saved_action(self, action: Action, saved: JsonObject) -> Action:
+        """Restore the old keep-one-of-each meaning of pre-``keep`` discards."""
+        if isinstance(action, DiscardGoods) and "keep" not in saved:
+            return replace(action, legacy=True)
+        return action
 
     # Role selection -------------------------------------------------------
 
@@ -402,7 +413,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                     {"player": player, "doubloons": 1},
                 )
             )
-            state = self.advance_role_picker(state)
+            state = _advance_role_picker(state)
             return Transition(state, tuple(events))
         state, phase_events = self.start_role_phase(state, role, player)
         events.extend(phase_events)
@@ -415,7 +426,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         state = replace(
             state,
             active_role=role,
-            phase=phase,  # type: ignore[arg-type]
+            phase=phase,
             active_player=player,
             players_acted=frozenset(),
             captain_passes=0,
@@ -429,12 +440,17 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 ),
             )
         elif role == "mayor":
+            has_extra = state.colonist_supply > 0
             state = distribute_colonists(state, player)
             events.append(
                 Event(
                     "colonists_distributed",
                     "Colonists from the ship are distributed; "
-                    f"{seat_label(player)} takes the extra colonist.",
+                    + (
+                        f"{seat_label(player)} takes the extra colonist."
+                        if has_extra
+                        else "the supply is empty, so there is no extra colonist."
+                    ),
                     {"player": player},
                 )
             )
@@ -461,6 +477,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         self, state: PuertoRicoState, player: PlayerId, action: Action
     ) -> Transition[PuertoRicoState]:
         owner = state.players[player]
+        events: list[Event] = []
         if isinstance(action, UseHacienda):
             if not state.plantation_deck:
                 deck, rng = state.rng.shuffled(state.plantation_discard)
@@ -469,6 +486,13 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                     plantation_deck=deck,
                     plantation_discard=(),
                     rng=rng,
+                )
+                events.append(
+                    Event(
+                        "plantation_discard_reshuffled",
+                        "The plantation discard pile was shuffled into a new deck.",
+                        {"cards": len(deck)},
+                    )
                 )
             good = state.plantation_deck[0]
             state = replace(
@@ -484,19 +508,20 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                     hacienda_used=True,
                 ),
             )
-            event = Event(
-                "hacienda_plantation",
-                f"{seat_label(player)} drew a {good} plantation.",
-                {"player": player, "good": good},
+            events.append(
+                Event(
+                    "hacienda_plantation",
+                    f"{seat_label(player)} drew a {good} plantation.",
+                    {"player": player, "good": good},
+                )
             )
-            return Transition(state, (event,))
+            return Transition(state, tuple(events))
         if isinstance(action, TakePlantation):
             face_up = list(state.face_up)
             face_up.remove(action.good)
             colonized = False
-            if owns_active(owner, "hospice") and state.colonist_supply > 0:
-                colonized = True
-                state = replace(state, colonist_supply=state.colonist_supply - 1)
+            if owner.active("hospice") and action.use_hospice:
+                state, colonized = take_colonist(state)
             state = replace_player(
                 state,
                 player,
@@ -519,28 +544,44 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                     "colonized": colonized,
                 },
             )
-            state = self.mark_acted(state, player)
-            return Transition(state, (event,))
+            state, advanced = self.mark_acted(state, player)
+            return Transition(state, (event, *advanced))
         if isinstance(action, TakeQuarry):
+            colonized = False
+            if owner.active("hospice") and action.use_hospice:
+                state, colonized = take_colonist(state)
             state = replace_player(
-                state, player, replace(owner, quarries=owner.quarries + 1)
+                state,
+                player,
+                replace(
+                    state.players[player],
+                    quarries=state.players[player].quarries + 1,
+                    occupied_quarries=(
+                        state.players[player].occupied_quarries
+                        + (1 if colonized else 0)
+                    ),
+                ),
             )
             state = replace(state, quarry_supply=state.quarry_supply - 1)
+            data: dict[str, JsonValue] = {"player": player}
+            if colonized:
+                data["colonized"] = True
             event = Event(
                 "quarry_taken",
-                f"{seat_label(player)} took a quarry.",
-                {"player": player},
+                f"{seat_label(player)} took a quarry"
+                + (" and colonized it with the Hospice." if colonized else "."),
+                data,
             )
-            state = self.mark_acted(state, player)
-            return Transition(state, (event,))
+            state, advanced = self.mark_acted(state, player)
+            return Transition(state, (event, *advanced))
         if isinstance(action, Pass):
-            state = self.mark_acted(state, player)
+            state, advanced = self.mark_acted(state, player)
             event = Event(
                 "settler_passed",
                 f"{seat_label(player)} took no plantation.",
                 {"player": player},
             )
-            return Transition(state, (event,))
+            return Transition(state, (event, *advanced))
         raise IllegalActionError("only plantation, quarry or pass actions are legal")
 
     # Mayor ----------------------------------------------------------------
@@ -569,13 +610,13 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             )
             return Transition(state, (event,))
         if isinstance(action, FinishPlacement):
-            state = self.mark_acted(state, player)
+            state, advanced = self.mark_acted(state, player)
             event = Event(
                 "mayor_finished",
                 f"{seat_label(player)} finished placing colonists.",
                 {"player": player},
             )
-            return Transition(state, (event,))
+            return Transition(state, (event, *advanced))
         raise IllegalActionError(
             "only colonist placements, pickups or finish are legal"
         )
@@ -608,37 +649,34 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                     {"player": player, "building": name, "cost": cost},
                 )
             ]
-            if (
-                owns_active(owner, "university")
-                and state.colonist_supply > 0
-                and BUILDINGS[name].max_colonists > 0
-            ):
-                new_buildings = list(state.players[player].buildings)
-                index = len(new_buildings) - 1
-                new_buildings[index] = replace(new_buildings[index], colonists=1)
-                state = replace_player(
-                    state,
-                    player,
-                    replace(state.players[player], buildings=tuple(new_buildings)),
-                )
-                state = replace(state, colonist_supply=state.colonist_supply - 1)
-                events.append(
-                    Event(
-                        "university_colonist",
-                        f"The University placed a colonist on {name}.",
-                        {"player": player, "building": name},
+            if owner.active("university") and action.use_university:
+                state, colonized = take_colonist(state)
+                if colonized:
+                    new_buildings = list(state.players[player].buildings)
+                    index = len(new_buildings) - 1
+                    new_buildings[index] = replace(new_buildings[index], colonists=1)
+                    state = replace_player(
+                        state,
+                        player,
+                        replace(state.players[player], buildings=tuple(new_buildings)),
                     )
-                )
-            state = self.mark_acted(state, player)
-            return Transition(state, tuple(events))
+                    events.append(
+                        Event(
+                            "university_colonist",
+                            f"The University placed a colonist on {name}.",
+                            {"player": player, "building": name},
+                        )
+                    )
+            state, advanced = self.mark_acted(state, player)
+            return Transition(state, (*events, *advanced))
         if isinstance(action, Pass):
-            state = self.mark_acted(state, player)
+            state, advanced = self.mark_acted(state, player)
             event = Event(
                 "builder_passed",
                 f"{seat_label(player)} built nothing.",
                 {"player": player},
             )
-            return Transition(state, (event,))
+            return Transition(state, (event, *advanced))
         raise IllegalActionError("only build or pass actions are legal")
 
     # Craftsman ------------------------------------------------------------
@@ -675,7 +713,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             )
         else:
             raise IllegalActionError("only a privilege good or pass is legal")
-        state = self.advance_role_picker(
+        state = _advance_role_picker(
             replace(
                 state,
                 active_role=None,
@@ -706,16 +744,16 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 f"{seat_label(player)} sold a {good} for {price} doubloons.",
                 {"player": player, "good": good, "price": price},
             )
-            state = self.mark_acted(state, player)
-            return Transition(state, (event,))
+            state, advanced = self.mark_acted(state, player)
+            return Transition(state, (event, *advanced))
         if isinstance(action, Pass):
-            state = self.mark_acted(state, player)
+            state, advanced = self.mark_acted(state, player)
             event = Event(
                 "trader_passed",
                 f"{seat_label(player)} sold nothing.",
                 {"player": player},
             )
-            return Transition(state, (event,))
+            return Transition(state, (event, *advanced))
         raise IllegalActionError("only sell or pass actions are legal")
 
     # Captain --------------------------------------------------------------
@@ -732,13 +770,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 owner,
                 goods=goods_remove(owner.goods, good, quantity),
             )
-            first_load = False
-            if (
-                role_chooser(state, "captain") == player
-                and not owner.captain_first_load_done
-            ):
-                first_load = True
-                owner = replace(owner, captain_first_load_done=True)
+            first_load, owner = captain_first_load(state, player, owner)
             points = ship_victory_points(state, player, quantity)
             owner = replace(owner, vp_chips=owner.vp_chips + points)
             new_ship = replace(ship, good=good, filled=ship.filled + quantity)
@@ -769,13 +801,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             owner = replace(
                 owner, goods=goods_set(owner.goods, good, 0), wharf_used=True
             )
-            first_load = False
-            if (
-                role_chooser(state, "captain") == player
-                and not owner.captain_first_load_done
-            ):
-                first_load = True
-                owner = replace(owner, captain_first_load_done=True)
+            first_load, owner = captain_first_load(state, player, owner)
             points = ship_victory_points(state, player, quantity)
             owner = replace(owner, vp_chips=owner.vp_chips + points)
             state = replace_player(state, player, owner)
@@ -822,9 +848,9 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             count = goods_get(owner.goods, good)
             if good in action.protected:
                 keep[index] = count
-            else:
+            elif action.legacy or good == action.keep:
                 keep[index] = min(1, count)
-                discard[index] = max(0, count - 1)
+            discard[index] = count - keep[index]
         state = replace_player(
             state, player, replace(owner, goods=cast(Goods, tuple(keep)))
         )
@@ -832,44 +858,34 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             state,
             goods_supply=goods_plus(state.goods_supply, cast(Goods, tuple(discard))),
         )
+        data: dict[str, JsonValue] = {
+            "player": player,
+            "protected": list(action.protected),
+            "kept": [count for count in keep],
+        }
+        if not action.legacy:
+            data["keep"] = action.keep
         event = Event(
             "goods_discarded",
             f"{seat_label(player)} kept goods after shipping.",
-            {
-                "player": player,
-                "protected": list(action.protected),
-                "kept": [count for count in keep],
-            },
+            data,
         )
         state = advance_discard(state, player)
         return Transition(state, (event,))
 
     # Phase plumbing -------------------------------------------------------
 
-    def mark_acted(self, state: PuertoRicoState, player: PlayerId) -> PuertoRicoState:
+    def mark_acted(
+        self, state: PuertoRicoState, player: PlayerId
+    ) -> tuple[PuertoRicoState, tuple[Event, ...]]:
         acted = state.players_acted | {player}
         if len(acted) >= len(state.order):
-            return finish_standard_phase(replace(state, players_acted=acted))
+            return _finish_standard_phase(replace(state, players_acted=acted))
         next_player = next_unacted(replace(state, players_acted=acted), player)
-        return replace(
-            state,
-            players_acted=acted,
-            active_player=(
-                next_player if next_player is not None else state.active_player
-            ),
-        )
-
-    def advance_role_picker(self, state: PuertoRicoState) -> PuertoRicoState:
-        next_picker = next_role_picker(state)
-        if next_picker is None:
-            return end_round(state)
-        return replace(
-            state,
-            phase="role_selection",
-            active_role=None,
-            active_player=next_picker,
-            players_acted=frozenset(),
-            captain_passes=0,
+        assert next_player is not None
+        return (
+            replace(state, players_acted=acted, active_player=next_player),
+            (),
         )
 
 
@@ -898,6 +914,36 @@ def starting_plantations(num_players: int) -> tuple[Good, ...]:
     return tuple(
         "indigo" if index < indigo_count else "corn" for index in range(num_players)
     )
+
+
+def captain_first_load(
+    state: PuertoRicoState, player: PlayerId, owner: PlayerState
+) -> tuple[bool, PlayerState]:
+    """Mark and report the Captain chooser's first shipment of the phase."""
+    if role_chooser(state, "captain") == player and not owner.captain_first_load_done:
+        return True, replace(owner, captain_first_load_done=True)
+    return False, owner
+
+
+def can_take_quarry(
+    state: PuertoRicoState, player: PlayerId, owner: PlayerState
+) -> bool:
+    """Whether the Settler privilege or a Construction Hut allows a quarry."""
+    return role_chooser(state, "settler") == player or owner.active("construction_hut")
+
+
+def can_take_colonist(state: PuertoRicoState) -> bool:
+    """Whether the supply or the ship can provide a bonus colonist."""
+    return state.colonist_supply + state.colonist_ship > 0
+
+
+def take_colonist(state: PuertoRicoState) -> tuple[PuertoRicoState, bool]:
+    """Take one colonist from the supply, or from the ship when it is empty."""
+    if state.colonist_supply > 0:
+        return replace(state, colonist_supply=state.colonist_supply - 1), True
+    if state.colonist_ship > 0:
+        return replace(state, colonist_ship=state.colonist_ship - 1), True
+    return state, False
 
 
 def distribute_colonists(state: PuertoRicoState, picker: PlayerId) -> PuertoRicoState:
@@ -987,38 +1033,86 @@ def run_production(
     return state, tuple(events)
 
 
-def finish_standard_phase(state: PuertoRicoState) -> PuertoRicoState:
-    """Clean up after Settler, Mayor, Builder or Trader, then advance."""
+def _finish_standard_phase(
+    state: PuertoRicoState,
+) -> tuple[PuertoRicoState, tuple[Event, ...]]:
     role = state.active_role
     if role == "settler":
-        face_up_count = len(state.order) + 1
-        discard = (*state.plantation_discard, *state.face_up)
-        deck = state.plantation_deck
-        rng = state.rng
-        drawn = deck[:face_up_count]
-        deck = deck[len(drawn) :]
-        if len(drawn) < face_up_count:
-            shuffled, rng = rng.shuffled(discard)
-            needed = face_up_count - len(drawn)
-            drawn = (*drawn, *shuffled[:needed])
-            deck = shuffled[needed:]
-            discard = ()
-        state = replace(
-            state,
-            face_up=drawn,
-            plantation_deck=deck,
-            plantation_discard=discard,
-            rng=rng,
-        )
+        state, events = _finish_settler(state)
     elif role == "mayor":
-        state = refill_colonist_ship(state)
+        state, events = _finish_mayor(state)
     elif role == "trader":
-        if len(state.trading_house) >= TRADING_HOUSE_SPACES:
-            supply = goods_plus(
-                state.goods_supply, goods_from_list(list(state.trading_house))
+        state, events = _finish_trader(state)
+    else:
+        events = ()
+    return _advance_role_picker(state), events
+
+
+def _finish_settler(
+    state: PuertoRicoState,
+) -> tuple[PuertoRicoState, tuple[Event, ...]]:
+    face_up_count = len(state.order) + 1
+    discard = (*state.plantation_discard, *state.face_up)
+    deck = state.plantation_deck
+    rng = state.rng
+    drawn = deck[:face_up_count]
+    deck = deck[len(drawn) :]
+    reshuffled = False
+    if len(drawn) < face_up_count:
+        shuffled, rng = rng.shuffled(discard)
+        needed = face_up_count - len(drawn)
+        drawn = (*drawn, *shuffled[:needed])
+        deck = shuffled[needed:]
+        discard = ()
+        reshuffled = True
+    events = [
+        Event(
+            "face_up_refilled",
+            "The face-up plantations were replenished: " + ", ".join(drawn) + ".",
+            {"drawn": list(drawn), "reshuffled": reshuffled},
+        )
+    ]
+    if reshuffled:
+        events.append(
+            Event(
+                "plantation_discard_reshuffled",
+                "The plantation discard pile was shuffled into a new deck.",
+                {"cards": len(shuffled)},
             )
-            state = replace(state, trading_house=(), goods_supply=supply)
-    return _advance_role_picker(state)
+        )
+    state = replace(
+        state,
+        face_up=drawn,
+        plantation_deck=deck,
+        plantation_discard=discard,
+        rng=rng,
+    )
+    return state, tuple(events)
+
+
+def _finish_mayor(
+    state: PuertoRicoState,
+) -> tuple[PuertoRicoState, tuple[Event, ...]]:
+    state = refill_colonist_ship(state)
+    if not state.colonist_shortage:
+        return state, ()
+    return state, (
+        Event(
+            "colonist_shortage",
+            "The colonist supply cannot refill the ship; the game will "
+            "end at the end of this round.",
+            {"ship": state.colonist_ship},
+        ),
+    )
+
+
+def _finish_trader(
+    state: PuertoRicoState,
+) -> tuple[PuertoRicoState, tuple[Event, ...]]:
+    if len(state.trading_house) < TRADING_HOUSE_SPACES:
+        return state, ()
+    supply = goods_plus(state.goods_supply, goods_from_list(list(state.trading_house)))
+    return replace(state, trading_house=(), goods_supply=supply), ()
 
 
 def _advance_role_picker(state: PuertoRicoState) -> PuertoRicoState:
@@ -1048,6 +1142,7 @@ def refill_colonist_ship(state: PuertoRicoState) -> PuertoRicoState:
         state,
         colonist_ship=refill,
         colonist_supply=state.colonist_supply - refill,
+        colonist_shortage=refill < needed,
     )
 
 
@@ -1082,7 +1177,7 @@ def check_end_game(state: PuertoRicoState) -> PuertoRicoState:
     reason: str | None = None
     if state.vp_supply <= 0:
         reason = "victory point supply exhausted"
-    elif state.colonist_supply == 0:
+    elif state.colonist_shortage:
         reason = "colonist supply exhausted"
     elif any(city_spaces_used(player) >= MAX_CITY_SPACES for player in state.players):
         reason = "a player's city is full"
@@ -1329,22 +1424,24 @@ def settler_actions(
     space = island_spaces_used(owner) < MAX_ISLAND_SPACES
     if (
         space
-        and owns_active(owner, "hacienda")
+        and owner.active("hacienda")
         and not owner.hacienda_used
         and (state.plantation_deck or state.plantation_discard)
     ):
         actions.append(UseHacienda())
     if space:
+        hospice = owner.active("hospice") and can_take_colonist(state)
         seen: set[Good] = set()
         for good in state.face_up:
             if good not in seen:
                 seen.add(good)
                 actions.append(TakePlantation(good))
-        can_quarry = role_chooser(state, "settler") == player or owns_active(
-            owner, "construction_hut"
-        )
-        if can_quarry and state.quarry_supply > 0:
+                if hospice:
+                    actions.append(TakePlantation(good, use_hospice=False))
+        if can_take_quarry(state, player, owner) and state.quarry_supply > 0:
             actions.append(TakeQuarry())
+            if hospice:
+                actions.append(TakeQuarry(use_hospice=False))
     actions.append(Pass())
     return actions
 
@@ -1378,7 +1475,13 @@ def mayor_actions(owner: PlayerState) -> list[Action]:
 
 
 def builder_actions(state: PuertoRicoState, player: PlayerId) -> list[Action]:
-    actions: list[Action] = [Build(name) for name in available_to_build(state, player)]
+    owner = state.players[player]
+    university = owner.active("university") and can_take_colonist(state)
+    actions: list[Action] = []
+    for name in available_to_build(state, player):
+        actions.append(Build(name))
+        if university:
+            actions.append(Build(name, use_university=False))
     actions.append(Pass())
     return actions
 
@@ -1399,7 +1502,7 @@ def trader_actions(state: PuertoRicoState, owner: PlayerState) -> list[Action]:
         for good in GOODS:
             if goods_get(owner.goods, good) <= 0:
                 continue
-            if good in state.trading_house and not owns_active(owner, "office"):
+            if good in state.trading_house and not owner.active("office"):
                 continue
             actions.append(Sell(good))
     actions.append(Pass())
@@ -1425,14 +1528,20 @@ def captain_actions(
 def discard_actions(owner: PlayerState) -> list[Action]:
     held = [good for good in GOODS if goods_get(owner.goods, good) > 0]
     max_protected = 0
-    if owns_active(owner, "small_warehouse"):
+    if owner.active("small_warehouse"):
         max_protected += 1
-    if owns_active(owner, "large_warehouse"):
+    if owner.active("large_warehouse"):
         max_protected += 2
     actions: list[Action] = []
     for size in range(max_protected + 1):
         for combination in combinations(held, size):
-            actions.append(DiscardGoods(tuple(combination)))
+            protected = set(combination)
+            keepable: list[Good | None] = [
+                None,
+                *(good for good in held if good not in protected),
+            ]
+            for keep in keepable:
+                actions.append(DiscardGoods(tuple(combination), keep))
     return actions
 
 
@@ -1461,8 +1570,22 @@ def default_action(state: PuertoRicoState, actions: list[Action]) -> Action | No
     if state.phase == "mayor_action":
         return FinishPlacement() if FinishPlacement() in actions else None
     if state.phase == "captain_discard":
-        return DiscardGoods() if DiscardGoods() in actions else None
+        discards = [action for action in actions if isinstance(action, DiscardGoods)]
+        if not discards:
+            return None
+        return max(
+            discards,
+            key=lambda action: kept_goods(state.players[state.active_player], action),
+        )
     return None
+
+
+def kept_goods(owner: PlayerState, action: DiscardGoods) -> int:
+    """How many cards a discard choice keeps, for the fallback choice."""
+    total = sum(goods_get(owner.goods, good) for good in action.protected)
+    if action.keep is not None:
+        total += min(1, goods_get(owner.goods, action.keep))
+    return total
 
 
 def decision_kind(phase: str) -> str:
@@ -1503,7 +1626,11 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
     phase = state.phase
     if phase == "role_selection":
         if isinstance(action, SelectRole):
-            entry = role_state(state, action.role)
+            entry = next(
+                (item for item in state.roles if item.role == action.role), None
+            )
+            if entry is None:
+                return f"There is no {action.role} role in this game."
             if entry.taken_by is not None:
                 return f"{action.role} was already chosen this round."
         return "Choose a role that nobody has taken this round."
@@ -1515,14 +1642,17 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
             if island_spaces_used(owner) >= MAX_ISLAND_SPACES:
                 return "Your island is full."
         if isinstance(action, TakeQuarry):
+            if island_spaces_used(owner) >= MAX_ISLAND_SPACES:
+                return "Your island is full."
             if state.quarry_supply <= 0:
                 return "No quarries remain."
-            return (
-                "You may take a quarry only with the Settler privilege "
-                "or a Construction Hut."
-            )
+            if not can_take_quarry(state, player, owner):
+                return (
+                    "You may take a quarry only with the Settler privilege "
+                    "or a Construction Hut."
+                )
         if isinstance(action, UseHacienda):
-            if not owns_active(owner, "hacienda"):
+            if not owner.active("hacienda"):
                 return "You have no active Hacienda."
             if owner.hacienda_used:
                 return "Your Hacienda was already used this Settler phase."
@@ -1557,7 +1687,7 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
                 return f"You have no {action.good}."
             if len(state.trading_house) >= TRADING_HOUSE_SPACES:
                 return "The trading house is full."
-            if action.good in state.trading_house and not owns_active(owner, "office"):
+            if action.good in state.trading_house and not owner.active("office"):
                 return (
                     f"The trading house already holds {action.good}; "
                     "you need an Office."
@@ -1578,5 +1708,20 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
             return "You must load goods if you can."
         return "Load goods on a ship or Wharf, or pass if you cannot."
     if phase == "captain_discard":
-        return "Choose the goods your warehouses protect."
+        if isinstance(action, DiscardGoods):
+            owner = state.players[player]
+            if action.keep is not None and goods_get(owner.goods, action.keep) <= 0:
+                return f"You have no {action.keep}."
+            for good in action.protected:
+                if goods_get(owner.goods, good) <= 0:
+                    return f"You have no {good}."
+            if action.keep is not None and action.keep in action.protected:
+                return "That good is already protected by a warehouse."
+            protected_limit = (1 if owner.active("small_warehouse") else 0) + (
+                2 if owner.active("large_warehouse") else 0
+            )
+            if len(action.protected) > protected_limit:
+                return "Your warehouses cannot protect that many types."
+            return "Choose one good to keep plus the types your warehouses protect."
+        return "Choose goods to keep after shipping."
     return "That action is not legal now."

@@ -16,7 +16,6 @@ from boardgames.games.puerto_rico.constants import (
     LARGE_PRODUCTION_NAMES,
     MAX_CITY_SPACES,
     PRODUCTION_NAMES,
-    BuildingSpec,
     Good,
     Role,
 )
@@ -54,11 +53,7 @@ type Action = (
 
 @dataclass(frozen=True)
 class PuertoRicoConfig:
-    """Standard Puerto Rico for 3, 4 or 5 players.
-
-    `victory_point_supply` 0 uses the standard supply (75/100/122).
-    `max_rounds` 0 means no round limit.
-    """
+    """Standard Puerto Rico; 0 picks the standard supply or removes the round limit."""
 
     num_players: int = 4
     victory_point_supply: int = 0
@@ -84,10 +79,6 @@ class OwnedBuilding:
     def active(self) -> bool:
         """A building works while at least one colonist occupies it."""
         return self.colonists > 0
-
-    @property
-    def spec(self) -> BuildingSpec:
-        return BUILDINGS[self.name]
 
 
 @dataclass(frozen=True)
@@ -136,10 +127,6 @@ class PlayerState:
     wharf_used: bool = False
     hacienda_used: bool = False
 
-    @property
-    def active_quarries(self) -> int:
-        return self.occupied_quarries
-
     def owns(self, name: str) -> bool:
         return any(building.name == name for building in self.buildings)
 
@@ -147,9 +134,6 @@ class PlayerState:
         return any(
             building.name == name and building.active for building in self.buildings
         )
-
-    def building(self, name: str) -> OwnedBuilding | None:
-        return next((b for b in self.buildings if b.name == name), None)
 
 
 @dataclass(frozen=True)
@@ -179,6 +163,7 @@ class PuertoRicoState:
     vp_supply: int
     players_acted: frozenset[PlayerId]
     captain_passes: int
+    colonist_shortage: bool
     end_reason: str | None
     winner: PlayerId | None
 
@@ -195,14 +180,17 @@ class SelectRole:
 
 @dataclass(frozen=True)
 class TakePlantation:
-    """Take one face-up plantation during the Settler action."""
+    """Take one face-up plantation, optionally declining the Hospice colonist."""
 
     good: Good
+    use_hospice: bool = True
 
 
 @dataclass(frozen=True)
 class TakeQuarry:
-    """Take a quarry instead of a plantation (privilege or Construction Hut)."""
+    """Take a quarry, optionally declining the Hospice colonist."""
+
+    use_hospice: bool = True
 
 
 @dataclass(frozen=True)
@@ -217,9 +205,10 @@ class Pass:
 
 @dataclass(frozen=True)
 class Build:
-    """Build a building during the Builder action."""
+    """Build a building, optionally declining the University colonist."""
 
     building: str
+    use_university: bool = True
 
 
 @dataclass(frozen=True)
@@ -274,9 +263,11 @@ class FinishPlacement:
 
 @dataclass(frozen=True)
 class DiscardGoods:
-    """Keep goods after the Captain action; unprotected goods are discarded."""
+    """Keep one good plus the warehouse-protected types after shipping."""
 
     protected: tuple[Good, ...] = ()
+    keep: Good | None = None
+    legacy: bool = False
 
 
 # Goods helpers ------------------------------------------------------------
@@ -310,16 +301,9 @@ def goods_remove(goods: Goods, good: Good, amount: int) -> Goods:
 
 def goods_from(**counts: int) -> Goods:
     result = list(empty_goods())
-    for good, count in counts.items():
-        result[GOOD_INDEX[good]] = count  # type: ignore[index]
-    return tuple(result)  # type: ignore[return-value]
-
-
-def goods_to_list(goods: Goods) -> list[Good]:
-    """The goods expanded one per unit, in fixed order."""
-    return [
-        good for good, count in zip(GOODS, goods, strict=True) for _ in range(count)
-    ]
+    for raw_good, count in counts.items():
+        result[GOOD_INDEX[cast(Good, raw_good)]] = count
+    return cast(Goods, tuple(result))
 
 
 def goods_to_json(goods: Goods) -> list[int]:
@@ -330,15 +314,15 @@ def goods_from_list(goods: list[Good]) -> Goods:
     result = list(empty_goods())
     for good in goods:
         result[GOOD_INDEX[good]] += 1
-    return tuple(result)  # type: ignore[return-value]
+    return cast(Goods, tuple(result))
 
 
 def goods_plus(first: Goods, second: Goods) -> Goods:
-    return tuple(a + b for a, b in zip(first, second, strict=True))  # type: ignore[return-value]
+    return cast(Goods, tuple(a + b for a, b in zip(first, second, strict=True)))
 
 
 def goods_minus(first: Goods, second: Goods) -> Goods:
-    return tuple(a - b for a, b in zip(first, second, strict=True))  # type: ignore[return-value]
+    return cast(Goods, tuple(a - b for a, b in zip(first, second, strict=True)))
 
 
 def goods_json_map(goods: Goods) -> dict[str, int]:
@@ -376,14 +360,6 @@ def role_chooser(state: PuertoRicoState, role: Role) -> PlayerId | None:
     return role_state(state, role).taken_by
 
 
-def active_buildings(player: PlayerState) -> tuple[OwnedBuilding, ...]:
-    return tuple(building for building in player.buildings if building.active)
-
-
-def owns_active(player: PlayerState, name: str) -> bool:
-    return player.active(name)
-
-
 def city_spaces_used(player: PlayerState) -> int:
     """City board spaces filled; large violet buildings take two."""
     return sum(BUILDINGS[building.name].city_spaces for building in player.buildings)
@@ -399,11 +375,7 @@ def occupied_island_spaces(player: PlayerState) -> int:
 
 
 def production(player: PlayerState) -> Goods:
-    """Goods this player's island would produce if the Craftsman is chosen.
-
-    Each active production building needs matching occupied plantations. Corn
-    needs no building: every occupied corn plantation produces one corn.
-    """
+    """What the island produces, using matching plantations for each building."""
     counts = [0, 0, 0, 0, 0]
     available: dict[Good, int] = {good: 0 for good in GOODS}
     for plantation in player.plantations:
@@ -421,12 +393,12 @@ def production(player: PlayerState) -> Goods:
         amount = min(building.colonists, available[good])
         counts[GOOD_INDEX[good]] += amount
         available[good] -= amount
-    return tuple(counts)  # type: ignore[return-value]
+    return cast(Goods, tuple(counts))
 
 
 def factory_bonus_for_produced(player: PlayerState, produced: Goods) -> int:
     """Doubloons from the Factory for the goods types actually produced."""
-    if not owns_active(player, "factory"):
+    if not player.active("factory"):
         return 0
     types = sum(1 for count in produced if count > 0)
     return {0: 0, 1: 0, 2: 1, 3: 2, 4: 3, 5: 5}[types]
@@ -445,8 +417,8 @@ def end_game_bonus(player: PlayerState) -> int:
                 if other.name in PRODUCTION_NAMES
             )
         elif building.name == "residence":
-            occupied = occupied_island_spaces(player)
-            bonus += 4 + max(0, occupied - 9)
+            placed = island_spaces_used(player)
+            bonus += 4 + max(0, placed - 9)
         elif building.name == "fortress":
             colonists = (
                 sum(1 for plantation in player.plantations if plantation.colonized)
@@ -475,9 +447,7 @@ def total_points(player: PlayerState) -> int:
 
 
 def public_points(player: PlayerState) -> int:
-    """Points others can see: buildings and bonuses, without hidden VP chips.
-
-    The Customs House bonus counts chips, so it stays hidden as well."""
+    """Points others can see, leaving out chips and the Customs House bonus."""
     customs = player.vp_chips // 4 if player.active("customs_house") else 0
     return building_points(player) + end_game_bonus(player) - customs
 
@@ -518,17 +488,22 @@ def can_ship(state: PuertoRicoState, player: PlayerId, good: Good) -> tuple[int,
     if assigned is not None:
         ship = state.cargo_ships[assigned]
         return (assigned,) if not ship.full else ()
-    return tuple(index for index, ship in enumerate(state.cargo_ships) if ship.empty)
+    held = goods_get(owner.goods, good)
+    empty = [index for index, ship in enumerate(state.cargo_ships) if ship.empty]
+    if not empty:
+        return ()
+    most = max(min(held, state.cargo_ships[index].remaining) for index in empty)
+    return tuple(
+        index
+        for index in empty
+        if min(held, state.cargo_ships[index].remaining) == most
+    )
 
 
 def can_load_anything(state: PuertoRicoState, player: PlayerId) -> bool:
     """Whether the player has any legal Captain load, including a Wharf."""
     owner = state.players[player]
-    if (
-        owns_active(owner, "wharf")
-        and not owner.wharf_used
-        and goods_total(owner.goods)
-    ):
+    if owner.active("wharf") and not owner.wharf_used and goods_total(owner.goods):
         return True
     return any(
         goods_get(owner.goods, good) > 0 and can_ship(state, player, good)
@@ -539,7 +514,7 @@ def can_load_anything(state: PuertoRicoState, player: PlayerId) -> bool:
 def wharf_goods(state: PuertoRicoState, player: PlayerId) -> tuple[Good, ...]:
     """Good types a player may load on their active, unused Wharf."""
     owner = state.players[player]
-    if not owns_active(owner, "wharf") or owner.wharf_used:
+    if not owner.active("wharf") or owner.wharf_used:
         return ()
     return tuple(good for good in GOODS if goods_get(owner.goods, good) > 0)
 
@@ -548,7 +523,7 @@ def build_cost(state: PuertoRicoState, player: PlayerId, name: str) -> int:
     """Effective cost after active quarries and the Builder privilege."""
     spec = BUILDINGS[name]
     owner = state.players[player]
-    discount = min(owner.active_quarries, spec.victory_points)
+    discount = min(owner.occupied_quarries, spec.victory_points)
     if role_chooser(state, "builder") == player:
         discount += 1
     return max(0, spec.cost - discount)

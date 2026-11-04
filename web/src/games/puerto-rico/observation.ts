@@ -49,6 +49,7 @@ export const observationSchema = z.object({
   roles: z.array(z.object({ role: z.string(), doubloons: z.number(), taken_by: z.number().nullable() })),
   colonist_ship: z.number(),
   colonist_supply: z.number(),
+  colonist_shortage: z.boolean(),
   vp_supply: z.number(),
   quarry_supply: z.number(),
   plantation_deck_count: z.number(),

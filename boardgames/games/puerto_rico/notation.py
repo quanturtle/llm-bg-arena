@@ -1,9 +1,16 @@
 """Text notation for Puerto Rico actions: one canonical form, strict parsing."""
 
 import re
+from typing import Literal, cast
 
 from boardgames.core import NotationError
-from boardgames.games.puerto_rico.constants import BUILDINGS, GOODS, Role
+from boardgames.games.puerto_rico.constants import (
+    BUILDINGS,
+    GOODS,
+    ROLE_NAMES,
+    Good,
+    Role,
+)
 from boardgames.games.puerto_rico.model import (
     Action,
     Build,
@@ -23,25 +30,19 @@ from boardgames.games.puerto_rico.model import (
 )
 
 GOOD_TEXT = r"(corn|indigo|sugar|tobacco|coffee)"
-ROLE_TEXT = r"(settler|mayor|builder|craftsman|trader|captain|prospector_2|prospector)"
+ROLE_TEXT = "(" + "|".join(sorted(ROLE_NAMES, key=len, reverse=True)) + ")"
 INDEX_TEXT = r"(0|[1-9][0-9]*)"
 SHIP_TEXT = r"([1-3])"
 
 ROLE_PATTERN = re.compile(rf"role {ROLE_TEXT}")
-PLANTATION_PATTERN = re.compile(rf"take {GOOD_TEXT}")
-QUARRY_PATTERN = re.compile(r"take quarry")
-HACIENDA_PATTERN = re.compile(r"hacienda")
-PASS_PATTERN = re.compile(r"pass")
-BUILD_PATTERN = re.compile(r"build ([a-z_]+)")
+PLANTATION_PATTERN = re.compile(rf"take {GOOD_TEXT}( nohospice)?")
+BUILD_PATTERN = re.compile(r"build ([a-z_]+)( nouniversity)?")
 PRIVILEGE_PATTERN = re.compile(rf"privilege {GOOD_TEXT}")
 SELL_PATTERN = re.compile(rf"sell {GOOD_TEXT}")
 SHIP_PATTERN = re.compile(rf"ship {GOOD_TEXT} s{SHIP_TEXT}")
 WHARF_PATTERN = re.compile(rf"wharf {GOOD_TEXT}")
 PLACE_PATTERN = re.compile(rf"place (plantation|building) {INDEX_TEXT}")
-PLACE_QUARRY_PATTERN = re.compile(r"place quarry")
 PICK_PATTERN = re.compile(rf"pick (plantation|building) {INDEX_TEXT}")
-PICK_QUARRY_PATTERN = re.compile(r"pick quarry")
-FINISH_PATTERN = re.compile(r"finish")
 DISCARD_PATTERN = re.compile(r"discard(?: (.+))?")
 
 
@@ -50,16 +51,16 @@ def format_action(action: Action) -> str:
     match action:
         case SelectRole(role=role):
             return f"role {role}"
-        case TakePlantation(good=good):
-            return f"take {good}"
-        case TakeQuarry():
-            return "take quarry"
+        case TakePlantation(good=good, use_hospice=use_hospice):
+            return f"take {good}" + ("" if use_hospice else " nohospice")
+        case TakeQuarry(use_hospice=use_hospice):
+            return "take quarry" + ("" if use_hospice else " nohospice")
         case UseHacienda():
             return "hacienda"
         case Pass():
             return "pass"
-        case Build(building=building):
-            return f"build {building}"
+        case Build(building=building, use_university=use_university):
+            return f"build {building}" + ("" if use_university else " nouniversity")
         case ProducePrivilege(good=good):
             return f"privilege {good}"
         case Sell(good=good):
@@ -78,15 +79,25 @@ def format_action(action: Action) -> str:
             return f"pick {target} {index}"
         case FinishPlacement():
             return "finish"
-        case DiscardGoods(protected=protected):
-            return "discard" if not protected else f"discard {' '.join(protected)}"
+        case DiscardGoods(protected=protected, keep=keep, legacy=legacy):
+            if legacy:
+                return "discard" if not protected else f"discard {' '.join(protected)}"
+            parts: list[str] = list(protected)
+            parts.append("keep" if keep is not None else "none")
+            if keep is not None:
+                parts.append(keep)
+            return f"discard {' '.join(parts)}"
     raise TypeError(f"unknown Puerto Rico action {action!r}")
 
 
 def parse_action(text: str) -> Action:
     """Strict parse of notation; syntax only, legality is checked separately."""
+    if text != text.strip() or "  " in text:
+        raise NotationError(f"{text!r} is not canonical Puerto Rico notation")
     if text == "take quarry":
         return TakeQuarry()
+    if text == "take quarry nohospice":
+        return TakeQuarry(use_hospice=False)
     if text == "hacienda":
         return UseHacienda()
     if text == "pass":
@@ -99,56 +110,65 @@ def parse_action(text: str) -> Action:
         return FinishPlacement()
 
     if match := ROLE_PATTERN.fullmatch(text):
-        role = match.group(1)
-        if role not in ROLE_NAMES:
-            raise NotationError(f"{text!r} is not a Puerto Rico role")
-        return SelectRole(role)
+        return SelectRole(cast(Role, match.group(1)))
     if match := PLANTATION_PATTERN.fullmatch(text):
-        return TakePlantation(match.group(1))  # type: ignore[arg-type]
+        return TakePlantation(
+            _good(match.group(1)),
+            use_hospice=match.group(2) is None,
+        )
     if match := BUILD_PATTERN.fullmatch(text):
         name = match.group(1)
         if name not in BUILDINGS:
             raise NotationError(f"{text!r} does not name a building")
-        return Build(name)
+        return Build(name, use_university=match.group(2) is None)
     if match := PRIVILEGE_PATTERN.fullmatch(text):
-        return ProducePrivilege(match.group(1))  # type: ignore[arg-type]
+        return ProducePrivilege(_good(match.group(1)))
     if match := SELL_PATTERN.fullmatch(text):
-        return Sell(match.group(1))  # type: ignore[arg-type]
+        return Sell(_good(match.group(1)))
     if match := SHIP_PATTERN.fullmatch(text):
-        return LoadShip(match.group(1), int(match.group(2)) - 1)  # type: ignore[arg-type]
+        return LoadShip(_good(match.group(1)), int(match.group(2)) - 1)
     if match := WHARF_PATTERN.fullmatch(text):
-        return LoadWharf(match.group(1))  # type: ignore[arg-type]
+        return LoadWharf(_good(match.group(1)))
     if match := PLACE_PATTERN.fullmatch(text):
-        target = match.group(1)
-        if target not in ("plantation", "building"):
-            raise NotationError(f"{text!r} does not name a target")
-        return PlaceColonist(target, int(match.group(2)))  # type: ignore[arg-type]
+        return PlaceColonist(
+            cast(Literal["plantation", "building"], match.group(1)),
+            int(match.group(2)),
+        )
     if match := PICK_PATTERN.fullmatch(text):
-        target = match.group(1)
-        if target not in ("plantation", "building"):
-            raise NotationError(f"{text!r} does not name a target")
-        return PickUpColonist(target, int(match.group(2)))  # type: ignore[arg-type]
+        return PickUpColonist(
+            cast(Literal["plantation", "building"], match.group(1)),
+            int(match.group(2)),
+        )
     if match := DISCARD_PATTERN.fullmatch(text):
-        protected_text = match.group(1)
-        if not protected_text:
-            return DiscardGoods()
-        protected = tuple(protected_text.split(" "))
-        for good in protected:
-            if good not in GOODS:
-                raise NotationError(f"{text!r} names an unknown good")
-        return DiscardGoods(tuple(sorted(protected, key=GOODS.index)))
+        return _discard(match.group(1))
     raise NotationError(f"{text!r} is not a Puerto Rico action")
 
 
-ROLE_NAMES: frozenset[Role] = frozenset(
-    (
-        "settler",
-        "mayor",
-        "builder",
-        "craftsman",
-        "trader",
-        "captain",
-        "prospector",
-        "prospector_2",
+def _good(text: str) -> Good:
+    if text not in GOODS:
+        raise NotationError(f"{text!r} names an unknown good")
+    return text
+
+
+def _discard(text: str | None) -> DiscardGoods:
+    tokens = text.split(" ") if text else []
+    if "keep" in tokens and "none" in tokens:
+        raise NotationError("discard cannot both keep a good and keep none")
+    if "keep" in tokens:
+        index = tokens.index("keep")
+        protected_tokens = tokens[:index]
+        keep_tokens = tokens[index + 1 :]
+        if len(keep_tokens) != 1:
+            raise NotationError("discard names one good to keep")
+        keep: Good | None = _good(keep_tokens[0])
+    else:
+        protected_tokens = [token for token in tokens if token != "none"]
+        if "none" in tokens and len(protected_tokens) != len(tokens) - 1:
+            raise NotationError("discard names none once")
+        keep = None
+    if len(set(protected_tokens)) != len(protected_tokens):
+        raise NotationError("discard names each protected good once")
+    protected = tuple(
+        sorted((_good(token) for token in protected_tokens), key=GOODS.index)
     )
-)
+    return DiscardGoods(protected, keep)

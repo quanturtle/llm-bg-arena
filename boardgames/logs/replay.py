@@ -254,6 +254,9 @@ def replay_decision(
     step = record.step
     try:
         action = game.parse_action(record.action)
+        adapt = getattr(game, "adapt_saved_action", None)
+        if callable(adapt):
+            action = adapt(action, record.action_json)
         transition = game.apply(state, PlayerId(record.player), action)
     except (NotationError, IllegalActionError) as error:
         raise ReplayMismatchError(f"step {step}: {record.action!r}: {error}") from error

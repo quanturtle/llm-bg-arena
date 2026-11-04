@@ -93,20 +93,12 @@ class BuildingSpec:
         self.copies = copies
 
     @property
-    def is_production(self) -> bool:
-        return self.production is not None
-
-    @property
     def is_small_production(self) -> bool:
         return self.production is not None and self.size == ProductionSize.SMALL
 
     @property
     def is_large_production(self) -> bool:
         return self.production is not None and self.size == ProductionSize.LARGE
-
-    @property
-    def is_violet(self) -> bool:
-        return self.kind == BuildingKind.VIOLET
 
     @property
     def city_spaces(self) -> int:
@@ -227,9 +219,6 @@ BUILDINGS: dict[str, BuildingSpec] = {
         CITY_HALL,
     )
 }
-
-BUILDING_NAMES: tuple[str, ...] = tuple(BUILDINGS)
-
 # Buildings that count for the Guild Hall bonus.
 SMALL_PRODUCTION_NAMES: frozenset[str] = frozenset(
     spec.name for spec in BUILDINGS.values() if spec.is_small_production
@@ -255,6 +244,8 @@ ROLES_BY_PLAYERS: dict[int, tuple[Role, ...]] = {
         "prospector_2",
     ),
 }
+
+ROLE_NAMES: tuple[Role, ...] = ROLES_BY_PLAYERS[5]
 
 STARTING_DOUBLOONS: dict[int, int] = {3: 2, 4: 3, 5: 4}
 COLONIST_SUPPLY: dict[int, int] = {3: 55, 4: 75, 5: 95}

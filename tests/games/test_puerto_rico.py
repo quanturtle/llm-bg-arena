@@ -48,12 +48,18 @@ from boardgames.games.puerto_rico.constants import (
     Role,
 )
 from boardgames.games.puerto_rico.game import (
+    _finish_standard_phase,
     check_end_game,
     compute_winner,
+    craftsman_actions,
+    discard_actions,
     end_round,
-    finish_standard_phase,
+    refill_colonist_ship,
+    run_production,
+    tiebreak_key,
 )
 from boardgames.games.puerto_rico.model import (
+    CargoShip,
     OwnedBuilding,
     Plantation,
     PlayerState,
@@ -61,6 +67,7 @@ from boardgames.games.puerto_rico.model import (
     available_to_build,
     build_cost,
     building_points,
+    can_ship,
     city_spaces_used,
     end_game_bonus,
     factory_bonus_for_produced,
@@ -68,6 +75,7 @@ from boardgames.games.puerto_rico.model import (
     goods_get,
     goods_total,
     production,
+    public_points,
     replace_player,
     replace_role,
     role_chooser,
@@ -115,8 +123,8 @@ def drain(state: PuertoRicoState) -> PuertoRicoState:
             choice = "pass"
         elif "finish" in options:
             choice = "finish"
-        elif "discard" in options:
-            choice = "discard"
+        elif "discard none" in options:
+            choice = "discard none"
         else:
             choice = options[0]
         state = play(state, choice)
@@ -317,10 +325,13 @@ def test_notation_round_trips_every_action() -> None:
         SelectRole("settler"),
         SelectRole("prospector"),
         TakePlantation("corn"),
+        TakePlantation("corn", use_hospice=False),
         TakeQuarry(),
+        TakeQuarry(use_hospice=False),
         UseHacienda(),
         Pass(),
         Build("small_indigo_plant"),
+        Build("small_indigo_plant", use_university=False),
         ProducePrivilege("coffee"),
         Sell("tobacco"),
         LoadShip("indigo", 0),
@@ -335,6 +346,7 @@ def test_notation_round_trips_every_action() -> None:
         FinishPlacement(),
         DiscardGoods(),
         DiscardGoods(("corn", "indigo")),
+        DiscardGoods(("corn",), "indigo"),
     ]
     for action in actions:
         assert GAME.parse_action(GAME.format_action(action)) == action
@@ -364,6 +376,7 @@ def test_notation_round_trips_every_action() -> None:
         "discard mango",
         "discard ",
         "discard  indigo",
+        "discard\tindigo",
         "finish ",
     ],
 )
@@ -528,7 +541,7 @@ def test_guild_hall_bonus_for_production_buildings() -> None:
     assert end_game_bonus(player) == 1 + 2 + 2
 
 
-def test_residence_bonus_for_occupied_island_spaces() -> None:
+def test_residence_bonus_for_placed_island_tiles() -> None:
     player = PlayerState(
         plantations=tuple(Plantation("corn", True) for _ in range(12)),
         buildings=(OwnedBuilding("residence", 1),),
@@ -713,7 +726,7 @@ def test_settler_draws_leftover_deck_before_reshuffling_discards() -> None:
         plantation_deck=("coffee",),
         plantation_discard=("corn", "corn", "corn"),
     )
-    state = finish_standard_phase(state)
+    state = _finish_standard_phase(state)[0]
     assert state.face_up[0] == "coffee"
     assert state.face_up[1:] == ("corn", "corn", "corn")
 
@@ -731,6 +744,32 @@ def test_settler_keeps_unchosen_plantations_in_a_discard_pile() -> None:
 
 
 # Roles: Mayor -------------------------------------------------------------
+
+
+def test_short_colonist_refill_is_announced_and_observed() -> None:
+    state = replace(
+        start(seed=5),
+        active_role="mayor",
+        phase="mayor_action",
+        colonist_supply=0,
+        colonist_ship=0,
+    )
+    state, events = _finish_standard_phase(state)
+    assert state.colonist_shortage
+    assert any(event.kind == "colonist_shortage" for event in events)
+    observation = GAME.observe(state, None)
+    assert observation.data["colonist_shortage"] is True
+
+
+def test_mayor_event_omits_the_extra_colonist_when_the_supply_is_empty() -> None:
+    state = replace(start(seed=5), colonist_supply=0, colonist_ship=3)
+    player = state.active_player
+    transition = GAME.apply(state, player, SelectRole("mayor"))
+    event = next(
+        event for event in transition.events if event.kind == "colonists_distributed"
+    )
+    assert "no extra colonist" in event.text
+    assert "takes the extra colonist" not in event.text
 
 
 def test_mayor_distributes_colonists_and_refills_the_ship() -> None:
@@ -902,7 +941,7 @@ def test_full_trading_house_is_cleared_at_phase_end() -> None:
         phase="trader_action",
         trading_house=("indigo", "sugar", "corn", "coffee"),
     )
-    state = finish_standard_phase(state)
+    state = _finish_standard_phase(state)[0]
     assert state.trading_house == ()
     expected = list(before)
     expected[0] += 1  # corn
@@ -1016,7 +1055,7 @@ def test_captain_must_load_if_possible() -> None:
     assert "pass" in notations(state)
 
 
-def test_captain_discard_keeps_one_of_each_and_warehouse_types() -> None:
+def test_captain_discard_keeps_one_good_and_warehouse_types() -> None:
     state = start(seed=9)
     player = state.order[0]
     state = with_goods(state, player, corn=2, indigo=2)
@@ -1029,14 +1068,14 @@ def test_captain_discard_keeps_one_of_each_and_warehouse_types() -> None:
         active_player=player,
         players_acted=frozenset(state.order[1:]),
     )
-    assert "discard indigo" in notations(state)
-    state = play(state, "discard indigo")
+    assert "discard indigo keep corn" in notations(state)
+    state = play(state, "discard indigo keep corn")
     goods = state.players[player].goods
     assert goods_get(goods, "indigo") == 2
     assert goods_get(goods, "corn") == 1
 
 
-def test_captain_discard_without_warehouse_keeps_one_of_each() -> None:
+def test_captain_discard_without_warehouse_keeps_one_good() -> None:
     state = start(seed=9)
     player = state.order[0]
     state = with_goods(state, player, corn=2, indigo=3)
@@ -1048,11 +1087,15 @@ def test_captain_discard_without_warehouse_keeps_one_of_each() -> None:
         active_player=player,
         players_acted=frozenset(state.order[1:]),
     )
-    assert notations(state) == ["discard"]
-    state = play(state, "discard")
+    assert notations(state) == [
+        "discard none",
+        "discard keep corn",
+        "discard keep indigo",
+    ]
+    state = play(state, "discard keep corn")
     goods = state.players[player].goods
     assert goods_get(goods, "corn") == 1
-    assert goods_get(goods, "indigo") == 1
+    assert goods_get(goods, "indigo") == 0
 
 
 # End game ----------------------------------------------------------------
@@ -1067,10 +1110,19 @@ def test_end_game_when_victory_point_supply_runs_out() -> None:
     assert GAME.is_terminal(ended)
 
 
-def test_end_game_when_colonists_run_out() -> None:
-    state = replace(start(seed=1), colonist_supply=0)
-    ended = check_end_game(state)
+def test_end_game_only_when_the_mayor_cannot_refill_the_ship() -> None:
+    state = replace(start(seed=1), colonist_supply=0, colonist_ship=0)
+    assert check_end_game(state).end_reason is None
+    ended = check_end_game(refill_colonist_ship(state))
     assert ended.end_reason == "colonist supply exhausted"
+
+
+def test_exact_colonist_refill_does_not_end_the_game() -> None:
+    state = replace(start(seed=1), colonist_supply=3)
+    refilled = refill_colonist_ship(state)
+    assert refilled.colonist_ship == 3
+    assert not refilled.colonist_shortage
+    assert check_end_game(refilled).end_reason is None
 
 
 def test_end_game_when_a_city_is_full() -> None:
@@ -1175,6 +1227,358 @@ def test_describe_action_names_the_action() -> None:
     )
 
 
+# Review regressions --------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("num_players", "role"), [(3, "prospector"), (4, "prospector_2")]
+)
+def test_a_role_missing_from_the_game_is_an_illegal_action_not_a_crash(
+    num_players: int, role: Role
+) -> None:
+    state = start(num_players=num_players, seed=1)
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    action = SelectRole(role)
+    assert not space.is_legal(action)
+    assert f"no {role} role" in space.explain(action)
+    with pytest.raises(IllegalActionError, match="role in this game"):
+        GAME.apply(state, decision.player, action)
+
+
+def test_captain_must_use_the_empty_ship_that_takes_the_most() -> None:
+    state = start(seed=9)
+    player = state.order[0]
+    state = with_goods(state, player, corn=6)
+    state = select_role(state, "captain")
+    assert notations(state) == ["ship corn s3"]
+    state = play(state, "ship corn s3")
+    assert goods_get(state.players[player].goods, "corn") == 0
+
+
+def test_residence_counts_placed_tiles_not_colonists() -> None:
+    player = PlayerState(
+        plantations=tuple(Plantation("corn", False) for _ in range(12)),
+        buildings=(OwnedBuilding("residence", 1),),
+    )
+    assert end_game_bonus(player) == 7
+
+
+def test_hospice_colonizes_a_taken_quarry() -> None:
+    state = start(seed=3)
+    player = state.order[0]
+    state = with_buildings(state, player, OwnedBuilding("hospice", 1))
+    before = state.colonist_supply
+    state = select_role(state, "settler")
+    state = play(state, "take quarry")
+    owner = state.players[player]
+    assert owner.quarries == 1
+    assert owner.occupied_quarries == 1
+    assert state.colonist_supply == before - 1
+
+
+def test_hospice_colonist_is_optional() -> None:
+    state = start(seed=3)
+    player = state.order[0]
+    state = with_buildings(state, player, OwnedBuilding("hospice", 1))
+    before = state.colonist_supply
+    state = select_role(state, "settler")
+    take = next(
+        option
+        for option in notations(state)
+        if option.startswith("take ") and option.endswith("nohospice")
+    )
+    state = play(state, take)
+    assert not state.players[player].plantations[-1].colonized
+    assert state.colonist_supply == before
+
+
+def test_hospice_quarry_colonist_is_optional() -> None:
+    state = start(seed=3)
+    player = state.order[0]
+    state = with_buildings(state, player, OwnedBuilding("hospice", 1))
+    state = select_role(state, "settler")
+    assert "take quarry nohospice" in notations(state)
+    state = play(state, "take quarry nohospice")
+    assert state.players[player].occupied_quarries == 0
+
+
+def test_university_colonist_is_optional() -> None:
+    state = start(seed=6)
+    player = state.order[0]
+    state = with_doubloons(state, player, 10)
+    state = with_buildings(state, player, OwnedBuilding("university", 1))
+    state = select_role(state, "builder")
+    assert "build small_indigo_plant nouniversity" in notations(state)
+    state = play(state, "build small_indigo_plant nouniversity")
+    assert state.players[player].buildings[-1].colonists == 0
+
+
+def test_hospice_and_university_use_the_ship_when_the_supply_is_empty() -> None:
+    state = start(seed=3)
+    player = state.order[0]
+    state = with_buildings(state, player, OwnedBuilding("hospice", 1))
+    state = replace(state, colonist_supply=0, colonist_ship=3)
+    state = select_role(state, "settler")
+    take = next(
+        option
+        for option in notations(state)
+        if option.startswith("take ") and option != "take quarry"
+    )
+    state = play(state, take)
+    assert state.players[player].plantations[-1].colonized
+    assert state.colonist_ship == 2
+
+    state = start(seed=6)
+    player = state.order[0]
+    state = with_doubloons(state, player, 10)
+    state = with_buildings(state, player, OwnedBuilding("university", 1))
+    state = replace(state, colonist_supply=0, colonist_ship=3)
+    state = select_role(state, "builder")
+    state = play(state, "build small_indigo_plant")
+    assert state.players[player].buildings[-1].colonists == 1
+    assert state.colonist_ship == 2
+
+
+def test_settler_refill_and_reshuffle_emit_events() -> None:
+    state = start(seed=3)
+    state = select_role(state, "settler")
+    kinds: list[str] = []
+    while state.phase == "settler_action":
+        (decision,) = GAME.pending_decisions(state)
+        transition = GAME.apply(state, decision.player, Pass())
+        kinds.extend(event.kind for event in transition.events)
+        state = transition.state
+    assert "face_up_refilled" in kinds
+
+    state = start(seed=3)
+    state = replace(
+        state,
+        active_role="settler",
+        phase="settler_action",
+        face_up=(),
+        plantation_deck=(),
+        plantation_discard=("coffee", "coffee", "coffee", "coffee"),
+        players_acted=frozenset(state.order[:-1]),
+        active_player=state.order[-1],
+    )
+    transition = GAME.apply(state, state.order[-1], Pass())
+    kinds = [event.kind for event in transition.events]
+    assert "plantation_discard_reshuffled" in kinds
+
+
+def test_hacienda_reshuffle_emits_an_event() -> None:
+    state = start(seed=3)
+    player = state.order[0]
+    state = with_buildings(state, player, OwnedBuilding("hacienda", 1))
+    state = replace(
+        state,
+        plantation_deck=(),
+        plantation_discard=("coffee", "coffee"),
+    )
+    state = select_role(state, "settler")
+    (decision,) = GAME.pending_decisions(state)
+    transition = GAME.apply(state, decision.player, UseHacienda())
+    assert next(event.kind for event in transition.events) == (
+        "plantation_discard_reshuffled"
+    )
+
+
+def test_observation_exposes_visible_building_points_only() -> None:
+    state = start(seed=1)
+    player = state.order[0]
+    state = with_buildings(
+        state,
+        player,
+        OwnedBuilding("guild_hall", 1),
+        OwnedBuilding("indigo_plant", 0),
+    )
+    data = GAME.observe(state, player).data
+    assert "public_points" not in data
+    players = data["players"]
+    assert isinstance(players, list)
+    entry = players[player]
+    assert isinstance(entry, dict)
+    assert entry["building_points"] == 6
+    assert entry["public_points"] == public_points(state.players[player])
+
+
+def test_take_quarry_explains_a_full_island_before_the_privilege() -> None:
+    state = start(seed=3)
+    player = state.order[0]
+    state = with_plantations(state, player, *(Plantation("corn") for _ in range(12)))
+    state = select_role(state, "settler")
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    assert space.explain(TakeQuarry()) == "Your island is full."
+
+
+def test_role_doubloons_and_governor_rotation() -> None:
+    state = start(seed=3)
+    governor = state.governor
+    state = replace_role(
+        state, "settler", RoleState("settler", doubloons=2, taken_by=None)
+    )
+    state = play(state, "role settler")
+    assert state.players[governor].doubloons == 2 + 2
+    next_governor = state.order[1]
+    assert end_round(state).governor == next_governor
+
+
+def test_ship_refill_uses_empty_building_slots_above_the_player_count() -> None:
+    state = start(seed=1)
+    player = state.order[0]
+    state = with_buildings(
+        state,
+        player,
+        OwnedBuilding("indigo_plant", 0),
+        OwnedBuilding("sugar_mill", 0),
+    )
+    state = replace(state, colonist_supply=50)
+    refilled = refill_colonist_ship(state)
+    assert refilled.colonist_ship == 6
+    assert refilled.colonist_supply == 44
+
+
+def test_production_is_limited_by_the_goods_supply() -> None:
+    state = start(seed=1)
+    player = state.order[0]
+    state = with_plantations(state, player, Plantation("indigo", True))
+    state = with_buildings(state, player, OwnedBuilding("small_indigo_plant", 1))
+    state = replace(state, goods_supply=(10, 0, 11, 9, 9))
+    state, _ = run_production(state, player)
+    assert goods_get(state.players[player].goods, "indigo") == 0
+
+
+def test_craftsman_privilege_needs_a_producible_good_in_the_bank() -> None:
+    state = start(seed=1)
+    player = state.order[0]
+    state = with_plantations(state, player, Plantation("indigo", True))
+    state = with_buildings(state, player, OwnedBuilding("small_indigo_plant", 1))
+    state = replace(state, goods_supply=(10, 0, 11, 9, 9))
+    assert "privilege indigo" not in [
+        GAME.format_action(action)
+        for action in craftsman_actions(state, state.players[player])
+    ]
+
+
+def test_one_good_type_per_ship_and_wharf_goods_to_the_supply() -> None:
+    state = start(seed=9)
+    player = state.order[0]
+    state = with_goods(state, player, indigo=3, corn=1)
+    state = replace(
+        state,
+        cargo_ships=(
+            CargoShip(6, "indigo", 2),
+            *(ship for ship in state.cargo_ships[1:]),
+        ),
+    )
+    assert can_ship(state, player, "indigo") == (0,)
+    assert can_ship(state, player, "corn") == (1, 2)
+
+    state = start(seed=9)
+    player = state.order[0]
+    state = with_goods(state, player, sugar=2)
+    state = with_buildings(state, player, OwnedBuilding("wharf", 1))
+    state = select_role(state, "captain")
+    before = goods_get(state.goods_supply, "sugar")
+    state = play(state, "wharf sugar")
+    assert goods_get(state.goods_supply, "sugar") == before + 2
+
+
+def test_discard_explanation_names_a_missing_good() -> None:
+    state = start(seed=9)
+    player = state.order[0]
+    state = with_goods(state, player, corn=1)
+    state = with_role(state, "captain", player)
+    state = replace(
+        state,
+        phase="captain_discard",
+        active_role="captain",
+        active_player=player,
+        players_acted=frozenset(state.order[1:]),
+    )
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    assert space.explain(DiscardGoods(keep="coffee")) == "You have no coffee."
+
+
+def test_captain_discard_fallback_keeps_a_good() -> None:
+    state = start(seed=9)
+    player = state.order[0]
+    state = with_goods(state, player, corn=2, indigo=3)
+    state = with_role(state, "captain", player)
+    state = replace(
+        state,
+        phase="captain_discard",
+        active_role="captain",
+        active_player=player,
+        players_acted=frozenset(state.order[1:]),
+    )
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    fallback = space.default
+    assert isinstance(fallback, DiscardGoods)
+    assert fallback.keep is not None
+    after = GAME.apply(state, decision.player, fallback).state
+    assert goods_total(after.players[player].goods) == 1
+
+
+def test_old_bare_discard_still_keeps_one_of_each_type() -> None:
+    state = start(seed=9)
+    player = state.order[0]
+    state = with_goods(state, player, corn=2, indigo=3)
+    state = with_role(state, "captain", player)
+    state = replace(
+        state,
+        phase="captain_discard",
+        active_role="captain",
+        active_player=player,
+        players_acted=frozenset(state.order[1:]),
+    )
+    action = GAME.parse_action("discard")
+    assert isinstance(action, DiscardGoods)
+    legacy = GAME.adapt_saved_action(action, {"type": "discard_goods", "protected": []})
+    assert isinstance(legacy, DiscardGoods) and legacy.legacy
+    assert GAME.format_action(legacy) == "discard"
+    assert GAME.action_json(legacy) == {
+        "type": "discard_goods",
+        "protected": [],
+    }
+    after = GAME.apply(state, player, legacy).state
+    assert goods_get(after.players[player].goods, "corn") == 1
+    assert goods_get(after.players[player].goods, "indigo") == 1
+
+
+def test_large_warehouse_protects_two_types() -> None:
+    owner = PlayerState(
+        goods=goods_from(corn=2, indigo=2, sugar=2),
+        buildings=(OwnedBuilding("large_warehouse", 1),),
+    )
+    actions = [
+        action
+        for action in discard_actions(owner)
+        if isinstance(action, DiscardGoods) and action.protected
+    ]
+    assert DiscardGoods(("corn", "indigo")) in actions
+
+
+def test_owned_buildings_are_not_offered_again() -> None:
+    state = start(seed=2)
+    player = state.order[0]
+    state = with_doubloons(state, player, 20)
+    state = with_buildings(state, player, OwnedBuilding("small_indigo_plant", 1))
+    assert "small_indigo_plant" not in available_to_build(state, player)
+
+
+def test_governor_tie_break_prefers_the_closer_seat() -> None:
+    state = start(seed=1)
+    governor = state.governor
+    next_seat = state.order[1]
+    assert tiebreak_key(state, governor)[1] == 0
+    assert tiebreak_key(state, next_seat)[1] < 0
+
+
 # Full matches -------------------------------------------------------------
 
 
@@ -1206,24 +1610,49 @@ def test_same_seed_replays_to_the_same_log() -> None:
     assert report.steps > 0
 
 
+def check_playthrough_state(
+    state: PuertoRicoState, initial_goods: int, initial_colonists: int
+) -> None:
+    assert all(count >= 0 for count in state.goods_supply)
+    for player in state.players:
+        assert all(count >= 0 for count in player.goods)
+        assert player.doubloons >= 0
+        assert player.vp_chips >= 0
+        assert player.occupied_quarries <= player.quarries
+    assert total_goods_on_board(state) == initial_goods
+    assert total_colonists(state) == initial_colonists
+
+
 @pytest.mark.parametrize("seed", [1, 2, 3, 4])
 def test_random_playthrough_terminates_and_keeps_invariants(seed: int) -> None:
     config = PuertoRicoConfig(num_players=3, max_rounds=2)
     initial = GAME.setup(config, seed).state
     initial_goods = total_goods_on_board(initial)
     initial_colonists = total_colonists(initial)
-
-    def check(state: PuertoRicoState) -> None:
-        assert all(count >= 0 for count in state.goods_supply)
-        for player in state.players:
-            assert all(count >= 0 for count in player.goods)
-            assert player.doubloons >= 0
-            assert player.vp_chips >= 0
-            assert player.occupied_quarries <= player.quarries
-        assert total_goods_on_board(state) == initial_goods
-        assert total_colonists(state) == initial_colonists
-
-    final, steps = random_playthrough(GAME, config, seed, check)
+    final, steps = random_playthrough(
+        GAME,
+        config,
+        seed,
+        lambda state: check_playthrough_state(state, initial_goods, initial_colonists),
+    )
     assert GAME.is_terminal(final)
     assert final.winner is not None
     assert steps <= 1_000
+
+
+@pytest.mark.parametrize("seed", [1, 2])
+def test_a_natural_full_game_reaches_a_rule_based_end(seed: int) -> None:
+    config = PuertoRicoConfig(num_players=3)
+    initial = GAME.setup(config, seed).state
+    initial_goods = total_goods_on_board(initial)
+    initial_colonists = total_colonists(initial)
+    final, steps = random_playthrough(
+        GAME,
+        config,
+        seed,
+        lambda state: check_playthrough_state(state, initial_goods, initial_colonists),
+    )
+    assert GAME.is_terminal(final)
+    assert final.end_reason is not None
+    assert final.end_reason != "round limit reached"
+    assert steps <= 2_000
