@@ -353,12 +353,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         return describe_action(observation, action)
 
     def action_json(self, action: Action) -> dict[str, JsonValue]:
-        data = tagged_json_object(action)
-        if isinstance(action, TakePlantation | TakeQuarry) and action.use_hospice:
-            data.pop("use_hospice", None)
-        elif isinstance(action, Build) and action.use_university:
-            data.pop("use_university", None)
-        return data
+        return tagged_json_object(action)
 
     # Role selection -------------------------------------------------------
 
