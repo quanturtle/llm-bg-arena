@@ -1623,7 +1623,7 @@ def hex_name(state: CatanState, hex_id: int) -> str:
 
 
 def dev_name(card: DevCard) -> str:
-    """Human name of a development card, as older logs and events spell it."""
+    """Human name of a development card, as event texts spell it."""
     return card.replace("_", " ")
 
 
