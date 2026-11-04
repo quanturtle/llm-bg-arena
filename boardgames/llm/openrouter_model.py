@@ -93,8 +93,8 @@ class ChoicePayload(BaseModel):
 
 
 class UsagePayload(BaseModel):
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
+    prompt_tokens: Lenient[int] = 0
+    completion_tokens: Lenient[int] = 0
     cost: Lenient[float] = None
 
 
@@ -288,7 +288,7 @@ def completion_from(payload: ResponsePayload, model: str) -> Completion:
             for index, call in enumerate(message.tool_calls or ())
             if call is not None
         ),
-        usage=Usage(usage.prompt_tokens, usage.completion_tokens),
+        usage=Usage(usage.prompt_tokens or 0, usage.completion_tokens or 0),
         cost_usd=usage.cost,
         reasoning=message.reasoning,
     )

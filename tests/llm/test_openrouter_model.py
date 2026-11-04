@@ -15,6 +15,7 @@ from boardgames.llm.model import (
     ToolCall,
     ToolSpec,
     TransientModelError,
+    Usage,
 )
 from boardgames.llm.openrouter_model import (
     OpenRouterChatModel,
@@ -228,12 +229,13 @@ def test_tool_arguments_sent_as_an_object_are_kept_as_text() -> None:
 
 def test_one_bad_usage_field_does_not_throw_away_the_reply() -> None:
     payload = reply_payload()
-    payload["usage"] = {"prompt_tokens": "many", "completion_tokens": 100}
+    payload["usage"] = {"prompt_tokens": "many", "completion_tokens": 100, "cost": 0.01}
     completion = complete(
         model_with(lambda request: httpx2.Response(200, json=payload))
     )
     assert completion.text == "b2"
-    assert completion.cost_usd is None
+    assert completion.cost_usd == pytest.approx(0.01)
+    assert completion.usage == Usage(0, 100)
     return
 
 
