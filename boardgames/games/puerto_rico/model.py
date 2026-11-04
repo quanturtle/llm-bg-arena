@@ -166,6 +166,7 @@ class PuertoRicoState:
     colonist_shortage: bool
     end_reason: str | None
     winner: PlayerId | None
+    final_governor: PlayerId | None = None
 
 
 # Actions ------------------------------------------------------------------
@@ -499,11 +500,9 @@ def can_ship(state: PuertoRicoState, player: PlayerId, good: Good) -> tuple[int,
     )
 
 
-def can_load_anything(state: PuertoRicoState, player: PlayerId) -> bool:
-    """Whether the player has any legal Captain load, including a Wharf."""
+def can_load_on_ship(state: PuertoRicoState, player: PlayerId) -> bool:
+    """Whether a cargo ship can take one of the player's goods."""
     owner = state.players[player]
-    if owner.active("wharf") and not owner.wharf_used and goods_total(owner.goods):
-        return True
     return any(
         goods_get(owner.goods, good) > 0 and can_ship(state, player, good)
         for good in GOODS

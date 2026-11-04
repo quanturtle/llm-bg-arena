@@ -55,7 +55,11 @@ Build the most victory points. Points come from shipping goods to Europe (victor
 The five large violet buildings take two city spaces each; all other buildings take one. A player may own only one copy of each building. When a building's colonist circle is filled, its effect is active. When the colonist supply is empty, the Hospice and University take the colonist from the colonist ship instead.
 
 ## End and scoring
-Score victory point chips, the printed points of every building, and the bonuses of active Guild Hall, Residence, Fortress, Customs House and City Hall. The highest total wins. Ties go to the player with the most doubloons plus goods; if still tied, the player closest to the governor in order wins.
+Score victory point chips, the printed points of every building, and the bonuses of active Guild Hall, Residence, Fortress, Customs House and City Hall. The highest total wins. Ties go to the player with the most doubloons plus goods; if still tied, the player closest to the governor of the final round in order wins.
+
+## Differences from the standard game
+- Only three to five players are supported; the rulebook's two-player game is not implemented.
+- `max_rounds` and `victory_point_supply` are optional config variants, off by default.
 
 ## Notation
 Actions are written exactly as listed, with single spaces.

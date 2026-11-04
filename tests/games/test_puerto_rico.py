@@ -1036,6 +1036,32 @@ def test_captain_wharf_ships_all_of_one_good() -> None:
     assert "wharf sugar" not in notations(state)
 
 
+def test_captain_may_pass_up_the_wharf_when_only_it_can_load() -> None:
+    state = start(seed=9)
+    chooser = state.order[0]
+    state = with_goods(state, chooser, coffee=1)
+    state = with_buildings(state, chooser, OwnedBuilding("wharf", 1))
+    state = replace(
+        state,
+        cargo_ships=(
+            CargoShip(4, "indigo", 4),
+            CargoShip(5, "sugar", 5),
+            CargoShip(6, "tobacco", 6),
+        ),
+    )
+    state = select_role(state, "captain")
+    assert "wharf coffee" in notations(state)
+    assert "pass" in notations(state)
+    (decision,) = GAME.pending_decisions(state)
+    space = GAME.legal_actions(state, decision)
+    assert (
+        space.explain(Pass()) == "Load goods on a ship or Wharf, or pass if you cannot."
+    )
+    state = play(state, "pass")
+    assert not state.players[chooser].wharf_used
+    assert goods_get(state.players[chooser].goods, "coffee") == 1
+
+
 def test_captain_harbor_adds_a_point_per_shipment() -> None:
     state = start(seed=9)
     chooser = state.order[0]
@@ -1187,6 +1213,16 @@ def test_winner_breaks_ties_by_doubloons_and_goods() -> None:
     assert compute_winner(state) == p2
     state = with_goods(state, p1, corn=2)
     assert compute_winner(state) == p1
+
+
+def test_final_tie_uses_the_last_rounds_governor() -> None:
+    config = PuertoRicoConfig(num_players=3, max_rounds=1)
+    state = GAME.setup(config, 4).state
+    final_governor = state.governor
+    ended = end_round(state)
+    assert ended.phase == "game_over"
+    assert ended.final_governor == final_governor
+    assert ended.winner == final_governor
 
 
 # Observation --------------------------------------------------------------

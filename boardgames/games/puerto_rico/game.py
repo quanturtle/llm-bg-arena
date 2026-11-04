@@ -26,6 +26,7 @@ from boardgames.core import (
     Rng,
     Scores,
     Transition,
+    checked_apply,
     register_game,
     seat_label,
 )
@@ -79,7 +80,7 @@ from boardgames.games.puerto_rico.model import (
     available_to_build,
     build_cost,
     building_points,
-    can_load_anything,
+    can_load_on_ship,
     can_ship,
     city_spaces_used,
     end_game_bonus,
@@ -130,7 +131,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     """Puerto Rico with all base-game roles, buildings and end-game bonuses."""
 
     id: ClassVar[str] = "puerto_rico"
-    rules_version: ClassVar[int] = 2
+    rules_version: ClassVar[int] = 3
 
     # Config ---------------------------------------------------------------
 
@@ -251,24 +252,15 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 action,
                 protected=tuple(sorted(action.protected, key=GOODS.index)),
             )
-        decision = next(
-            (item for item in self.pending_decisions(state) if item.player == player),
-            None,
-        )
-        if decision is None:
-            raise IllegalActionError(
+        return checked_apply(
+            self,
+            state,
+            player,
+            action,
+            no_decision=(
                 f"{seat_label(player)} has no open decision in phase {state.phase!r}"
-            )
-        space = self.legal_actions(state, decision)
-        try:
-            is_legal = space.is_legal(action)
-        except (TypeError, ValueError, AttributeError) as error:
-            raise IllegalActionError(
-                f"{seat_label(player)} proposed an unknown action: {error}"
-            ) from error
-        if not is_legal:
-            raise IllegalActionError(space.explain(action))
-        return self.apply_legal(state, player, action)
+            ),
+        )
 
     def apply_legal(
         self, state: PuertoRicoState, player: PlayerId, action: Action
@@ -1131,6 +1123,7 @@ def end_round(state: PuertoRicoState) -> PuertoRicoState:
         for role in state.roles
     )
     governor_index = state.order.index(state.governor)
+    final_governor = state.governor
     new_governor = state.order[(governor_index + 1) % len(state.order)]
     state = replace(
         state,
@@ -1143,10 +1136,12 @@ def end_round(state: PuertoRicoState) -> PuertoRicoState:
         players_acted=frozenset(),
         captain_passes=0,
     )
-    return check_end_game(state)
+    return check_end_game(state, final_governor=final_governor)
 
 
-def check_end_game(state: PuertoRicoState) -> PuertoRicoState:
+def check_end_game(
+    state: PuertoRicoState, *, final_governor: PlayerId | None = None
+) -> PuertoRicoState:
     """Set game over when a supply runs out, a city fills or the round limit hits."""
     reason: str | None = None
     if state.vp_supply <= 0:
@@ -1159,6 +1154,7 @@ def check_end_game(state: PuertoRicoState) -> PuertoRicoState:
         reason = "round limit reached"
     if reason is None:
         return state
+    state = replace(state, final_governor=final_governor)
     winner = compute_winner(state)
     return replace(
         state,
@@ -1173,7 +1169,10 @@ def tiebreak_key(state: PuertoRicoState, seat: PlayerId) -> tuple[int, int]:
     """Tie-break order after points: doubloons plus goods, then the governor."""
     player = state.players[seat]
     wealth = player.doubloons + goods_total(player.goods)
-    distance = (state.order.index(seat) - state.order.index(state.governor)) % len(
+    governor = (
+        state.final_governor if state.final_governor is not None else state.governor
+    )
+    distance = (state.order.index(seat) - state.order.index(governor)) % len(
         state.order
     )
     return wealth, -distance
@@ -1494,7 +1493,7 @@ def captain_actions(
             actions.append(LoadShip(good, ship))
     for good in wharf_goods(state, player):
         actions.append(LoadWharf(good))
-    if not can_load_anything(state, player):
+    if not can_load_on_ship(state, player):
         actions.append(Pass())
     return actions
 
@@ -1708,8 +1707,8 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
             state, player
         ):
             return "Your Wharf cannot take that good now."
-        if isinstance(action, Pass) and can_load_anything(state, player):
-            return "You must load goods if you can."
+        if isinstance(action, Pass) and can_load_on_ship(state, player):
+            return "You must load goods if a ship can take them."
         return "Load goods on a ship or Wharf, or pass if you cannot."
     if phase == "captain_discard":
         if isinstance(action, DiscardGoods):
