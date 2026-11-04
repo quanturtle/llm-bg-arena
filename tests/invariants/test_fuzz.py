@@ -66,7 +66,6 @@ def check_tic_tac_toe(state: TicTacToeState) -> None:
     x_marks = cells.count(PlayerId(0))
     o_marks = cells.count(PlayerId(1))
     assert x_marks - o_marks in (0, 1)
-    assert state.to_move == PlayerId(x_marks - o_marks)
     is_full = None not in cells
     assert TIC_TAC_TOE.is_terminal(state) == (has_line(state) or is_full)
     return

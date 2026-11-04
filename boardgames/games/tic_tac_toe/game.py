@@ -81,8 +81,16 @@ class TicTacToeState:
     """`board[row][col]` is the owner of a cell or None; row 0 is the bottom."""
 
     board: Board
-    to_move: PlayerId
     outcome: Outcome | None = None
+
+    @property
+    def to_move(self) -> PlayerId | None:
+        """P1 moves first; a finished game has no player to move."""
+        if self.outcome is not None:
+            return None
+        x_marks = sum(cell == PlayerId(0) for row in self.board for cell in row)
+        o_marks = sum(cell == PlayerId(1) for row in self.board for cell in row)
+        return PlayerId(0) if x_marks == o_marks else PlayerId(1)
 
 
 @register_game
@@ -102,11 +110,12 @@ class TicTacToe:
     def setup(self, config: TicTacToeConfig, seed: int) -> Transition[TicTacToeState]:
         board: Board = ((None,) * SIZE,) * SIZE
         started = Event("started", "New game of tic-tac-toe.", to_json_object(config))
-        return Transition(TicTacToeState(board, PlayerId(0)), (started,))
+        return Transition(TicTacToeState(board), (started,))
 
     def pending_decisions(self, state: TicTacToeState) -> tuple[Decision, ...]:
         if state.outcome is not None:
             return ()
+        assert state.to_move is not None
         return (Decision(state.to_move, "mark", "Choose an empty cell to mark."),)
 
     def legal_actions(
@@ -141,8 +150,7 @@ class TicTacToe:
             )
         elif isinstance(outcome, Drawn):
             events.append(Event("drawn", "The board is full with no line: draw."))
-        next_player = PlayerId(1 - player)
-        return Transition(TicTacToeState(board, next_player, outcome), tuple(events))
+        return Transition(TicTacToeState(board, outcome), tuple(events))
 
     def is_terminal(self, state: TicTacToeState) -> bool:
         return state.outcome is not None
@@ -167,7 +175,7 @@ class TicTacToe:
             viewer,
             {
                 "board": board_lines(state.board),
-                "to_move": state.to_move if state.outcome is None else None,
+                "to_move": state.to_move,
                 "winner": winner,
                 "line": [cell_name(mark) for mark in line],
                 "is_draw": isinstance(state.outcome, Drawn),
@@ -249,6 +257,7 @@ def check_move(state: TicTacToeState, player: PlayerId, mark: Mark) -> None:
     """Raise IllegalActionError unless `player` may mark this cell now."""
     if state.outcome is not None:
         raise IllegalActionError("the game is over")
+    assert state.to_move is not None
     if player != state.to_move:
         raise IllegalActionError(f"it is {player_name(state.to_move)}'s turn")
     if mark not in open_cells(state):
