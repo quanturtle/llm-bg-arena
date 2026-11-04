@@ -424,6 +424,104 @@ export interface components {
             /** Elo */
             elo: number | null;
         };
+        AnyMatch: components["schemas"]["FinishedMatch"] | components["schemas"]["RunningMatch"] | components["schemas"]["StoppedMatch"];
+        /**
+         * AttemptRecord
+         * @description One model call, as the log stores it.
+         *
+         *     Fields have defaults so logs from before a field existed still load.
+         *     Dict-style access keeps older readers and tests working.
+         */
+        AttemptRecord: {
+            /** Messages */
+            messages?: components["schemas"]["JsonValue"][];
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /** Tool Arguments */
+            tool_arguments?: string | null;
+            /** Model Reasoning */
+            model_reasoning?: string | null;
+            /** Answer */
+            answer?: string | null;
+            /** Resolved By */
+            resolved_by?: string | null;
+            rejection?: components["schemas"]["AttemptRejection"] | null;
+            /**
+             * Prompt Tokens
+             * @default 0
+             */
+            prompt_tokens: number;
+            /**
+             * Completion Tokens
+             * @default 0
+             */
+            completion_tokens: number;
+            /** Cost Usd */
+            cost_usd?: number | null;
+            /**
+             * Api Retries
+             * @default 0
+             */
+            api_retries: number;
+            /**
+             * Is Cached
+             * @default false
+             */
+            is_cached: boolean;
+            /**
+             * Extractor Calls
+             * @default 0
+             */
+            extractor_calls: number;
+            /** Tool Calls */
+            tool_calls?: components["schemas"]["AttemptToolCall"][] | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * AttemptRejection
+         * @description Why one answer was not accepted, and what the model was told.
+         */
+        AttemptRejection: {
+            /**
+             * Kind
+             * @default
+             */
+            kind: string;
+            /**
+             * Feedback
+             * @default
+             */
+            feedback: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * AttemptToolCall
+         * @description One tool call of a tools-mode round, with the text it was answered with.
+         */
+        AttemptToolCall: {
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+            /**
+             * Arguments
+             * @default
+             */
+            arguments: string;
+            /**
+             * Result
+             * @default
+             */
+            result: string;
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * BoardView
          * @description One viewer's rendered text; the spectator view also carries the observation.
@@ -444,7 +542,7 @@ export interface components {
          */
         Catalog: {
             /** Matches */
-            matches: components["schemas"]["MatchSummary"][];
+            matches: components["schemas"]["AnyMatch"][];
             /** Unreadable */
             unreadable: components["schemas"]["UnreadableLog"][];
         };
@@ -497,6 +595,77 @@ export interface components {
             name: string;
             /** Text */
             text: string;
+        };
+        /** @enum {string} */
+        FallbackPolicy: "forfeit" | "random" | "default";
+        /** FinishedMatch */
+        FinishedMatch: {
+            /** Match Id */
+            match_id: string;
+            /** Game Id */
+            game_id: string;
+            /** Config */
+            config: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Seed */
+            seed: number;
+            /** Started At */
+            started_at: string;
+            /** Finished At */
+            finished_at: string;
+            /** Steps */
+            steps: number;
+            /**
+             * Status
+             * @default finished
+             * @constant
+             */
+            status: "finished";
+            /** Prompt Version */
+            prompt_version: number;
+            /** Seats */
+            seats: components["schemas"]["FinishedSeatSummary"][];
+        };
+        /**
+         * FinishedSeatSummary
+         * @description A finished match's seat, whose points and rank are always known.
+         */
+        FinishedSeatSummary: {
+            /** Player */
+            player: number;
+            /** Agent */
+            agent: string;
+            /** Kind */
+            kind: string;
+            /** Model */
+            model: string | null;
+            /** Settings */
+            settings: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Points */
+            points: number;
+            /** Rank */
+            rank: number;
+            /** Forfeited */
+            forfeited: boolean;
+            /** Decisions */
+            decisions: number;
+            /** Illegal Attempts */
+            illegal_attempts: number;
+            /** Api Retries */
+            api_retries: number;
+            /** Fallbacks */
+            fallbacks: number;
+            /** Latency Seconds */
+            latency_seconds: number;
+            /** Prompt Tokens */
+            prompt_tokens: number;
+            /** Completion Tokens */
+            completion_tokens: number;
+            /** Cost Usd */
+            cost_usd: number | null;
         };
         /** ForfeitView */
         ForfeitView: {
@@ -646,32 +815,6 @@ export interface components {
             /** Games */
             games: components["schemas"]["GameOption"][];
         };
-        /** @enum {string} */
-        MatchStatus: "finished" | "running" | "stopped";
-        /** MatchSummary */
-        MatchSummary: {
-            /** Match Id */
-            match_id: string;
-            /** Game Id */
-            game_id: string;
-            /** Config */
-            config: {
-                [key: string]: components["schemas"]["JsonValue"];
-            };
-            /** Seed */
-            seed: number;
-            /** Started At */
-            started_at: string;
-            /** Finished At */
-            finished_at: string | null;
-            /** Steps */
-            steps: number;
-            status: components["schemas"]["MatchStatus"];
-            /** Prompt Version */
-            prompt_version: number;
-            /** Seats */
-            seats: components["schemas"]["SeatSummary"][];
-        };
         /**
          * ModelCapabilities
          * @description A model's accepted request parameters; `reasoning` is None if it cannot.
@@ -714,7 +857,7 @@ export interface components {
          * @description The light part of a timeline: every move, event and score, but no boards.
          */
         Outline: {
-            match: components["schemas"]["MatchSummary"];
+            match: components["schemas"]["AnyMatch"];
             /** Frame Count */
             frame_count: number;
             /** Moves */
@@ -743,6 +886,35 @@ export interface components {
             efforts: components["schemas"]["ReasoningEffort"][];
             default_effort: components["schemas"]["ReasoningEffort"] | null;
         };
+        /** RunningMatch */
+        RunningMatch: {
+            /** Match Id */
+            match_id: string;
+            /** Game Id */
+            game_id: string;
+            /** Config */
+            config: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Seed */
+            seed: number;
+            /** Started At */
+            started_at: string;
+            /** Finished At */
+            finished_at?: null;
+            /** Steps */
+            steps: number;
+            /**
+             * Status
+             * @default running
+             * @constant
+             */
+            status: "running";
+            /** Prompt Version */
+            prompt_version: number;
+            /** Seats */
+            seats: components["schemas"]["UnscoredSeatSummary"][];
+        };
         /** ScoreView */
         ScoreView: {
             /** Player */
@@ -757,12 +929,74 @@ export interface components {
             };
         };
         /**
-         * SeatSummary
-         * @description One seat's result and usage; points and rank are None while the match runs.
-         *
-         *     `model` is the model id of a language model seat, None for a bot.
+         * StartRequest
+         * @description A match config as YAML text, as the new-match page sends it.
          */
-        SeatSummary: {
+        StartRequest: {
+            /** Yaml */
+            yaml: string;
+        };
+        /** StoppedMatch */
+        StoppedMatch: {
+            /** Match Id */
+            match_id: string;
+            /** Game Id */
+            game_id: string;
+            /** Config */
+            config: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Seed */
+            seed: number;
+            /** Started At */
+            started_at: string;
+            /** Finished At */
+            finished_at: string;
+            /** Steps */
+            steps: number;
+            /**
+             * Status
+             * @default stopped
+             * @constant
+             */
+            status: "stopped";
+            /** Prompt Version */
+            prompt_version: number;
+            /** Seats */
+            seats: components["schemas"]["UnscoredSeatSummary"][];
+        };
+        /** TraceRecord */
+        TraceRecord: {
+            /** Reasoning */
+            reasoning: string | null;
+            /** Memory */
+            memory: string | null;
+            /** Attempts */
+            attempts: components["schemas"]["AttemptRecord"][];
+            /** Illegal Attempts */
+            illegal_attempts: number;
+            /** Api Retries */
+            api_retries: number;
+            fallback: components["schemas"]["FallbackPolicy"] | null;
+            /** Prompt Tokens */
+            prompt_tokens: number;
+            /** Completion Tokens */
+            completion_tokens: number;
+            /** Cost Usd */
+            cost_usd: number | null;
+        };
+        /** UnreadableLog */
+        UnreadableLog: {
+            /** Path */
+            path: string;
+            /** Error */
+            error: string;
+        };
+        /**
+         * UnscoredSeatSummary
+         * @description A running or stopped match's seat, which has no points or rank.
+         */
+        UnscoredSeatSummary: {
             /** Player */
             player: number;
             /** Agent */
@@ -776,9 +1010,9 @@ export interface components {
                 [key: string]: components["schemas"]["JsonValue"];
             };
             /** Points */
-            points: number | null;
+            points?: null;
             /** Rank */
-            rank: number | null;
+            rank?: null;
             /** Forfeited */
             forfeited: boolean;
             /** Decisions */
@@ -797,44 +1031,6 @@ export interface components {
             completion_tokens: number;
             /** Cost Usd */
             cost_usd: number | null;
-        };
-        /**
-         * StartRequest
-         * @description A match config as YAML text, as the new-match page sends it.
-         */
-        StartRequest: {
-            /** Yaml */
-            yaml: string;
-        };
-        /** TraceRecord */
-        TraceRecord: {
-            /** Reasoning */
-            reasoning: string | null;
-            /** Memory */
-            memory: string | null;
-            /** Attempts */
-            attempts: {
-                [key: string]: components["schemas"]["JsonValue"];
-            }[];
-            /** Illegal Attempts */
-            illegal_attempts: number;
-            /** Api Retries */
-            api_retries: number;
-            /** Fallback */
-            fallback: ("forfeit" | "random" | "default") | null;
-            /** Prompt Tokens */
-            prompt_tokens: number;
-            /** Completion Tokens */
-            completion_tokens: number;
-            /** Cost Usd */
-            cost_usd: number | null;
-        };
-        /** UnreadableLog */
-        UnreadableLog: {
-            /** Path */
-            path: string;
-            /** Error */
-            error: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1206,7 +1402,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MatchSummary"];
+                    "application/json": components["schemas"]["AnyMatch"];
                 };
             };
             /** @description Validation Error */
