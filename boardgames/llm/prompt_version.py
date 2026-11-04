@@ -3,10 +3,10 @@
 PROMPT_VERSION names the text a model sees apart from the game's own content:
 the message layout, the answer instructions, the tool definitions and the retry
 feedback. Game text (rules, observations, why a move is illegal) is not part of
-it. Bump the version by hand when the templates change, pin the new fingerprint
-in PROMPT_FINGERPRINTS and describe the change in docs/PROMPTS.md.
-`prompt_fingerprint` hashes the templates rendered for a fixed example request,
-and a test fails when they change without a new version.
+it. Bump the version by hand when the templates change and pin the new
+fingerprint in PROMPT_FINGERPRINTS. `prompt_fingerprint` hashes the templates
+rendered for a fixed example request, and a test fails when they change without
+a new version.
 """
 
 from functools import cache

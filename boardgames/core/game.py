@@ -1,8 +1,6 @@
 """The Game protocol: the one interface every game implements.
 
 Agents, the match runner, logs and the viewer only talk to games through it.
-The full contract (determinism, hidden information, simultaneous decisions) is
-in docs/ARCHITECTURE.md.
 """
 
 from dataclasses import dataclass

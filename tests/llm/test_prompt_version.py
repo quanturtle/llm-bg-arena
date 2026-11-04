@@ -6,6 +6,6 @@ from boardgames.llm.prompt_version import (
 
 
 def test_the_prompt_version_pins_the_template_fingerprint() -> None:
-    """Changed templates need a new version, its fingerprint and a PROMPTS.md entry."""
+    """Changed templates need a new version and its pinned fingerprint."""
     assert PROMPT_FINGERPRINTS[PROMPT_VERSION] == prompt_fingerprint()
     return

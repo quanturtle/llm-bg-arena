@@ -7,9 +7,8 @@ arena replay runs/<log>.jsonl
 arena serve
 arena serve examples/catan_game.jsonl
 
-A match config file names the game, its config and the seats; see
-docs/ARCHITECTURE.md. The OpenRouter key comes from the environment or a
-local .env file.
+A match config file names the game, its config and the seats. The OpenRouter
+key comes from the environment or a local .env file.
 """
 
 import argparse
