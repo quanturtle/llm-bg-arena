@@ -877,12 +877,13 @@ def check_config(config: TerraMysticaConfig) -> None:
         )
     if not 1 <= config.rounds <= 6:
         raise ConfigError(f"rounds must be from 1 to 6, got {config.rounds}")
+    return
 
 
 def initial_setup_queue(
     order: tuple[PlayerId, ...], players: tuple[PlayerState, ...]
 ) -> tuple[PlayerId, ...]:
-    """Clockwise first placements, counterclockwise second, then Nomads and CM."""
+    """Clockwise first, counterclockwise second, then Nomads and Chaos Magicians."""
     first = tuple(
         seat for seat in order if players[seat].profile.starting_dwellings > 1
     )
