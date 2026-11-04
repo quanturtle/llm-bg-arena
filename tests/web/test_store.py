@@ -39,7 +39,7 @@ def test_summary_has_scores_and_usage_per_seat(tmp_path: Path) -> None:
     return
 
 
-def test_summary_reads_the_prompt_version_and_old_logs_are_version_0(
+def test_summary_reads_the_prompt_version_and_is_0_without_model_seats(
     tmp_path: Path,
 ) -> None:
     records = write_match(tmp_path, "m1", agents=costly_agents(2))

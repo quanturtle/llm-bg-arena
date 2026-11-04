@@ -35,9 +35,9 @@ export function seatName(seat: Pick<SeatSummary, "agent" | "model">): string {
   return seat.model && !seat.agent.startsWith(seat.model) ? `${seat.agent} (${seat.model})` : seat.agent;
 }
 
-/** Version 0 marks logs recorded before prompts were versioned. */
+/** Version 0 marks a match without a model seat, so no prompt was sent. */
 export function promptLabel(version: number | null): string {
-  return version ? `prompt v${version}` : "prompt unversioned";
+  return version ? `prompt v${version}` : "no model prompt";
 }
 
 /** The match's total cost, or null as soon as one seat's cost is unknown. */

@@ -93,7 +93,7 @@ class MatchSummary(Summary):
     finished_at: str | None
     steps: int
     status: MatchStatus
-    # the prompt templates its model seats used; 0 for logs from before versioning
+    # the prompt templates its model seats used; 0 when no seat is a model
     prompt_version: int
     seats: Sequence[SeatSummary]
 

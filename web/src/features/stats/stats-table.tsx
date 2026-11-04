@@ -7,9 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { AgentGameStats } from "@/lib/api";
 import { formatCost, formatPercent, formatSeconds } from "@/lib/format";
 
-/** Version 0 is the logs recorded before prompts were versioned. */
+/** Version 0 marks matches without a model seat, so no prompt was sent. */
 export function promptText(version: number | null): string {
-  return version ? `prompt v${version}` : "unversioned prompt";
+  return version ? `prompt v${version}` : "no model prompt";
 }
 
 // The models an agent name played with, when the name is a label rather than a model id.
