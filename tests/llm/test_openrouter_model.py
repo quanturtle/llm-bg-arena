@@ -199,6 +199,31 @@ def test_a_string_error_code_is_read_and_rate_limits_are_transient() -> None:
     return
 
 
+def test_a_5xx_is_retried_whatever_its_code_and_unknown_codes_are_not() -> None:
+    gateway = {"error": {"code": "bad_gateway", "message": "upstream died"}}
+    with pytest.raises(TransientModelError, match="upstream died"):
+        complete(model_with(lambda request: httpx.Response(502, json=gateway)))
+    limit = {"error": {"code": "key_limit_exceeded", "message": "out of credit"}}
+    with pytest.raises(ModelRequestError, match="out of credit"):
+        complete(model_with(lambda request: httpx.Response(200, json=limit)))
+    return
+
+
+def test_tool_arguments_sent_as_an_object_are_kept_as_text() -> None:
+    payload = reply_payload(content=None)
+    payload["choices"][0]["message"]["tool_calls"] = [  # type: ignore[index]
+        {
+            "id": "c1",
+            "function": {"name": "submit_action", "arguments": {"action": "b2"}},
+        }
+    ]
+    completion = complete(model_with(lambda request: httpx.Response(200, json=payload)))
+    assert completion.tool_calls == (
+        ToolCall("c1", "submit_action", '{"action": "b2"}'),
+    )
+    return
+
+
 def test_one_bad_usage_field_does_not_throw_away_the_reply() -> None:
     payload = reply_payload()
     payload["usage"] = {"prompt_tokens": "many", "completion_tokens": 100}

@@ -6,11 +6,19 @@ the request and reading the response are pure functions.
 """
 
 import asyncio
+import json
 from collections.abc import Sequence
-from typing import Literal
+from dataclasses import dataclass
+from typing import Annotated, Literal
 
 import httpx
-from pydantic import BaseModel, ValidationError
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ValidationError,
+    ValidatorFunctionWrapHandler,
+    WrapValidator,
+)
 
 from boardgames.core import JsonValue, clean_json
 from boardgames.llm.model import (
@@ -30,50 +38,86 @@ from boardgames.llm.model import (
 
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 TRANSIENT_STATUSES = frozenset({408, 429})
+# provider error codes worth retrying, matched whole; any 5xx status is retried too
+TRANSIENT_CODES = frozenset(
+    {
+        "rate_limit_exceeded",
+        "server_error",
+        "timeout",
+        "overloaded",
+        "service_unavailable",
+        "bad_gateway",
+        "gateway_timeout",
+    }
+)
 
 type FailureKind = Literal["transient", "rejected"]
 
 
+def missing_if_invalid(value: object, handler: ValidatorFunctionWrapHandler) -> object:
+    """The field as validated, or None when a provider sent it in another shape."""
+    try:
+        return handler(value)
+    except ValidationError:
+        return None
+
+
+def arguments_text(value: object) -> object:
+    """Tool arguments as JSON text; some providers send the object itself."""
+    return json.dumps(value) if isinstance(value, dict) else value
+
+
+# a field providers fill inconsistently: an unexpected shape reads as missing
+type Lenient[T] = Annotated[T | None, WrapValidator(missing_if_invalid)]
+
+
 class FunctionPayload(BaseModel):
     name: str
-    arguments: str
+    arguments: Annotated[str, BeforeValidator(arguments_text)]
 
 
 class ToolCallPayload(BaseModel):
-    id: str | None = None
+    id: Lenient[str] = None
     function: FunctionPayload
 
 
 class MessagePayload(BaseModel):
-    content: str | None = None
-    reasoning: str | None = None
-    tool_calls: list[ToolCallPayload] | None = None
+    content: Lenient[str] = None
+    reasoning: Lenient[str] = None
+    tool_calls: list[Lenient[ToolCallPayload]] | None = None
 
 
 class ChoicePayload(BaseModel):
     message: MessagePayload
-    error: "ErrorPayload | None" = None
+    error: Lenient["ErrorPayload"] = None
 
 
 class UsagePayload(BaseModel):
     prompt_tokens: int = 0
     completion_tokens: int = 0
-    cost: float | None = None
+    cost: Lenient[float] = None
 
 
 class ErrorPayload(BaseModel):
-    code: int | str | None = None
-    message: str | None = None
+    code: Lenient[int | str] = None
+    message: Lenient[str] = None
     # `raw` here carries the provider's own reason behind "Provider returned error"
-    metadata: dict[str, object] | None = None
+    metadata: Lenient[dict[str, object]] = None
 
 
 class ResponsePayload(BaseModel):
     """The fields of a chat completion response the arena reads."""
 
     choices: list[ChoicePayload] = []
-    usage: UsagePayload | None = None
-    error: ErrorPayload | None = None
+    usage: Lenient[UsagePayload] = None
+    error: Lenient[ErrorPayload] = None
+
+
+@dataclass(frozen=True)
+class UnreadableReply:
+    """A response body whose structure did not validate, and the first reason why."""
+
+    reason: str
 
 
 class OpenRouterChatModel:
@@ -118,12 +162,19 @@ class OpenRouterChatModel:
         except httpx.TransportError as error:
             raise TransientModelError(f"{settings.model}: {error}") from error
         payload = parse_payload(response)
-        failed = failure(response.status_code, payload)
+        readable = (
+            ResponsePayload() if isinstance(payload, UnreadableReply) else payload
+        )
+        failed = failure(response.status_code, readable)
         if failed is not None:
             kind, message = failed
             if kind == "transient":
                 raise TransientModelError(f"{settings.model}: {message}")
             raise ModelRequestError(f"{settings.model}: {message}")
+        if isinstance(payload, UnreadableReply):
+            raise TransientModelError(
+                f"{settings.model}: unreadable reply: {payload.reason}"
+            )
         return completion_from(payload, settings.model)
 
 
@@ -170,114 +221,21 @@ def reasoning_json(settings: ModelSettings) -> dict[str, JsonValue]:
     return reasoning
 
 
-def parse_payload(response: httpx.Response) -> ResponsePayload:
-    """The response body, keeping every field it can read.
+def parse_payload(response: httpx.Response) -> ResponsePayload | UnreadableReply:
+    """The response body; a field in an unexpected shape reads as missing.
 
-    A body that is not a JSON object counts as empty. One wrongly typed field
-    (a null tool-call id, a string error code) must not throw away the rest of
-    the reply, including its usage and cost.
+    A body that is not JSON counts as empty; a broken structure is unreadable.
     """
     try:
         raw = clean_json(response.json())
     except (ValueError, UnicodeError):
         return ResponsePayload()
-    if not isinstance(raw, dict):
-        return ResponsePayload()
     try:
         return ResponsePayload.model_validate(raw)
-    except ValidationError:
-        return salvage_payload(raw)
-
-
-def salvage_payload(raw: dict[str, object]) -> ResponsePayload:
-    """Read the known fields of a response that did not validate as a whole."""
-    choices = raw.get("choices")
-    salvaged = [
-        salvage_choice(choice)
-        for choice in choices
-        if isinstance(choice, dict)
-    ] if isinstance(choices, list) else []
-    return ResponsePayload(
-        choices=salvaged,
-        usage=salvage_usage(raw.get("usage")),
-        error=salvage_error(raw.get("error")),
-    )
-
-
-def salvage_choice(raw: dict[str, object]) -> ChoicePayload:
-    message = raw.get("message")
-    data = message if isinstance(message, dict) else {}
-    calls = data.get("tool_calls")
-    return ChoicePayload(
-        message=MessagePayload(
-            content=optional_string(data.get("content")),
-            reasoning=optional_string(data.get("reasoning")),
-            tool_calls=[
-                call
-                for call in (
-                    salvage_tool_call(call)
-                    for call in calls
-                    if isinstance(call, dict)
-                )
-                if call is not None
-            ] if isinstance(calls, list) else None,
-        ),
-        error=salvage_error(raw.get("error")),
-    )
-
-
-def salvage_tool_call(raw: dict[str, object]) -> ToolCallPayload | None:
-    function = raw.get("function")
-    data = function if isinstance(function, dict) else {}
-    name = optional_string(data.get("name"))
-    arguments = optional_string(data.get("arguments"))
-    if name is None or arguments is None:
-        return None
-    return ToolCallPayload(
-        id=optional_string(raw.get("id")),
-        function=FunctionPayload(name=name, arguments=arguments),
-    )
-
-
-def salvage_usage(raw: object) -> UsagePayload | None:
-    if not isinstance(raw, dict):
-        return None
-    return UsagePayload(
-        prompt_tokens=optional_int(raw.get("prompt_tokens")) or 0,
-        completion_tokens=optional_int(raw.get("completion_tokens")) or 0,
-        cost=optional_number(raw.get("cost")),
-    )
-
-
-def salvage_error(raw: object) -> ErrorPayload | None:
-    if not isinstance(raw, dict):
-        return None
-    code = raw.get("code")
-    metadata = raw.get("metadata")
-    known_code = (
-        code
-        if isinstance(code, int | str) and not isinstance(code, bool)
-        else None
-    )
-    return ErrorPayload(
-        code=known_code,
-        message=optional_string(raw.get("message")),
-        metadata=dict(metadata) if isinstance(metadata, dict) else None,
-    )
-
-
-def optional_string(value: object) -> str | None:
-    return value if isinstance(value, str) else None
-
-
-def optional_int(value: object) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
-
-
-def optional_number(value: object) -> float | None:
-    if isinstance(value, int | float) and not isinstance(value, bool):
-        return float(value)
-    return None
+    except ValidationError as error:
+        first = error.errors()[0]
+        place = ".".join(str(part) for part in first["loc"]) or "body"
+        return UnreadableReply(f"{place}: {first['msg']}")
 
 
 def failure(status: int, payload: ResponsePayload) -> tuple[FailureKind, str] | None:
@@ -304,24 +262,15 @@ def failure(status: int, payload: ResponsePayload) -> tuple[FailureKind, str] | 
 
 
 def transient_code(code: int | str, status: int) -> bool:
-    """Whether a status or provider error code is worth retrying."""
+    """Whether the HTTP status or the provider's error code is worth retrying."""
+    if status in TRANSIENT_STATUSES or status >= 500:
+        return True
     if isinstance(code, int):
         return code in TRANSIENT_STATUSES or code >= 500
-    text = code.lower()
+    text = code.strip().lower()
     if text.isdigit():
         return transient_code(int(text), status)
-    return any(
-        word in text
-        for word in (
-            "rate",
-            "limit",
-            "timeout",
-            "unavailable",
-            "overload",
-            "temporar",
-            "server",
-        )
-    )
+    return text in TRANSIENT_CODES
 
 
 def completion_from(payload: ResponsePayload, model: str) -> Completion:
@@ -337,6 +286,7 @@ def completion_from(payload: ResponsePayload, model: str) -> Completion:
                 call.id or f"call_{index}", call.function.name, call.function.arguments
             )
             for index, call in enumerate(message.tool_calls or ())
+            if call is not None
         ),
         usage=Usage(usage.prompt_tokens, usage.completion_tokens),
         cost_usd=usage.cost,
