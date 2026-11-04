@@ -155,7 +155,6 @@ class FactionProfile:
     town_vp_bonus: int = 0
     town_workers_bonus: int = 0
     final_coin_divisor: int = 3
-    trading_house_discount: int = 3
     base_income: Income = Income(workers=1)
     dwelling_income: tuple[Income, ...] = ()
     trading_house_income: tuple[Income, ...] = ()
@@ -411,7 +410,6 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
         base_income=Income(),
         dwelling_income=ENGINEER_DWELLING_INCOME,
         temple_income=ENGINEER_TEMPLE_INCOME,
-        trading_house_discount=2,
     ),
     FactionProfile(
         type=FactionType.FAKIRS,

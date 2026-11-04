@@ -489,7 +489,7 @@ def building_cost(
         BuildingType.SANCTUARY: profile.costs.sanctuary,
     }[building]
     if building is BuildingType.TRADING_HOUSE and adjacent_opponent:
-        return replace(base, coins=max(0, base.coins - profile.trading_house_discount))
+        return replace(base, coins=base.coins // 2)
     return base
 
 
