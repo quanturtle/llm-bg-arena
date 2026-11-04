@@ -71,6 +71,13 @@ class FinishedSeatSummary(SeatSummary):
     rank: int
 
 
+class UnscoredSeatSummary(SeatSummary):
+    """A running or stopped match's seat, which has no points or rank."""
+
+    points: None = None
+    rank: None = None
+
+
 class MatchSummary(Summary):
     """The common fields of a match, and a factory for the right status variant.
 
@@ -144,11 +151,13 @@ class FinishedMatch(MatchSummary):
 class RunningMatch(MatchSummary):
     status: Literal["running"] = "running"
     finished_at: None = None
+    seats: Sequence[UnscoredSeatSummary]
 
 
 class StoppedMatch(MatchSummary):
     status: Literal["stopped"] = "stopped"
     finished_at: str
+    seats: Sequence[UnscoredSeatSummary]
 
 
 type AnyMatch = FinishedMatch | RunningMatch | StoppedMatch
@@ -237,6 +246,15 @@ def finished_seat_summary(
     )
 
 
+def unscored_seat_summary(
+    start: MatchStarted, player: int, answers: list[Answer]
+) -> UnscoredSeatSummary:
+    """A running or stopped match's seat, without points or rank."""
+    return UnscoredSeatSummary(
+        **seat_summary(start, player, answers, None).model_dump()
+    )
+
+
 def summarize(records: list[LogRecord]) -> AnyMatch:
     """Summary of one log; a log with neither match_finished nor match_stopped runs.
 
@@ -276,7 +294,7 @@ def summarize(records: list[LogRecord]) -> AnyMatch:
             ],
         )
     seats = [
-        seat_summary(start, player, answers[player], None) for player in players
+        unscored_seat_summary(start, player, answers[player]) for player in players
     ]
     if stop is not None:
         return StoppedMatch(
