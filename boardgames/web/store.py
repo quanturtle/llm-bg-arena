@@ -21,6 +21,7 @@ from boardgames.logs.schema import (
     MatchFinished,
     MatchStarted,
     MatchStopped,
+    UnfinishedDecisionRecord,
 )
 from boardgames.logs.sink import LogFileError
 from boardgames.logs.thoughts import thoughts_path
@@ -196,7 +197,9 @@ def add_cost(total: float | None, cost: float | None) -> float | None:
     return total + cost
 
 
-type Answer = DecisionRecord | ForfeitRecord
+# an unfinished decision adds its cost and tokens, but is neither a decision nor
+# a forfeit
+type Answer = DecisionRecord | ForfeitRecord | UnfinishedDecisionRecord
 
 
 def seat_summary(
@@ -266,13 +269,16 @@ def summarize(records: list[LogRecord]) -> AnyMatch:
     answers: dict[int, list[Answer]] = {s.player: [] for s in start.seats}
     steps = 0
     for record in records:
-        if isinstance(record, DecisionRecord | ForfeitRecord):
+        if isinstance(
+            record, DecisionRecord | ForfeitRecord | UnfinishedDecisionRecord
+        ):
             if record.player not in answers:
                 raise LogFormatError(
                     f"a record for player {record.player} in a match with "
                     f"{len(start.seats)} seats"
                 )
             answers[record.player].append(record)
+        if isinstance(record, DecisionRecord | ForfeitRecord):
             steps = max(steps, record.step)
     common: dict[str, Any] = {
         "match_id": start.match_id,

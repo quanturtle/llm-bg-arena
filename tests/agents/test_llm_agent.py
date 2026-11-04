@@ -23,8 +23,9 @@ from boardgames.llm.prompting import PromptSettings
 from boardgames.llm.retry import RetryingChatModel
 from boardgames.llm.tools import NO_TOOL_NUDGE
 from boardgames.logs.replay import read_log, replay_match
-from boardgames.logs.schema import DecisionRecord, ForfeitRecord, MatchStopped
+from boardgames.logs.schema import DecisionRecord, MatchStopped
 from boardgames.logs.sink import JsonlFile
+from boardgames.web.store import summarize
 from tests.arena.support import FakeClock, MemorySink, ScriptedAgent
 from tests.llm.fakes import QueuedChatModel, reply, tool_calls_reply
 from tests.llm.requests import puerto_rico_request, tic_tac_toe_request
@@ -196,9 +197,10 @@ def test_a_failed_call_keeps_the_cost_of_its_earlier_attempts() -> None:
                 clock=FakeClock(),
             )
         )
-    forfeit = next(r for r in sink.records if isinstance(r, ForfeitRecord))
-    assert forfeit.trace.cost_usd == pytest.approx(0.12)
     assert isinstance(sink.records[-1], MatchStopped)
+    seat = summarize(sink.records).seats[0]
+    assert seat.cost_usd == pytest.approx(0.12)
+    assert not seat.forfeited
     return
 
 

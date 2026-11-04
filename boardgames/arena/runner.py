@@ -39,6 +39,7 @@ from boardgames.logs.schema import (
     MatchStopped,
     ScoreRecord,
     SeatRecord,
+    UnfinishedDecisionRecord,
     event_record,
     plain_object,
     trace_record,
@@ -340,18 +341,24 @@ def record_unfinished_decisions[S, A, C: GameConfig](
     for unfinished in ledger.unfinished:
         request = unfinished.request
         context.sink.write(
-            ForfeitRecord(
+            UnfinishedDecisionRecord(
                 step=ledger.progress.step,
                 observed_at_step=ledger.observed_at,
                 player=request.decision.player,
                 kind=request.decision.kind,
-                reason=f"the decision failed: {error}",
-                observation_digest=request.observation.digest(),
+                reason=cut_short_reason(error),
                 latency_seconds=latency,
                 trace=trace_record(unfinished.trace),
             )
         )
     return
+
+
+def cut_short_reason(error: BaseException) -> str:
+    """Why a decision ended early; a cancellation means the match was stopped."""
+    if isinstance(error, asyncio.CancelledError):
+        return "the match was stopped"
+    return f"{type(error).__name__}: {error}"
 
 
 def record_forfeit[S, A, C: GameConfig](

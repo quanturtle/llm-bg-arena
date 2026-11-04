@@ -19,6 +19,7 @@ from boardgames.logs.schema import (
     MatchStarted,
     MatchStopped,
     TraceRecord,
+    UnfinishedDecisionRecord,
 )
 from boardgames.logs.sink import LogFileError
 
@@ -48,6 +49,8 @@ class ThoughtsLog:
                 self._write(decision_text(record, self._seat(record.player)))
             case ForfeitRecord():
                 self._write(forfeit_text(record, self._seat(record.player)))
+            case UnfinishedDecisionRecord():
+                self._write(unfinished_text(record, self._seat(record.player)))
             case MatchFinished():
                 self._write(finish_text(record, self._agents))
             case MatchStopped():
@@ -111,6 +114,12 @@ def decision_text(record: DecisionRecord, seat: str) -> str:
 def forfeit_text(record: ForfeitRecord, seat: str) -> str:
     """A forfeit with whatever trace led to it."""
     header = f"## Step {record.step}: {seat} forfeits\n\n{record.reason}\n\n"
+    return header + trace_text(record.trace)
+
+
+def unfinished_text(record: UnfinishedDecisionRecord, seat: str) -> str:
+    """A decision cut short, with the model calls it had already paid for."""
+    header = f"## Step {record.step}: {seat} was cut short\n\n{record.reason}\n\n"
     return header + trace_text(record.trace)
 
 

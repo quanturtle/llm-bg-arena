@@ -92,6 +92,19 @@ class ForfeitRecord(Record):
     trace: TraceRecord
 
 
+class UnfinishedDecisionRecord(Record):
+    """A decision a failure or a stop cut short: its paid calls, not a forfeit."""
+
+    type: Literal["decision_unfinished"] = "decision_unfinished"
+    step: int
+    observed_at_step: int
+    player: int
+    kind: str
+    reason: str
+    latency_seconds: float
+    trace: TraceRecord
+
+
 class ScoreRecord(Record):
     """Game points, and the final rank after forfeits (forfeiters rank last)."""
 
@@ -122,6 +135,7 @@ type LogRecord = Annotated[
     | EventRecord
     | DecisionRecord
     | ForfeitRecord
+    | UnfinishedDecisionRecord
     | MatchFinished
     | MatchStopped,
     Field(discriminator="type"),

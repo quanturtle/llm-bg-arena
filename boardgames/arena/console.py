@@ -13,6 +13,7 @@ from boardgames.logs.schema import (
     MatchStarted,
     MatchStopped,
     TraceRecord,
+    UnfinishedDecisionRecord,
 )
 
 REASONING_CHARS = 200
@@ -45,6 +46,10 @@ class ConsoleLog:
                 self._print_trace(record.player, record.trace)
             case ForfeitRecord():
                 self._print(f"{self._seat(record.player)} forfeits: {record.reason}")
+                self._print_trace(record.player, record.trace)
+            case UnfinishedDecisionRecord():
+                seat = self._seat(record.player)
+                self._print(f"{seat} was cut short: {record.reason}")
                 self._print_trace(record.player, record.trace)
             case MatchFinished():
                 self._print_scores(record)
