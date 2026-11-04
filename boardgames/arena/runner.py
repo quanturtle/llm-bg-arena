@@ -113,12 +113,14 @@ class UnfinishedDecision[A]:
 class RoundLedger[S, A]:
     """A round in flight, read when a failure or a stop cuts it short.
 
-    `progress` moves with each logged answer; agents report into `unfinished`.
+    `progress` and `logged` move the moment an answer's record is written.
     """
 
     progress: Progress[S]
     observed_at: int
     asked_at: float
+    # how many of this round's answers, in seat order, are already in the log
+    logged: int = 0
     unfinished: list[UnfinishedDecision[A]] = field(default_factory=list)
 
     def watch(self, request: DecisionRequest[A]) -> DecisionRequest[A]:
@@ -250,7 +252,7 @@ async def play_round[S, A, C: GameConfig](
 ) -> tuple[Progress[S], tuple[PlayerId, ...]]:
     """Ask every open decision at once, then apply the answers in seat order.
 
-    Each answer is logged as it applies, so `ledger.progress` moves with it.
+    Answers that were never logged hand their paid traces back if the round fails.
     """
     progress = ledger.progress
     decisions = context.game.pending_decisions(progress.state)
@@ -263,21 +265,20 @@ async def play_round[S, A, C: GameConfig](
     ledger.progress = progress
     answers = await decide_together(context, decisions, requests)
     forfeited: list[PlayerId] = []
-    logged = 0
     try:
         for request, (choice, latency) in zip(requests, answers, strict=True):
             answer = Answer(request, ledger.observed_at, latency)
             if isinstance(choice, Forfeited):
-                record_forfeit(context, progress, answer, choice)
+                record_forfeit(context, ledger.progress, answer, choice)
+                ledger.logged += 1
                 forfeited.append(request.decision.player)
             else:
-                progress = apply_choice(context, progress, answer, choice)
-                ledger.progress = progress
-            logged += 1
+                apply_choice(context, ledger, answer, choice)
     except BaseException:
-        report_unlogged(zip(requests[logged:], answers[logged:], strict=True))
+        unlogged = slice(ledger.logged, None)
+        report_unlogged(zip(requests[unlogged], answers[unlogged], strict=True))
         raise
-    return progress, tuple(forfeited)
+    return ledger.progress, tuple(forfeited)
 
 
 async def decide_together[S, A, C: GameConfig](
@@ -407,11 +408,14 @@ def record_forfeit[S, A, C: GameConfig](
 
 def apply_choice[S, A, C: GameConfig](
     context: MatchContext[S, A, C],
-    progress: Progress[S],
+    ledger: RoundLedger[S, A],
     answer: Answer[A],
     choice: Chosen[A],
-) -> Progress[S]:
-    """Check and apply one chosen action, logging it and the events it caused."""
+) -> None:
+    """Check and apply one chosen action, logging it and the events it caused.
+
+    The ledger moves once the decision is written, even if an event write fails."""
+    progress = ledger.progress
     game = context.game
     request = answer.request
     decision = request.decision
@@ -439,14 +443,16 @@ def apply_choice[S, A, C: GameConfig](
             trace=trace_record(choice.trace),
         )
     )
-    for event in transition.events:
-        context.sink.write(event_record(step, event))
-    return replace(
+    ledger.progress = replace(
         progress,
         state=transition.state,
         step=step,
         history=(*progress.history, *transition.events),
     )
+    ledger.logged += 1
+    for event in transition.events:
+        context.sink.write(event_record(step, event))
+    return
 
 
 def match_result[S, A, C: GameConfig](

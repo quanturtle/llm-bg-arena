@@ -42,6 +42,7 @@ from boardgames.logs.schema import (
     DecisionRecord,
     EventRecord,
     ForfeitRecord,
+    LogRecord,
     MatchFinished,
     MatchStarted,
     MatchStopped,
@@ -244,7 +245,11 @@ def test_one_failing_simultaneous_decision_cancels_the_other() -> None:
 
 
 class PaidAgent:
-    """Claims "a" at once, after one paid model call."""
+    """Plays `notation` at once, after one paid model call."""
+
+    def __init__(self, notation: str) -> None:
+        self._notation = notation
+        return
 
     @property
     def name(self) -> str:
@@ -254,8 +259,28 @@ class PaidAgent:
         return {"kind": "llm"}
 
     async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
-        trace = DecisionTrace(attempts=(AttemptRecord(text="a"),), cost_usd=0.25)
-        return Chosen(request.action_text.parse_action("a"), trace)
+        attempt = AttemptRecord(text=self._notation)
+        trace = DecisionTrace(attempts=(attempt,), cost_usd=0.25)
+        return Chosen(request.action_text.parse_action(self._notation), trace)
+
+
+class EventFailingSink(MemorySink):
+    """Fails on the first event after setup, once its decision is written."""
+
+    def write(self, record: LogRecord) -> None:
+        if isinstance(record, EventRecord) and record.step > 0:
+            raise LogFileError("disk full")
+        super().write(record)
+        return
+
+
+def test_an_answer_logged_before_its_events_failed_is_not_reported_again() -> None:
+    sink = EventFailingSink()
+    with pytest.raises(LogFileError):
+        run(TicTacToe(), TicTacToeConfig(), [PaidAgent("b2"), FixedAgent("a1")], sink)
+    assert not any(isinstance(r, UnfinishedDecisionRecord) for r in sink.records)
+    assert sink.records[-1] == MatchStopped(steps=1, stopped_at=FakeClock().now_iso())
+    return
 
 
 def test_a_round_that_fails_after_a_logged_answer_stops_at_its_step() -> None:
@@ -271,7 +296,7 @@ def test_a_round_that_fails_after_a_logged_answer_stops_at_its_step() -> None:
 def test_an_answer_that_returned_before_its_round_failed_keeps_its_cost() -> None:
     sink = MemorySink()
     with pytest.raises(ModelUnavailableError):
-        run(TokenClaim(), ClaimConfig(), [PaidAgent(), UnavailableAgent()], sink)
+        run(TokenClaim(), ClaimConfig(), [PaidAgent("a"), UnavailableAgent()], sink)
     unfinished = [r for r in sink.records if isinstance(r, UnfinishedDecisionRecord)]
     assert [(r.player, r.trace.cost_usd) for r in unfinished] == [(0, 0.25)]
     return
