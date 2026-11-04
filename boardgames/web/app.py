@@ -131,13 +131,13 @@ class TimelineCache:
 
     def __init__(self, size: int = TIMELINE_CACHE_SIZE) -> None:
         self._size = size
-        self._entries: OrderedDict[str, tuple[tuple[int, str], Timeline]] = (
-            OrderedDict()
-        )
+        self._entries: OrderedDict[
+            str, tuple[tuple[int, str, tuple[int, int]], Timeline]
+        ] = OrderedDict()
         return
 
     def timeline(self, store: MatchStore, summary: MatchSummary) -> Timeline:
-        key = (summary.steps, summary.status)
+        key = (summary.steps, summary.status, store.stamp(summary.match_id))
         cached = self._entries.get(summary.match_id)
         if cached is not None and cached[0] == key:
             self._entries.move_to_end(summary.match_id)

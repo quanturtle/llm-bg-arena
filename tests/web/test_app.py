@@ -7,11 +7,19 @@ from fastapi.testclient import TestClient
 from boardgames.arena import cli
 from boardgames.core import ConfigError
 from boardgames.games.puerto_rico import PuertoRico, PuertoRicoConfig
+from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
+from boardgames.logs.schema import DecisionRecord, EventRecord
 from boardgames.web.app import create_app
 from boardgames.web.launcher import MatchLauncher
 from boardgames.web.store import MatchStore
 from tests.arena.support import random_agents
-from tests.web.support import CostlyAgent, costly_agents, write_match
+from tests.web.support import (
+    CostlyAgent,
+    costly_agents,
+    play_records,
+    without_finish,
+    write_match,
+)
 
 
 @pytest.fixture
@@ -120,6 +128,41 @@ def test_a_read_only_log_that_vanishes_does_not_break_the_listing(
     for path in ("/api/matches", "/api/leaderboard", "/api/games"):
         assert client.get(path).status_code == 200
     assert client.get("/api/matches/kept").status_code == 200
+    return
+
+
+def test_a_live_timeline_notices_events_added_to_the_last_step(
+    tmp_path: Path,
+) -> None:
+    records = without_finish(
+        play_records(TicTacToe(), TicTacToeConfig(), random_agents(2), 3, "live")
+    )
+    cut = next(
+        i
+        for i, record in enumerate(records)
+        if isinstance(record, DecisionRecord) and record.step == 3
+    )
+    events = [
+        record
+        for record in records[cut + 1 :]
+        if isinstance(record, EventRecord) and record.step == 3
+    ]
+    assert events
+    path = tmp_path / "live.jsonl"
+    path.write_text(
+        "".join(record.model_dump_json() + "\n" for record in records[: cut + 1]),
+        encoding="utf-8",
+    )
+    client = TestClient(
+        create_app(MatchStore(tmp_path), MatchLauncher(tmp_path, None, None))
+    )
+    before = client.get("/api/matches/live/timeline").json()["frame_count"]
+    with path.open("a", encoding="utf-8") as log:
+        for event in events:
+            log.write(event.model_dump_json() + "\n")
+    after = client.get("/api/matches/live/timeline").json()["frame_count"]
+    assert after == before + 1
+    assert client.get("/api/matches/live/frames/3").status_code == 200
     return
 
 
