@@ -48,15 +48,9 @@ from boardgames.games.puerto_rico.constants import (
     Role,
 )
 from boardgames.games.puerto_rico.game import (
-    check_end_game,
-    compute_winner,
     craftsman_actions,
     discard_actions,
-    end_round,
-    finish_standard_phase,
-    refill_colonist_ship,
     run_production,
-    tiebreak_key,
 )
 from boardgames.games.puerto_rico.model import (
     CargoShip,
@@ -83,6 +77,14 @@ from boardgames.games.puerto_rico.model import (
     sell_price,
     ship_victory_points,
     total_points,
+)
+from boardgames.games.puerto_rico.rounds import (
+    check_end_game,
+    compute_winner,
+    end_round,
+    finish_standard_phase,
+    refill_colonist_ship,
+    tiebreak_key,
 )
 from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import LogRecord

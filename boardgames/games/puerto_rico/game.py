@@ -36,7 +36,6 @@ from boardgames.core.records import (
 from boardgames.games.puerto_rico.constants import (
     BUILDINGS,
     GOODS,
-    MAX_CITY_SPACES,
     MAX_ISLAND_SPACES,
     TRADING_HOUSE_SPACES,
     Good,
@@ -71,11 +70,9 @@ from boardgames.games.puerto_rico.model import (
     building_points,
     can_load_on_ship,
     can_ship,
-    city_spaces_used,
     end_game_bonus,
     factory_bonus_for_produced,
     goods_add,
-    goods_from_list,
     goods_get,
     goods_minus,
     goods_plus,
@@ -84,8 +81,6 @@ from boardgames.games.puerto_rico.model import (
     goods_total,
     island_spaces_used,
     next_player_in_order,
-    next_role_picker,
-    next_unacted,
     production,
     public_points,
     replace_at,
@@ -99,6 +94,11 @@ from boardgames.games.puerto_rico.model import (
     wharf_goods,
 )
 from boardgames.games.puerto_rico.notation import format_action, parse_action
+from boardgames.games.puerto_rico.rounds import (
+    advance_role_picker,
+    mark_acted,
+    tiebreak_key,
+)
 from boardgames.games.puerto_rico.setup import check_config, start_game
 from boardgames.games.puerto_rico.view import (
     describe_action,
@@ -306,7 +306,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                     {"player": player, "doubloons": 1},
                 )
             )
-            state = _advance_role_picker(state)
+            state = advance_role_picker(state)
             return Transition(state, tuple(events))
         state, phase_events = self.start_role_phase(state, role, player)
         events.extend(phase_events)
@@ -437,7 +437,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                     "colonized": colonized,
                 },
             )
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             return Transition(state, (event, *advanced))
         if isinstance(action, TakeQuarry):
             colonized = False
@@ -465,10 +465,10 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 + (" and colonized it with the Hospice." if colonized else "."),
                 data,
             )
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             return Transition(state, (event, *advanced))
         if isinstance(action, Pass):
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             event = Event(
                 "settler_passed",
                 f"{seat_label(player)} took no plantation.",
@@ -503,7 +503,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             )
             return Transition(state, (event,))
         if isinstance(action, FinishPlacement):
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             event = Event(
                 "mayor_finished",
                 f"{seat_label(player)} finished placing colonists.",
@@ -560,10 +560,10 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                             {"player": player, "building": name},
                         )
                     )
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             return Transition(state, (*events, *advanced))
         if isinstance(action, Pass):
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             event = Event(
                 "builder_passed",
                 f"{seat_label(player)} built nothing.",
@@ -606,7 +606,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             )
         else:
             raise IllegalActionError("only a privilege good or pass is legal")
-        state = _advance_role_picker(
+        state = advance_role_picker(
             replace(
                 state,
                 active_role=None,
@@ -637,10 +637,10 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 f"{seat_label(player)} sold a {good} for {price} doubloons.",
                 {"player": player, "good": good, "price": price},
             )
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             return Transition(state, (event, *advanced))
         if isinstance(action, Pass):
-            state, advanced = self.mark_acted(state, player)
+            state, advanced = mark_acted(state, player)
             event = Event(
                 "trader_passed",
                 f"{seat_label(player)} sold nothing.",
@@ -756,21 +756,6 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         )
         state = advance_discard(state, player)
         return Transition(state, (event,))
-
-    # Phase plumbing -------------------------------------------------------
-
-    def mark_acted(
-        self, state: PuertoRicoState, player: PlayerId
-    ) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-        acted = state.players_acted | {player}
-        if len(acted) >= len(state.order):
-            return finish_standard_phase(replace(state, players_acted=acted))
-        next_player = next_unacted(replace(state, players_acted=acted), player)
-        assert next_player is not None
-        return (
-            replace(state, players_acted=acted, active_player=next_player),
-            (),
-        )
 
 
 # Helpers ------------------------------------------------------------------
@@ -893,200 +878,6 @@ def run_production(
     return state, tuple(events)
 
 
-def finish_standard_phase(
-    state: PuertoRicoState,
-) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-    role = state.active_role
-    if role == "settler":
-        state, events = _finish_settler(state)
-    elif role == "mayor":
-        state, events = _finish_mayor(state)
-    elif role == "trader":
-        state, events = _finish_trader(state)
-    else:
-        events = ()
-    return _advance_role_picker(state), events
-
-
-def _finish_settler(
-    state: PuertoRicoState,
-) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-    face_up_count = len(state.order) + 1
-    discard = (*state.plantation_discard, *state.face_up)
-    deck = state.plantation_deck
-    rng = state.rng
-    drawn = deck[:face_up_count]
-    deck = deck[len(drawn) :]
-    shuffled: tuple[Good, ...] = ()
-    reshuffled = False
-    if len(drawn) < face_up_count:
-        shuffled, rng = rng.shuffled(discard)
-        needed = face_up_count - len(drawn)
-        drawn = (*drawn, *shuffled[:needed])
-        deck = shuffled[needed:]
-        discard = ()
-        reshuffled = True
-    events = [
-        Event(
-            "face_up_refilled",
-            "The face-up plantations were replenished: " + ", ".join(drawn) + ".",
-            {"drawn": list(drawn), "reshuffled": reshuffled},
-        )
-    ]
-    if reshuffled:
-        events.append(
-            Event(
-                "plantation_discard_reshuffled",
-                "The plantation discard pile was shuffled into a new deck.",
-                {"cards": len(shuffled)},
-            )
-        )
-    state = replace(
-        state,
-        face_up=drawn,
-        plantation_deck=deck,
-        plantation_discard=discard,
-        rng=rng,
-    )
-    return state, tuple(events)
-
-
-def _finish_mayor(
-    state: PuertoRicoState,
-) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-    state = refill_colonist_ship(state)
-    if not state.colonist_shortage:
-        return state, ()
-    return state, (
-        Event(
-            "colonist_shortage",
-            "The colonist supply cannot refill the ship; the game will "
-            "end at the end of this round.",
-            {"ship": state.colonist_ship},
-        ),
-    )
-
-
-def _finish_trader(
-    state: PuertoRicoState,
-) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-    if len(state.trading_house) < TRADING_HOUSE_SPACES:
-        return state, ()
-    supply = goods_plus(state.goods_supply, goods_from_list(list(state.trading_house)))
-    return replace(state, trading_house=(), goods_supply=supply), ()
-
-
-def _advance_role_picker(state: PuertoRicoState) -> PuertoRicoState:
-    next_picker = next_role_picker(state)
-    if next_picker is None:
-        return end_round(state)
-    return replace(
-        state,
-        phase="role_selection",
-        active_role=None,
-        active_player=next_picker,
-        players_acted=frozenset(),
-        captain_passes=0,
-    )
-
-
-def refill_colonist_ship(state: PuertoRicoState) -> PuertoRicoState:
-    """Refill from supply: empty building slots, at least one per player."""
-    empty_slots = 0
-    for player in state.players:
-        for building in player.buildings:
-            spec = BUILDINGS[building.name]
-            empty_slots += spec.max_colonists - building.colonists
-    needed = max(empty_slots, len(state.order))
-    refill = min(needed, state.colonist_supply)
-    return replace(
-        state,
-        colonist_ship=refill,
-        colonist_supply=state.colonist_supply - refill,
-        colonist_shortage=refill < needed,
-    )
-
-
-def end_round(state: PuertoRicoState) -> PuertoRicoState:
-    """Add a doubloon to unchosen roles, pass the governorship and check the end."""
-    roles = tuple(
-        replace(
-            role,
-            doubloons=role.doubloons + (1 if role.taken_by is None else 0),
-            taken_by=None,
-        )
-        for role in state.roles
-    )
-    governor_index = state.order.index(state.governor)
-    final_governor = state.governor
-    new_governor = state.order[(governor_index + 1) % len(state.order)]
-    state = replace(
-        state,
-        roles=roles,
-        governor=new_governor,
-        round=state.round + 1,
-        phase="role_selection",
-        active_role=None,
-        active_player=new_governor,
-        players_acted=frozenset(),
-        captain_passes=0,
-    )
-    return check_end_game(state, final_governor=final_governor)
-
-
-def check_end_game(
-    state: PuertoRicoState, *, final_governor: PlayerId | None = None
-) -> PuertoRicoState:
-    """Set game over when a supply runs out, a city fills or the round limit hits."""
-    reason: str | None = None
-    if state.vp_supply <= 0:
-        reason = "victory point supply exhausted"
-    elif state.colonist_shortage:
-        reason = "colonist supply exhausted"
-    elif any(city_spaces_used(player) >= MAX_CITY_SPACES for player in state.players):
-        reason = "a player's city is full"
-    elif state.config.max_rounds > 0 and state.round > state.config.max_rounds:
-        reason = "round limit reached"
-    if reason is None:
-        return state
-    state = replace(state, final_governor=final_governor)
-    winner = compute_winner(state)
-    return replace(
-        state,
-        phase="game_over",
-        active_role=None,
-        end_reason=reason,
-        winner=winner,
-    )
-
-
-def tiebreak_key(state: PuertoRicoState, seat: PlayerId) -> tuple[int, int]:
-    """Tie-break order after points: doubloons plus goods, then the governor."""
-    player = state.players[seat]
-    wealth = player.doubloons + goods_total(player.goods)
-    governor = (
-        state.final_governor if state.final_governor is not None else state.governor
-    )
-    distance = (state.order.index(seat) - state.order.index(governor)) % len(
-        state.order
-    )
-    return wealth, -distance
-
-
-def compute_winner(state: PuertoRicoState) -> PlayerId:
-    """Highest score; ties go to the wealthier player, then to the governor."""
-    best: PlayerId | None = None
-    best_key: tuple[int, int, int] | None = None
-    for seat in state.order:
-        player = state.players[seat]
-        key = (total_points(player), *tiebreak_key(state, seat))
-        if best_key is None or key > best_key:
-            best = seat
-            best_key = key
-    assert best is not None
-    return best
-
-
 def advance_captain(
     state: PuertoRicoState, player: PlayerId, *, loaded: bool
 ) -> PuertoRicoState:
@@ -1164,7 +955,7 @@ def finish_captain_phase(state: PuertoRicoState) -> PuertoRicoState:
         active_player=state.governor,
         phase="role_selection",
     )
-    return _advance_role_picker(state)
+    return advance_role_picker(state)
 
 
 def place_colonist(owner: PlayerState, action: PlaceColonist) -> PlayerState:
