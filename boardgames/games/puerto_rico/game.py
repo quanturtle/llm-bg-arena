@@ -50,7 +50,6 @@ from boardgames.games.puerto_rico.model import (
     Pass,
     Phase,
     PlayerState,
-    ProducePrivilege,
     PuertoRicoConfig,
     PuertoRicoState,
     SelectRole,
@@ -59,16 +58,13 @@ from boardgames.games.puerto_rico.model import (
     can_load_on_ship,
     can_ship,
     end_game_bonus,
-    factory_bonus_for_produced,
     goods_add,
     goods_get,
-    goods_minus,
     goods_plus,
     goods_remove,
     goods_set,
     goods_total,
     next_player_in_order,
-    production,
     public_points,
     replace_at,
     replace_player,
@@ -85,6 +81,12 @@ from boardgames.games.puerto_rico.roles.builder import (
     apply_builder,
     builder_actions,
     explain_builder,
+)
+from boardgames.games.puerto_rico.roles.craftsman import (
+    apply_craftsman,
+    craftsman_actions,
+    explain_craftsman,
+    run_production,
 )
 from boardgames.games.puerto_rico.roles.mayor import (
     apply_mayor,
@@ -199,7 +201,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         if state.phase == "builder_action":
             return apply_builder(state, player, action)
         if state.phase == "craftsman_action":
-            return self.apply_craftsman(state, player, action)
+            return apply_craftsman(state, player, action)
         if state.phase == "trader_action":
             return self.apply_trader(state, player, action)
         if state.phase == "captain_action":
@@ -367,50 +369,6 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
             )
         return state, tuple(events)
 
-    # Craftsman ------------------------------------------------------------
-
-    def apply_craftsman(
-        self, state: PuertoRicoState, player: PlayerId, action: Action
-    ) -> Transition[PuertoRicoState]:
-        events: list[Event] = []
-        if isinstance(action, ProducePrivilege):
-            good = action.good
-            owner = state.players[player]
-            state = replace_player(
-                state,
-                player,
-                replace(owner, goods=goods_add(owner.goods, good, 1)),
-            )
-            state = replace(
-                state, goods_supply=goods_remove(state.goods_supply, good, 1)
-            )
-            events.append(
-                Event(
-                    "privilege_good",
-                    f"{seat_label(player)} took an extra {good}.",
-                    {"player": player, "good": good},
-                )
-            )
-        elif isinstance(action, Pass):
-            events.append(
-                Event(
-                    "privilege_declined",
-                    f"{seat_label(player)} declined the Craftsman privilege.",
-                    {"player": player},
-                )
-            )
-        else:
-            raise IllegalActionError("only a privilege good or pass is legal")
-        state = advance_role_picker(
-            replace(
-                state,
-                active_role=None,
-                players_acted=frozenset(),
-                captain_passes=0,
-            )
-        )
-        return Transition(state, tuple(events))
-
     # Trader ---------------------------------------------------------------
 
     def apply_trader(
@@ -565,61 +523,6 @@ def captain_first_load(
     return False, owner
 
 
-def run_production(
-    state: PuertoRicoState, chooser: PlayerId
-) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-    """Every player produces goods from the Craftsman chooser, limited by the bank."""
-    events: list[Event] = []
-    start = state.order.index(chooser)
-    for offset in range(len(state.order)):
-        seat = state.order[(start + offset) % len(state.order)]
-        owner = state.players[seat]
-        potential = production(owner)
-        produced = [0, 0, 0, 0, 0]
-        for index, amount in enumerate(potential):
-            actual = min(amount, state.goods_supply[index])
-            produced[index] = actual
-        if any(produced):
-            state = replace_player(
-                state,
-                seat,
-                replace(
-                    owner, goods=goods_plus(owner.goods, cast(Goods, tuple(produced)))
-                ),
-            )
-            state = replace(
-                state,
-                goods_supply=goods_minus(
-                    state.goods_supply, cast(Goods, tuple(produced))
-                ),
-            )
-            events.append(
-                Event(
-                    "goods_produced",
-                    f"{seat_label(seat)} produced goods.",
-                    {"player": seat, "goods": produced},
-                )
-            )
-        bonus = factory_bonus_for_produced(owner, cast(Goods, tuple(produced)))
-        if bonus:
-            state = replace_player(
-                state,
-                seat,
-                replace(
-                    state.players[seat],
-                    doubloons=state.players[seat].doubloons + bonus,
-                ),
-            )
-            events.append(
-                Event(
-                    "factory_bonus",
-                    f"{seat_label(seat)}'s Factory gave {bonus} doubloons.",
-                    {"player": seat, "doubloons": bonus},
-                )
-            )
-    return state, tuple(events)
-
-
 def advance_captain(
     state: PuertoRicoState, player: PlayerId, *, loaded: bool
 ) -> PuertoRicoState:
@@ -720,16 +623,6 @@ def legal_action_list(state: PuertoRicoState, player: PlayerId) -> list[Action]:
     if state.phase == "captain_discard":
         return discard_actions(owner)
     return []
-
-
-def craftsman_actions(state: PuertoRicoState, owner: PlayerState) -> list[Action]:
-    actions: list[Action] = []
-    potential = production(owner)
-    for index, good in enumerate(GOODS):
-        if potential[index] > 0 and state.goods_supply[index] > 0:
-            actions.append(ProducePrivilege(good))
-    actions.append(Pass())
-    return actions
 
 
 def trader_actions(state: PuertoRicoState, owner: PlayerState) -> list[Action]:
@@ -891,12 +784,7 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
     if phase == "builder_action":
         return explain_builder(state, player, action)
     if phase == "craftsman_action":
-        if isinstance(action, ProducePrivilege):
-            potential = production(state.players[player])
-            index = GOODS.index(action.good)
-            if potential[index] <= 0 or state.goods_supply[index] <= 0:
-                return f"You cannot produce an extra {action.good}."
-        return "Take a producible good or pass."
+        return explain_craftsman(state, player, action)
     if phase == "trader_action":
         if isinstance(action, Sell):
             owner = state.players[player]
