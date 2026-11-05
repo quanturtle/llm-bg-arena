@@ -96,7 +96,8 @@ still count against that supply.
 - Largest connected area: 18/12/6 points, split evenly on ties. Shipping, Dwarves'
   tunneling and Fakirs' carpet flight all connect structures for this score.
 - Leftover resources: 1 point per 3 coins, workers, priests and Bowl III power
-  (Alchemists get 1 point per 2). Power in Bowl II is burned and scores nothing.
+  (Alchemists get 1 point per 2). Before counting, every 2 power in Bowl II is
+  burned into 1 Bowl III power; any odd token is lost.
 
 ## Notation
 Positions are axial hex coordinates written `q,r`, for example `0,0`.

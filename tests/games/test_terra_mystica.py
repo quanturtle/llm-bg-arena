@@ -516,6 +516,25 @@ def test_leftover_bowl_three_power_scores_as_coins() -> None:
     assert final_scores(state)[player][1]["resources"] == 3
 
 
+def test_final_scores_burn_bowl_two_power() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.WITCHES,
+            resources=Resources(power1=0, power2=6, power3=0),
+        ),
+    )
+    assert final_scores(state)[player][1]["resources"] == 1
+    state = with_resources(
+        state, player, coins=0, workers=0, priests=0, power1=0, power2=5, power3=0
+    )
+    assert final_scores(state)[player][1]["resources"] == 0
+
+
 def test_notation_round_trips_for_every_legal_action() -> None:
     state = start(num_players=2, seed=1)
     while not GAME.is_terminal(state):

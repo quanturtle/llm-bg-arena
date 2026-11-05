@@ -45,6 +45,7 @@ def final_scores(
             + state.players[seat].resources.workers
             + state.players[seat].resources.priests
             + state.players[seat].resources.power3
+            + state.players[seat].resources.power2 // 2
         )
         // state.players[seat].profile.final_coin_divisor
         for seat in all_seats
