@@ -896,6 +896,32 @@ def test_action_phase_spades_use_a_single_tile_then_one_extra() -> None:
     assert not any(isinstance(action, UseCultSpade) for action in listing(state))
 
 
+def test_halfling_stronghold_spades_must_all_be_used_before_building() -> None:
+    state, player, _start, first, second = _action_spade_state(FactionType.HALFLINGS, 1)
+    board = state.board
+    for position, terrain in ((first, Terrain.PLAINS), (second, Terrain.SWAMP)):
+        tile = board.tile(position)
+        assert tile is not None
+        board = board.replace_tile(position, replace(tile, terrain=terrain))
+    state = _neutral_scoring(
+        replace(
+            state,
+            board=board,
+            power_spade_tiles=(first,),
+            spade_require_all=True,
+            spade_topup=False,
+        )
+    )
+    assert BuildDwelling(first) not in listing(state)
+    with pytest.raises(IllegalActionError):
+        GAME.apply(state, player, BuildDwelling(first))
+    assert UseCultSpade(second) in listing(state)
+    state = GAME.apply(state, player, UseCultSpade(second)).state
+    assert state.cult_spades[player] == 0
+    assert BuildDwelling(first) in listing(state)
+    assert BuildDwelling(second) not in listing(state)
+
+
 def test_post_spade_build_lists_mermaid_rivers_and_alchemist_trades() -> None:
     state, player, target, river = _mermaid_gap_state()
     tile = state.board.tile(target)
