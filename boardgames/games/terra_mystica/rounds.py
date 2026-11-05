@@ -124,6 +124,9 @@ def start_round(
         spade_actor=None,
         power_spade_tiles=(),
         spade_second=None,
+        spade_transformed=(),
+        spade_intermediate=False,
+        spade_reach_used=False,
         spade_topup=True,
         spade_require_all=False,
     )
@@ -190,6 +193,9 @@ def start_next_round(
         spade_actor=None,
         power_spade_tiles=(),
         spade_second=None,
+        spade_transformed=(),
+        spade_intermediate=False,
+        spade_reach_used=False,
         spade_topup=True,
         spade_require_all=False,
     )
@@ -307,6 +313,9 @@ def end_round(
             spade_actor=None,
             power_spade_tiles=(),
             spade_second=None,
+            spade_transformed=(),
+            spade_intermediate=False,
+            spade_reach_used=False,
             spade_topup=True,
             spade_require_all=False,
         )

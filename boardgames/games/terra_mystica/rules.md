@@ -25,8 +25,8 @@ Known limitations:
   founded it, so later structures must reach the existing town without it.
 - The river skip is only offered during a build or upgrade, not as a free action.
 - The cult steps on town tile 4 are assigned in a fixed order, not chosen.
-- `transform` and `spade` list the bare home-terrain form; the explicit
-  `to <home terrain>` form is accepted but not listed.
+- `transform` and `spade` use the bare home-terrain form; writing the home
+  terrain explicitly (`to <home terrain>`) is not a listed action.
 - The spade phase does not list transforming one of your own home tiles.
 
 ## Round structure
@@ -99,16 +99,21 @@ player uses or skips it. A cult-bonus spade may transform a tile part of the way
 stopping at any terrain on the wheel; the player spends up to the budget and keeps
 whatever is left. Spades may be split across tiles and aimed at any terrain on
 the wheel. Power spades and the Halflings' stronghold spades are action-phase
-spades: each tile is transformed all the way to home terrain, and missing spades
-may be paid for with workers (priests for the Darklings), except for the
-Halflings' stronghold spades. The first transformed tile may be built on; leftover
-spades may go to one second tile, which cannot be built on. Action-phase spades
-may use tunneling or carpet flight and score the spade round tile. Halflings score
-1 victory point for every spade they receive. Priests are limited to each faction's
-supply of seven; priests sent to cult order spaces still count against that supply.
+spades. Their first transform may stop at an intermediate terrain. Missing
+spades may be paid for with workers (priests for the Darklings) on that first
+tile only, except for the Halflings' stronghold spades. The first transformed
+tile may be built on; leftover spades may go to one second tile, which cannot be
+built on and cannot be topped up. The Halflings' three stronghold spades may
+transform up to three tiles, every transformed home tile may be built on (only
+one dwelling), and leftover spades may be dropped. Action-phase spades may use
+tunneling or carpet flight once per action and score the spade round tile.
+Halflings score 1 victory point for every spade they receive or buy with workers.
+Priests are limited to each faction's supply of seven; priests sent to cult order
+spaces still count against that supply.
 
 ## Final scoring
 - Each cult track: 8/4/2 points for first/second/third, split evenly on ties.
+  A player on space 0 scores nothing for that track, and tied points round down.
 - Largest connected area: 18/12/6 points, split evenly on ties. Shipping, Dwarves'
   tunneling and Fakirs' carpet flight all connect structures for this score.
 - Leftover resources: 1 point per 3 coins, workers, priests and Bowl III power

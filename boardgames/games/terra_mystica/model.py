@@ -314,6 +314,9 @@ class TerraMysticaState:
     spade_actor: PlayerId | None = None
     power_spade_tiles: tuple[Hex, ...] = ()
     spade_second: Hex | None = None
+    spade_transformed: tuple[Hex, ...] = ()
+    spade_intermediate: bool = False
+    spade_reach_used: bool = False
     spade_topup: bool = True
     spade_require_all: bool = False
     end_reason: str | None = None
