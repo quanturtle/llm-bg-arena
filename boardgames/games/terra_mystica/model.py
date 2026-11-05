@@ -12,6 +12,7 @@ from boardgames.games.terra_mystica.constants import (
     FACTION_BY_TYPE,
     MAX_BUILDINGS,
     POWER_VALUES,
+    PRIEST_SUPPLY,
     TERRAIN_WHEEL,
     BuildingType,
     Cost,
@@ -551,6 +552,35 @@ def add_resources(resources: Resources, income: Income) -> Resources:
         power1=resources.power1,
         power2=resources.power2,
         power3=resources.power3,
+    )
+
+
+def add_income(resources: Resources, income: Income) -> Resources:
+    return add_resources(resources, income)
+
+
+def add_costs(first: Cost, second: Cost) -> Cost:
+    return Cost(
+        coins=first.coins + second.coins,
+        workers=first.workers + second.workers,
+        priests=first.priests + second.priests,
+        power=first.power + second.power,
+    )
+
+
+def _claimed_priests(state: TerraMysticaState, player: PlayerId) -> int:
+    return sum(1 for owner in state.used_orders.values() if owner == player)
+
+
+def priest_capacity(state: TerraMysticaState, player: PlayerId) -> int:
+    return PRIEST_SUPPLY - _claimed_priests(state, player)
+
+
+def cap_priests(
+    state: TerraMysticaState, player: PlayerId, resources: Resources
+) -> Resources:
+    return replace(
+        resources, priests=min(resources.priests, priest_capacity(state, player))
     )
 
 

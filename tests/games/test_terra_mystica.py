@@ -61,8 +61,6 @@ from boardgames.games.terra_mystica.constants import (
 )
 from boardgames.games.terra_mystica.game import (
     _build_river_choices,
-    end_round,
-    income_for,
     initial_setup_queue,
 )
 from boardgames.games.terra_mystica.model import (
@@ -83,6 +81,7 @@ from boardgames.games.terra_mystica.model import (
     terrain_toward,
     town_ready,
 )
+from boardgames.games.terra_mystica.rounds import end_round, income_for
 from boardgames.games.terra_mystica.scoring import (
     final_scores,
     largest_area,
