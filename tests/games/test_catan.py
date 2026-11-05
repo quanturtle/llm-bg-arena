@@ -41,13 +41,12 @@ from boardgames.games.catan import (
     Port,
     Roll,
 )
-from boardgames.games.catan.game import (
-    legal_action_list,
+from boardgames.games.catan.awards import (
     longest_road_holder,
-    setup_order,
     update_largest_army,
     update_longest_road,
 )
+from boardgames.games.catan.game import legal_action_list, setup_order
 from boardgames.games.catan.geometry import (
     COASTAL_EDGES,
     EDGE_HEXES,
