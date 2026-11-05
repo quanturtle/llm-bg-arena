@@ -7,10 +7,10 @@ families: setup, turn, building, development and trading.
 from boardgames.core import PlayerId
 from boardgames.games.catan.building import (
     build_actions,
-    explain_city,
-    explain_road,
-    explain_settlement,
+    city_reason,
     free_road_actions,
+    road_reason,
+    settlement_reason,
 )
 from boardgames.games.catan.development import (
     dev_play_actions,
@@ -106,9 +106,9 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
 def legal_action_list(state: CatanState, player: PlayerId) -> list[Action]:
     """Every legal action in the current phase, in a stable, readable order."""
     if state.phase == "setup_settlement":
-        return setup_settlement_actions(state)
+        return setup_settlement_actions(state, player)
     if state.phase == "setup_road":
-        return setup_road_actions(state)
+        return setup_road_actions(state, player)
     if state.phase == "roll":
         return [Roll()]
     if state.phase == "discard":
@@ -144,11 +144,19 @@ def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
         case EndTurn():
             return explain_end_turn(state)
         case PlaceSettlement(vertex=vertex):
-            return explain_settlement(state, player, hand, vertex)
+            return settlement_reason(state, player, vertex) or (
+                "That intersection is not available during setup."
+                if state.phase == "setup_settlement"
+                else "You cannot place a settlement now."
+            )
         case PlaceRoad(edge=edge):
-            return explain_road(state, player, hand, edge)
+            return road_reason(state, player, edge) or (
+                f"Your setup road must touch v{state.setup_vertex}."
+                if state.phase == "setup_road"
+                else "You cannot place a road now."
+            )
         case BuildCity(vertex=vertex):
-            return explain_city(state, player, hand, vertex)
+            return city_reason(state, player, vertex) or "You cannot build a city now."
         case BuyDev():
             return explain_dev_purchase(state, hand)
         case Discard(resource=resource):

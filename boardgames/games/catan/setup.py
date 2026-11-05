@@ -11,6 +11,7 @@ from boardgames.core import (
     seat_label,
 )
 from boardgames.core.records import to_json_object
+from boardgames.games.catan.building import road_reason, settlement_reason
 from boardgames.games.catan.geometry import (
     EDGE_VERTICES,
     HEX_NEIGHBORS,
@@ -44,7 +45,6 @@ from boardgames.games.catan.model import (
     hand_with,
     replace_at,
 )
-from boardgames.games.catan.rules import setup_road_legal, setup_settlement_legal
 
 
 def check_config(config: CatanConfig) -> None:
@@ -179,27 +179,24 @@ def start_game(config: CatanConfig, seed: int) -> Transition[CatanState]:
     return Transition(replace(state, active=order[0]), tuple(events))
 
 
-def setup_settlement_actions(state: CatanState) -> list[Action]:
-    """Every empty intersection at distance from the settlements already placed."""
+def setup_settlement_actions(state: CatanState, player: PlayerId) -> list[Action]:
+    """Intersections whose settlement reason is None, in vertex order."""
     return [
         PlaceSettlement(vertex)
         for vertex in range(len(state.buildings))
-        if setup_settlement_legal(state, vertex)
+        if settlement_reason(state, player, vertex) is None
     ]
 
 
-def setup_road_edges(state: CatanState, vertex: int) -> tuple[int, ...]:
-    """Empty paths touching the settlement just placed."""
-    return tuple(
-        edge for edge in VERTEX_EDGES[vertex] if setup_road_legal(state, edge, vertex)
-    )
-
-
-def setup_road_actions(state: CatanState) -> list[Action]:
-    """Roads touching the settlement just placed; none before it is placed."""
+def setup_road_actions(state: CatanState, player: PlayerId) -> list[Action]:
+    """Paths around the settlement just placed whose road reason is None."""
     if state.setup_vertex is None:
         return []
-    return [PlaceRoad(edge) for edge in setup_road_edges(state, state.setup_vertex)]
+    return [
+        PlaceRoad(edge)
+        for edge in VERTEX_EDGES[state.setup_vertex]
+        if road_reason(state, player, edge) is None
+    ]
 
 
 def starting_resources(state: CatanState, vertex: int) -> Hand:

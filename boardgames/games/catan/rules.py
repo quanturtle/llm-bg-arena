@@ -38,20 +38,6 @@ def distance_rule_ok(state: CatanState, vertex: int) -> bool:
     )
 
 
-def setup_settlement_legal(state: CatanState, vertex: int) -> bool:
-    """An empty intersection at distance from every other settlement."""
-    return 0 <= vertex < len(state.buildings) and distance_rule_ok(state, vertex)
-
-
-def settlement_legal(state: CatanState, vertex: int, player: PlayerId) -> bool:
-    """A connected empty intersection with a free settlement piece."""
-    return (
-        distance_rule_ok(state, vertex)
-        and settlement_connected(state, vertex, player)
-        and settlement_pieces_available(state, player)
-    )
-
-
 def settlement_connected(state: CatanState, vertex: int, player: PlayerId) -> bool:
     """Whether one of the player's roads touches the intersection."""
     return any(state.roads[edge] == player for edge in VERTEX_EDGES[vertex])

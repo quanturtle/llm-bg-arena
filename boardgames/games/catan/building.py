@@ -32,31 +32,9 @@ from boardgames.games.catan.rules import (
     legal_free_road_edges,
     road_legal,
     settlement_connected,
-    settlement_legal,
     settlement_pieces_available,
+    setup_road_legal,
 )
-
-
-def build_actions(state: CatanState, player: PlayerId) -> list[Action]:
-    """Roads, settlements and cities the player may place and can pay for."""
-    actions: list[Action] = []
-    hand = state.hands[player]
-    for edge in range(len(state.roads)):
-        if (
-            state.roads[edge] is None
-            and road_legal(state, edge, player)
-            and can_afford(hand, ROAD_COST)
-        ):
-            actions.append(PlaceRoad(edge))
-    for vertex in range(len(state.buildings)):
-        if settlement_legal(state, vertex, player) and can_afford(
-            hand, SETTLEMENT_COST
-        ):
-            actions.append(PlaceSettlement(vertex))
-    for vertex in range(len(state.buildings)):
-        if city_legal(state, vertex, player) and can_afford(hand, CITY_COST):
-            actions.append(BuildCity(vertex))
-    return actions
 
 
 def missing_text(hand: Hand, cost: Hand) -> str:
@@ -69,10 +47,8 @@ def missing_text(hand: Hand, cost: Hand) -> str:
     return ", ".join(parts) or "nothing"
 
 
-def explain_settlement(
-    state: CatanState, player: PlayerId, hand: Hand, vertex: int
-) -> str:
-    """Why a settlement placement is illegal."""
+def settlement_reason(state: CatanState, player: PlayerId, vertex: int) -> str | None:
+    """Why a settlement cannot go on `vertex`; setup checks only the board."""
     if not 0 <= vertex < len(state.buildings):
         return f"v{vertex} is not on the board."
     building = state.buildings[vertex]
@@ -81,18 +57,19 @@ def explain_settlement(
     if not distance_rule_ok(state, vertex):
         return f"v{vertex} is adjacent to another building."
     if state.phase == "setup_settlement":
-        return "That intersection is not available during setup."
+        return None
     if not settlement_connected(state, vertex, player):
         return f"A settlement on v{vertex} must touch one of your roads."
     if not settlement_pieces_available(state, player):
         return "You have no settlement pieces left."
+    hand = state.hands[player]
     if not can_afford(hand, SETTLEMENT_COST):
         return f"You lack {missing_text(hand, SETTLEMENT_COST)} for a settlement."
-    return "You cannot place a settlement now."
+    return None
 
 
-def explain_road(state: CatanState, player: PlayerId, hand: Hand, edge: int) -> str:
-    """Why a road placement is illegal."""
+def road_reason(state: CatanState, player: PlayerId, edge: int) -> str | None:
+    """Why a road cannot go on `edge`; only the action phase charges for it."""
     if not 0 <= edge < len(state.roads):
         return f"e{edge} is not on the board."
     if state.roads[edge] is not None:
@@ -100,16 +77,19 @@ def explain_road(state: CatanState, player: PlayerId, hand: Hand, edge: int) -> 
     if state.phase == "setup_road":
         if state.setup_vertex is None:
             return "Place a settlement first."
-        return f"Your setup road must touch v{state.setup_vertex}."
+        if not setup_road_legal(state, edge, state.setup_vertex):
+            return f"Your setup road must touch v{state.setup_vertex}."
+        return None
     if not road_legal(state, edge, player):
         return f"e{edge} does not connect to your network or you have no roads left."
+    hand = state.hands[player]
     if state.phase == "actions" and not can_afford(hand, ROAD_COST):
         return f"You lack {missing_text(hand, ROAD_COST)} for a road."
-    return "You cannot place a road now."
+    return None
 
 
-def explain_city(state: CatanState, player: PlayerId, hand: Hand, vertex: int) -> str:
-    """Why a city upgrade is illegal."""
+def city_reason(state: CatanState, player: PlayerId, vertex: int) -> str | None:
+    """Why `vertex` cannot be upgraded to a city."""
     if not 0 <= vertex < len(state.buildings):
         return f"v{vertex} is not on the board."
     building = state.buildings[vertex]
@@ -121,9 +101,25 @@ def explain_city(state: CatanState, player: PlayerId, hand: Hand, vertex: int) -
         return f"v{vertex} is already a city."
     if not city_legal(state, vertex, player):
         return "You have no city pieces left."
+    hand = state.hands[player]
     if not can_afford(hand, CITY_COST):
         return f"You lack {missing_text(hand, CITY_COST)} for a city."
-    return "You cannot build a city now."
+    return None
+
+
+def build_actions(state: CatanState, player: PlayerId) -> list[Action]:
+    """Roads, settlements and cities whose reason is None, in that order."""
+    actions: list[Action] = []
+    for edge in range(len(state.roads)):
+        if road_reason(state, player, edge) is None:
+            actions.append(PlaceRoad(edge))
+    for vertex in range(len(state.buildings)):
+        if settlement_reason(state, player, vertex) is None:
+            actions.append(PlaceSettlement(vertex))
+    for vertex in range(len(state.buildings)):
+        if city_reason(state, player, vertex) is None:
+            actions.append(BuildCity(vertex))
+    return actions
 
 
 def pay_cost(state: CatanState, player: PlayerId, cost: Hand) -> CatanState:
@@ -187,11 +183,11 @@ def build_city(
 
 
 def free_road_actions(state: CatanState, player: PlayerId) -> list[Action]:
-    """Empty, connected paths for the next free road from Road Building."""
+    """Paths whose reason is None, for the next free road from Road Building."""
     return [
         PlaceRoad(edge)
-        for edge in legal_free_road_edges(state, player)
-        if state.roads[edge] is None
+        for edge in range(len(state.roads))
+        if road_reason(state, player, edge) is None
     ]
 
 
