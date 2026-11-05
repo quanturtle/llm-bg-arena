@@ -3,6 +3,9 @@
 The game follows the role-selection cycle. Each round the players take turns
 choosing an unchosen role; the role's action phase runs immediately, starting
 with the player who chose it. Unchosen roles gain a doubloon at round end.
+
+`PuertoRico` is the facade the framework calls. The rules live in `setup`,
+`rounds`, `decisions` and one module per role in `roles/`.
 """
 
 from dataclasses import replace
@@ -32,11 +35,16 @@ from boardgames.core.records import (
     to_json_object,
 )
 from boardgames.games.puerto_rico.constants import GOODS
+from boardgames.games.puerto_rico.decisions import (
+    decision_kind,
+    decision_prompt,
+    default_action,
+    explain_illegal,
+    legal_action_list,
+)
 from boardgames.games.puerto_rico.model import (
     Action,
     DiscardGoods,
-    FinishPlacement,
-    Pass,
     PuertoRicoConfig,
     PuertoRicoState,
     building_points,
@@ -45,45 +53,13 @@ from boardgames.games.puerto_rico.model import (
     total_points,
 )
 from boardgames.games.puerto_rico.notation import format_action, parse_action
-from boardgames.games.puerto_rico.roles.builder import (
-    apply_builder,
-    builder_actions,
-    explain_builder,
-)
-from boardgames.games.puerto_rico.roles.captain import (
-    apply_captain,
-    apply_discard,
-    captain_actions,
-    discard_actions,
-    explain_captain,
-    explain_discard,
-    kept_goods,
-)
-from boardgames.games.puerto_rico.roles.craftsman import (
-    apply_craftsman,
-    craftsman_actions,
-    explain_craftsman,
-)
-from boardgames.games.puerto_rico.roles.mayor import (
-    apply_mayor,
-    explain_mayor,
-    mayor_actions,
-)
-from boardgames.games.puerto_rico.roles.selection import (
-    apply_selection,
-    explain_selection,
-    selection_actions,
-)
-from boardgames.games.puerto_rico.roles.settler import (
-    apply_settler,
-    explain_settler,
-    settler_actions,
-)
-from boardgames.games.puerto_rico.roles.trader import (
-    apply_trader,
-    explain_trader,
-    trader_actions,
-)
+from boardgames.games.puerto_rico.roles.builder import apply_builder
+from boardgames.games.puerto_rico.roles.captain import apply_captain, apply_discard
+from boardgames.games.puerto_rico.roles.craftsman import apply_craftsman
+from boardgames.games.puerto_rico.roles.mayor import apply_mayor
+from boardgames.games.puerto_rico.roles.selection import apply_selection
+from boardgames.games.puerto_rico.roles.settler import apply_settler
+from boardgames.games.puerto_rico.roles.trader import apply_trader
 from boardgames.games.puerto_rico.rounds import tiebreak_key
 from boardgames.games.puerto_rico.setup import check_config, start_game
 from boardgames.games.puerto_rico.view import (
@@ -240,103 +216,3 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
 
     def action_json(self, action: Action) -> dict[str, JsonValue]:
         return tagged_json_object(action)
-
-
-# Helpers ------------------------------------------------------------------
-
-
-def legal_action_list(state: PuertoRicoState, player: PlayerId) -> list[Action]:
-    """Every action the deciding player may choose right now."""
-    if state.phase == "role_selection":
-        return selection_actions(state)
-    owner = state.players[player]
-    if state.phase == "settler_action":
-        return settler_actions(state, player, owner)
-    if state.phase == "mayor_action":
-        return mayor_actions(owner)
-    if state.phase == "builder_action":
-        return builder_actions(state, player)
-    if state.phase == "craftsman_action":
-        return craftsman_actions(state, owner)
-    if state.phase == "trader_action":
-        return trader_actions(state, owner)
-    if state.phase == "captain_action":
-        return captain_actions(state, player, owner)
-    if state.phase == "captain_discard":
-        return discard_actions(owner)
-    return []
-
-
-def default_action(state: PuertoRicoState, actions: list[Action]) -> Action | None:
-    """A safe fallback for phases where passing is allowed."""
-    if state.phase in (
-        "settler_action",
-        "builder_action",
-        "trader_action",
-        "craftsman_action",
-    ):
-        return Pass()
-    if state.phase == "mayor_action":
-        return FinishPlacement() if FinishPlacement() in actions else None
-    if state.phase == "captain_discard":
-        discards = [action for action in actions if isinstance(action, DiscardGoods)]
-        return max(
-            discards,
-            key=lambda action: kept_goods(state.players[state.active_player], action),
-        )
-    return None
-
-
-def decision_kind(phase: str) -> str:
-    return {
-        "role_selection": "role",
-        "settler_action": "settler",
-        "mayor_action": "mayor",
-        "builder_action": "builder",
-        "craftsman_action": "craftsman",
-        "trader_action": "trader",
-        "captain_action": "captain",
-        "captain_discard": "captain_discard",
-    }.get(phase, phase)
-
-
-def decision_prompt(state: PuertoRicoState) -> str:
-    if state.phase == "role_selection":
-        return "Choose an unchosen role."
-    if state.phase == "settler_action":
-        return "Take a plantation or quarry, or pass."
-    if state.phase == "mayor_action":
-        return "Place or move a colonist, or finish placement."
-    if state.phase == "builder_action":
-        return "Build a building or pass."
-    if state.phase == "craftsman_action":
-        return "Take the Craftsman privilege or pass."
-    if state.phase == "trader_action":
-        return "Sell a good or pass."
-    if state.phase == "captain_action":
-        return "Load goods on a ship or Wharf, or pass if you cannot."
-    if state.phase == "captain_discard":
-        return "Choose which goods to keep after shipping."
-    return "Choose an action."
-
-
-def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) -> str:
-    """Why `action` is not legal for `player` now."""
-    phase = state.phase
-    if phase == "role_selection":
-        return explain_selection(state, action)
-    if phase == "settler_action":
-        return explain_settler(state, player, action)
-    if phase == "mayor_action":
-        return explain_mayor(state, player, action)
-    if phase == "builder_action":
-        return explain_builder(state, player, action)
-    if phase == "craftsman_action":
-        return explain_craftsman(state, player, action)
-    if phase == "trader_action":
-        return explain_trader(state, player, action)
-    if phase == "captain_action":
-        return explain_captain(state, player, action)
-    if phase == "captain_discard":
-        return explain_discard(state, player, action)
-    return "That action is not legal now."
