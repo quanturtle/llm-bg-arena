@@ -33,7 +33,6 @@ from boardgames.core.records import (
     tagged_json_object,
     to_json_object,
 )
-from boardgames.games.catan.awards import finish_if_won, update_largest_army
 from boardgames.games.catan.building import (
     build_actions,
     build_city,
@@ -43,12 +42,22 @@ from boardgames.games.catan.building import (
     explain_road,
     explain_settlement,
     free_road_actions,
-    missing_text,
-    pay_cost,
     place_free_road,
 )
+from boardgames.games.catan.development import (
+    buy_dev,
+    dev_play_actions,
+    dev_purchase_actions,
+    explain_dev_purchase,
+    explain_monopoly,
+    explain_road_building,
+    explain_year_of_plenty,
+    play_knight,
+    play_monopoly,
+    play_road_building,
+    play_year_of_plenty,
+)
 from boardgames.games.catan.model import (
-    DEV_COST,
     RESOURCES,
     AcceptOffer,
     Action,
@@ -58,7 +67,6 @@ from boardgames.games.catan.model import (
     CatanConfig,
     CatanState,
     DeclineOffer,
-    DevCard,
     Discard,
     EndTurn,
     MoveRobber,
@@ -71,21 +79,16 @@ from boardgames.games.catan.model import (
     PlayMonopoly,
     PlayRoadBuilding,
     PlayYearOfPlenty,
-    Resource,
     Roll,
-    can_afford,
-    dev_get,
-    dev_with,
     empty_hand,
     hand_get,
     hand_minus,
     hand_with,
-    playable_dev_hand,
     point_breakdown,
     replace_at,
 )
 from boardgames.games.catan.notation import format_action, parse_action
-from boardgames.games.catan.rules import legal_free_road_edges, trade_rates
+from boardgames.games.catan.rules import trade_rates
 from boardgames.games.catan.setup import (
     check_config,
     place_setup_road,
@@ -103,7 +106,6 @@ from boardgames.games.catan.turn import (
     explain_robber,
     explain_roll,
     move_robber,
-    move_robber_and_steal,
     robber_actions,
     roll_dice,
 )
@@ -282,50 +284,22 @@ class Catan:
         if isinstance(action, BuildCity):
             return build_city(state, player, action.vertex)
         if isinstance(action, BuyDev):
-            return self.buy_dev(state, player)
+            return buy_dev(state, player)
         if isinstance(action, BankTrade):
             return self.bank_trade(state, player, action)
         if isinstance(action, OfferTrade):
             return self.offer_trade(state, player, action)
         if isinstance(action, PlayKnight):
-            return self.play_knight(state, player, action.hex, action.victim)
+            return play_knight(state, player, action.hex, action.victim)
         if isinstance(action, PlayRoadBuilding):
-            return self.play_road_building(state, player)
+            return play_road_building(state, player)
         if isinstance(action, PlayYearOfPlenty):
-            return self.play_year_of_plenty(state, player, action.first, action.second)
+            return play_year_of_plenty(state, player, action.first, action.second)
         if isinstance(action, PlayMonopoly):
-            return self.play_monopoly(state, player, action.resource)
+            return play_monopoly(state, player, action.resource)
         if isinstance(action, EndTurn):
             return end_turn(state, player)
         raise IllegalActionError("that action is not available in the action phase")
-
-    def buy_dev(self, state: CatanState, player: PlayerId) -> Transition[CatanState]:
-        paid = pay_cost(state, player, DEV_COST)
-        card = paid.dev_deck[0]
-        dev_hands = replace_at(
-            paid.dev_hands, player, dev_with(paid.dev_hands[player], card)
-        )
-        dev_bought = dev_with(paid.dev_bought, card)
-        events = [
-            Event(
-                "dev_bought",
-                f"{seat_label(player)} bought a development card.",
-                {"player": player},
-            ),
-            Event(
-                "dev_drawn",
-                f"You drew a {dev_name(card)}.",
-                {"player": player, "card": card},
-                audience=frozenset({player}),
-            ),
-        ]
-        bought = replace(
-            paid,
-            dev_deck=paid.dev_deck[1:],
-            dev_hands=dev_hands,
-            dev_bought=dev_bought,
-        )
-        return finish_if_won(bought, tuple(events))
 
     def bank_trade(
         self, state: CatanState, player: PlayerId, action: BankTrade
@@ -434,141 +408,6 @@ class Catan:
             tuple(events),
         )
 
-    def play_knight(
-        self,
-        state: CatanState,
-        player: PlayerId,
-        hex_id: int,
-        victim: PlayerId | None,
-    ) -> Transition[CatanState]:
-        dev_hands = replace_at(
-            state.dev_hands, player, dev_with(state.dev_hands[player], "knight", -1)
-        )
-        knights = list(state.knights_played)
-        knights[player] += 1
-        events = [
-            Event(
-                "knight_played",
-                f"{seat_label(player)} played a knight.",
-                {"player": player},
-            )
-        ]
-        moved, robber_events = move_robber_and_steal(
-            replace(
-                state,
-                dev_hands=dev_hands,
-                knights_played=tuple(knights),
-                dev_played_this_turn=True,
-            ),
-            player,
-            hex_id,
-            victim,
-        )
-        events.extend(robber_events)
-        moved, award_events = update_largest_army(moved)
-        events.extend(award_events)
-        return finish_if_won(replace(moved, phase="actions"), tuple(events))
-
-    def play_road_building(
-        self, state: CatanState, player: PlayerId
-    ) -> Transition[CatanState]:
-        dev_hands = replace_at(
-            state.dev_hands,
-            player,
-            dev_with(state.dev_hands[player], "road_building", -1),
-        )
-        events = [
-            Event(
-                "road_building_played",
-                f"{seat_label(player)} played Road Building.",
-                {"player": player},
-            )
-        ]
-        prepared = replace(
-            state,
-            dev_hands=dev_hands,
-            dev_played_this_turn=True,
-            free_roads=2,
-        )
-        phase: Phase = (
-            "free_road" if legal_free_road_edges(prepared, player) else "actions"
-        )
-        return Transition(replace(prepared, phase=phase), tuple(events))
-
-    def play_year_of_plenty(
-        self,
-        state: CatanState,
-        player: PlayerId,
-        first: Resource,
-        second: Resource,
-    ) -> Transition[CatanState]:
-        dev_hands = replace_at(
-            state.dev_hands,
-            player,
-            dev_with(state.dev_hands[player], "year_of_plenty", -1),
-        )
-        hand = hand_with(hand_with(state.hands[player], first, 1), second, 1)
-        events = [
-            Event(
-                "year_of_plenty_played",
-                f"{seat_label(player)} played Year of Plenty and took "
-                f"1 {first} and 1 {second}.",
-                {"player": player, "first": first, "second": second},
-            )
-        ]
-        return Transition(
-            replace(
-                state,
-                dev_hands=dev_hands,
-                hands=replace_at(state.hands, player, hand),
-                dev_played_this_turn=True,
-            ),
-            tuple(events),
-        )
-
-    def play_monopoly(
-        self, state: CatanState, player: PlayerId, resource: Resource
-    ) -> Transition[CatanState]:
-        dev_hands = replace_at(
-            state.dev_hands,
-            player,
-            dev_with(state.dev_hands[player], "monopoly", -1),
-        )
-        hands = list(state.hands)
-        taken: dict[str, int] = {}
-        total = 0
-        for other in seats(state.config.num_players):
-            if other == player:
-                continue
-            count = hand_get(hands[other], resource)
-            if count:
-                taken[str(other)] = count
-                total += count
-                hands[other] = hand_with(hands[other], resource, -count)
-        hands[player] = hand_with(hands[player], resource, total)
-        events = [
-            Event(
-                "monopoly_played",
-                f"{seat_label(player)} played Monopoly on {resource} and took "
-                f"{total} card{'s' if total != 1 else ''}.",
-                {
-                    "player": player,
-                    "resource": resource,
-                    "taken": taken,
-                    "total": total,
-                },
-            )
-        ]
-        return Transition(
-            replace(
-                state,
-                dev_hands=dev_hands,
-                hands=tuple(hands),
-                dev_played_this_turn=True,
-            ),
-            tuple(events),
-        )
-
 
 def decision_kind(phase: Phase) -> str:
     """Decision kind recorded in logs for a phase."""
@@ -646,8 +485,7 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
     actions: list[Action] = [EndTurn()]
     hand = state.hands[player]
     actions.extend(build_actions(state, player))
-    if state.dev_deck and can_afford(hand, DEV_COST):
-        actions.append(BuyDev())
+    actions.extend(dev_purchase_actions(state, player))
     rates = trade_rates(state, player)
     for give in RESOURCES:
         rate = rates[give]
@@ -671,20 +509,7 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
                     if take == give:
                         continue
                     actions.append(OfferTrade(give, take, target))
-    if not state.dev_played_this_turn:
-        playable = playable_dev_hand(state, player)
-        if dev_get(playable, "knight") > 0:
-            actions.extend(robber_actions(state, player, knight=True))
-        if dev_get(playable, "road_building") > 0 and legal_free_road_edges(
-            state, player
-        ):
-            actions.append(PlayRoadBuilding())
-        if dev_get(playable, "year_of_plenty") > 0:
-            for first_index, first in enumerate(RESOURCES):
-                for second in RESOURCES[first_index:]:
-                    actions.append(PlayYearOfPlenty(first, second))
-        if dev_get(playable, "monopoly") > 0:
-            actions.extend(PlayMonopoly(resource) for resource in RESOURCES)
+    actions.extend(dev_play_actions(state, player))
     return actions
 
 
@@ -703,13 +528,7 @@ def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
         case BuildCity(vertex=vertex):
             return explain_city(state, player, hand, vertex)
         case BuyDev():
-            if not state.dev_deck:
-                return "The development-card deck is empty."
-            if not can_afford(hand, DEV_COST):
-                return (
-                    f"You lack {missing_text(hand, DEV_COST)} for a development card."
-                )
-            return "You cannot buy a development card now."
+            return explain_dev_purchase(state, hand)
         case Discard(resource=resource):
             return explain_discard(state, hand, resource)
         case MoveRobber(hex=hex_id, victim=victim):
@@ -754,26 +573,9 @@ def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
                 return "There is no open offer to decline."
             return "That offer is not yours to decline."
         case PlayRoadBuilding():
-            if state.dev_played_this_turn:
-                return "You may play only one development card per turn."
-            if dev_get(playable_dev_hand(state, player), "road_building") < 1:
-                return "You have no playable Road Building card."
-            return "You cannot play Road Building now."
+            return explain_road_building(state, player)
         case PlayYearOfPlenty(first=first, second=second):
-            if state.dev_played_this_turn:
-                return "You may play only one development card per turn."
-            if dev_get(playable_dev_hand(state, player), "year_of_plenty") < 1:
-                return "You have no playable Year of Plenty card."
-            return f"You cannot play Year of Plenty for {first} and {second} now."
+            return explain_year_of_plenty(state, player, first, second)
         case PlayMonopoly(resource=resource):
-            if state.dev_played_this_turn:
-                return "You may play only one development card per turn."
-            if dev_get(playable_dev_hand(state, player), "monopoly") < 1:
-                return "You have no playable Monopoly card."
-            return f"You cannot play Monopoly on {resource} now."
+            return explain_monopoly(state, player, resource)
     return f"{format_action(action)!r} is not a legal action now."
-
-
-def dev_name(card: DevCard) -> str:
-    """Human name of a development card, as event texts spell it."""
-    return card.replace("_", " ")
