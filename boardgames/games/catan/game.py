@@ -210,7 +210,29 @@ class Catan:
             raise IllegalActionError("accept or decline the offer")
         if state.phase != "actions":
             raise IllegalActionError(f"no action is legal in phase {state.phase!r}")
-        return self.apply_action_phase(state, player, action)
+        if isinstance(action, PlaceRoad):
+            return build_road(state, player, action.edge)
+        if isinstance(action, PlaceSettlement):
+            return build_settlement(state, player, action.vertex)
+        if isinstance(action, BuildCity):
+            return build_city(state, player, action.vertex)
+        if isinstance(action, BuyDev):
+            return buy_dev(state, player)
+        if isinstance(action, BankTrade):
+            return bank_trade(state, player, action)
+        if isinstance(action, OfferTrade):
+            return offer_trade(state, player, action)
+        if isinstance(action, PlayKnight):
+            return play_knight(state, player, action.hex, action.victim)
+        if isinstance(action, PlayRoadBuilding):
+            return play_road_building(state, player)
+        if isinstance(action, PlayYearOfPlenty):
+            return play_year_of_plenty(state, player, action.first, action.second)
+        if isinstance(action, PlayMonopoly):
+            return play_monopoly(state, player, action.resource)
+        if isinstance(action, EndTurn):
+            return end_turn(state, player)
+        raise IllegalActionError("that action is not available in the action phase")
 
     def is_terminal(self, state: CatanState) -> bool:
         return state.phase == "game_over"
@@ -255,30 +277,3 @@ class Catan:
 
     def action_json(self, action: Action) -> dict[str, JsonValue]:
         return tagged_json_object(action)
-
-    def apply_action_phase(
-        self, state: CatanState, player: PlayerId, action: Action
-    ) -> Transition[CatanState]:
-        if isinstance(action, PlaceRoad):
-            return build_road(state, player, action.edge)
-        if isinstance(action, PlaceSettlement):
-            return build_settlement(state, player, action.vertex)
-        if isinstance(action, BuildCity):
-            return build_city(state, player, action.vertex)
-        if isinstance(action, BuyDev):
-            return buy_dev(state, player)
-        if isinstance(action, BankTrade):
-            return bank_trade(state, player, action)
-        if isinstance(action, OfferTrade):
-            return offer_trade(state, player, action)
-        if isinstance(action, PlayKnight):
-            return play_knight(state, player, action.hex, action.victim)
-        if isinstance(action, PlayRoadBuilding):
-            return play_road_building(state, player)
-        if isinstance(action, PlayYearOfPlenty):
-            return play_year_of_plenty(state, player, action.first, action.second)
-        if isinstance(action, PlayMonopoly):
-            return play_monopoly(state, player, action.resource)
-        if isinstance(action, EndTurn):
-            return end_turn(state, player)
-        raise IllegalActionError("that action is not available in the action phase")
