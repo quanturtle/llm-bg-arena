@@ -89,10 +89,8 @@ from boardgames.games.terra_mystica.model import (
     cap_priests,
     effective_reach,
     effective_reach_cost,
-    gain_power,
     income_with_power,
     pay,
-    priest_capacity,
     replace_at,
     replace_player,
     settle_town,
@@ -120,6 +118,12 @@ from boardgames.games.terra_mystica.setup import (
     place_starting_dwelling,
     setup_actions,
     start_game,
+)
+from boardgames.games.terra_mystica.strongholds import (
+    choose_stronghold_priests,
+    convert_actions,
+    explain_convert,
+    stronghold_reward,
 )
 from boardgames.games.terra_mystica.view import (
     describe_action,
@@ -286,7 +290,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         if state.phase == "stronghold_convert":
             if not isinstance(action, ChooseStrongholdPriests):
                 raise IllegalActionError("choose how many workers to trade")
-            return self.choose_stronghold_priests(state, player, action.workers)
+            return choose_stronghold_priests(state, player, action.workers)
         if state.phase == "town_choice":
             if not isinstance(action, TakeTownTile):
                 raise IllegalActionError("choose a town tile now")
@@ -638,7 +642,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     pending_stronghold=True,
                 )
                 return Transition(state, tuple(events))
-            state, events = _stronghold_reward(state, player, events)
+            state, events = stronghold_reward(state, player, events)
             if state.phase in ("cult_spades", "stronghold_convert"):
                 return Transition(state, tuple(events))
         if founded:
@@ -736,37 +740,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         ]
         if state.pending_stronghold:
             state = replace(state, pending_stronghold=False)
-            state, events = _stronghold_reward(state, player, events)
+            state, events = stronghold_reward(state, player, events)
             if state.phase in ("cult_spades", "stronghold_convert"):
                 return Transition(state, tuple(events))
         state = replace(state, phase="action", active_player=player)
         return advance_turn(state, player, tuple(events))
-
-    def choose_stronghold_priests(
-        self, state: TerraMysticaState, player: PlayerId, workers: int
-    ) -> Transition[TerraMysticaState]:
-        owner = state.players[player]
-        supply = priest_capacity(state, player) - owner.resources.priests
-        maximum = max(0, min(3, owner.resources.workers, supply))
-        if workers < 0 or workers > maximum:
-            raise IllegalActionError(
-                "the Darklings may trade at most three workers this way"
-            )
-        resources = replace(
-            owner.resources,
-            workers=owner.resources.workers - workers,
-            priests=owner.resources.priests + workers,
-        )
-        owner = replace(owner, resources=resources)
-        state = replace_player(state, player, owner)
-        state = replace(state, phase="action", active_player=player)
-        event = Event(
-            "stronghold_convert",
-            f"{seat_label(player)} traded {workers} worker(s) for priests as the "
-            "Darklings' stronghold reward.",
-            {"player": player, "workers": workers, "priests": workers},
-        )
-        return advance_turn(state, player, (event,))
 
     def take_power_action(
         self, state: TerraMysticaState, player: PlayerId, kind: PowerActionKind
@@ -1136,10 +1114,7 @@ def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action
     if state.phase == "cult_spades":
         return _cult_spade_actions(state, player)
     if state.phase == "stronghold_convert":
-        owner = state.players[player]
-        supply = priest_capacity(state, player) - owner.resources.priests
-        maximum = max(0, min(3, owner.resources.workers, supply))
-        return [ChooseStrongholdPriests(workers) for workers in range(maximum + 1)]
+        return convert_actions(state, player)
     if state.phase == "town_choice":
         return [
             TakeTownTile(index)
@@ -1406,14 +1381,7 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
             return "Skipping is always legal."
         return "Spend a spade or skip."
     if state.phase == "stronghold_convert":
-        owner = state.players[player]
-        supply = priest_capacity(state, player) - owner.resources.priests
-        maximum = max(0, min(3, owner.resources.workers, supply))
-        if isinstance(action, ChooseStrongholdPriests) and (
-            action.workers < 0 or action.workers > maximum
-        ):
-            return "Trade at most three workers for priests."
-        return "Choose how many workers to trade."
+        return explain_convert(state, player, action)
     if state.phase == "town_choice":
         if isinstance(action, TakeTownTile):
             if action.index < 0 or action.index >= len(TOWN_TILES):
@@ -1589,97 +1557,6 @@ def _digging_reason(state: TerraMysticaState, player: PlayerId) -> str | None:
     if not can_pay(owner.resources, owner.profile.digging_cost):
         return "You cannot pay for a digging step."
     return None
-
-
-def _stronghold_reward(
-    state: TerraMysticaState,
-    player: PlayerId,
-    events: list[Event],
-) -> tuple[TerraMysticaState, list[Event]]:
-    """Apply a faction's one-time stronghold reward."""
-    owner = state.players[player]
-    profile = owner.profile
-    if profile.type is FactionType.CULTISTS:
-        owner = replace(owner, victory_points=owner.victory_points + 7)
-        events.append(
-            Event(
-                "stronghold_reward",
-                f"{seat_label(player)} scored 7 points from the stronghold.",
-                {"player": player, "victory_points": 7},
-            )
-        )
-    elif profile.type is FactionType.ALCHEMISTS:
-        owner = replace(owner, resources=gain_power(owner.resources, 12))
-        events.append(
-            Event(
-                "stronghold_reward",
-                f"{seat_label(player)} gained 12 power from the stronghold.",
-                {"player": player, "power": 12},
-            )
-        )
-    elif profile.type is FactionType.MERMAIDS:
-        if owner.shipping < profile.shipping_max:
-            level = owner.shipping + 1
-            owner = replace(
-                owner,
-                shipping=level,
-                victory_points=owner.victory_points
-                + shipping_points(level, profile.shipping_start),
-            )
-            events.append(
-                Event(
-                    "stronghold_reward",
-                    f"{seat_label(player)} advanced to shipping {level} "
-                    "and scored its points.",
-                    {"player": player, "shipping": level},
-                )
-            )
-        else:
-            events.append(
-                Event(
-                    "stronghold_reward",
-                    f"{seat_label(player)} is already at maximum shipping.",
-                    {"player": player, "shipping": owner.shipping},
-                )
-            )
-    elif profile.type is FactionType.HALFLINGS:
-        owner = replace(
-            owner,
-            victory_points=owner.victory_points + 3 * profile.spade_vp_bonus,
-        )
-        state = replace_player(state, player, owner)
-        state = replace(
-            state,
-            phase="cult_spades",
-            cult_spades=replace_at(state.cult_spades, player, 3),
-            spade_return="action",
-            spade_actor=player,
-            power_spade_tiles=(),
-            spade_second=None,
-            spade_topup=False,
-            spade_require_all=True,
-            active_player=player,
-        )
-        events.append(
-            Event(
-                "stronghold_reward",
-                f"{seat_label(player)} gained 3 spades from the stronghold.",
-                {"player": player, "spades": 3},
-            )
-        )
-        return state, events
-    elif profile.type is FactionType.DARKLINGS:
-        state = replace(state, phase="stronghold_convert", active_player=player)
-        events.append(
-            Event(
-                "stronghold_reward",
-                f"{seat_label(player)} may trade up to three workers for priests.",
-                {"player": player},
-            )
-        )
-        return state, events
-    state = replace_player(state, player, owner)
-    return state, events
 
 
 def _town_rewards(
