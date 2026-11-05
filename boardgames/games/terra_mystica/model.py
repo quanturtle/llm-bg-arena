@@ -400,7 +400,7 @@ class PowerAction:
 
 @dataclass(frozen=True)
 class UseCultSpade:
-    """Spend cult-bonus spades to transform a reachable tile."""
+    """Spend available spades to transform a reachable tile."""
 
     position: Hex
     to: Terrain | None = None
@@ -408,7 +408,7 @@ class UseCultSpade:
 
 @dataclass(frozen=True)
 class SkipCultSpade:
-    """Forfeit the rest of this player's cult-bonus spades."""
+    """Forfeit the rest of this player's spades."""
 
 
 @dataclass(frozen=True)
