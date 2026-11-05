@@ -88,10 +88,6 @@ def take_role(
     state: PuertoRicoState, player: PlayerId, role: Role
 ) -> Transition[PuertoRicoState]:
     role_entry = role_state(state, role)
-    if role_entry.taken_by is not None:
-        raise IllegalActionError(f"{role} has already been chosen this round")
-    if player != state.active_player:
-        raise IllegalActionError(f"it is not {seat_label(player)}'s turn")
     owner = state.players[player]
     owner = replace(owner, doubloons=owner.doubloons + role_entry.doubloons)
     state = replace_player(state, player, owner)
@@ -135,17 +131,28 @@ def apply_selection(
     return take_role(state, player, action.role)
 
 
+def select_role_reason(state: PuertoRicoState, role: Role) -> str | None:
+    """Why `role` cannot be chosen now; None when it can."""
+    entry = next((item for item in state.roles if item.role == role), None)
+    if entry is None:
+        return f"There is no {role} role in this game."
+    if entry.taken_by is not None:
+        return f"{role} was already chosen this round."
+    return None
+
+
 def selection_actions(state: PuertoRicoState) -> list[Action]:
     """Every role nobody has taken this round."""
-    return [SelectRole(role.role) for role in state.roles if role.taken_by is None]
+    return [
+        SelectRole(entry.role)
+        for entry in state.roles
+        if select_role_reason(state, entry.role) is None
+    ]
 
 
 def explain_selection(state: PuertoRicoState, action: Action) -> str:
     """Why a role choice is not legal now."""
+    reason = None
     if isinstance(action, SelectRole):
-        entry = next((item for item in state.roles if item.role == action.role), None)
-        if entry is None:
-            return f"There is no {action.role} role in this game."
-        if entry.taken_by is not None:
-            return f"{action.role} was already chosen this round."
-    return "Choose a role that nobody has taken this round."
+        reason = select_role_reason(state, action.role)
+    return reason or "Choose a role that nobody has taken this round."
