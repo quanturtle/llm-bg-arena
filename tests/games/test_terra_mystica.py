@@ -59,6 +59,7 @@ from boardgames.games.terra_mystica.constants import (
     Terrain,
 )
 from boardgames.games.terra_mystica.game import (
+    _build_river_choices,
     end_round,
     income_for,
     initial_setup_queue,
@@ -1518,6 +1519,58 @@ def test_mermaids_may_join_the_river_town() -> None:
     tile = separate.board.tile(target)
     assert tile is not None and tile.building is not None
     assert not tile.building.in_town
+
+
+def test_mermaids_do_not_list_a_river_that_would_cancel_a_new_town() -> None:
+    board = Board.base()
+    a, a2, b, b2 = _town_gap_layout(board, river_between=True)
+    river = next(
+        neighbour for neighbour in a.neighbours() if neighbour in b.neighbours()
+    )
+
+    used = {a, a2, b, b2, river}
+
+    def extras(positions: tuple[Hex, ...], avoid: set[Hex]) -> list[Hex]:
+        found: list[Hex] = []
+        for position in positions:
+            for neighbour in position.neighbours():
+                tile = board.tile(neighbour)
+                if (
+                    tile is not None
+                    and tile.is_land
+                    and tile.building is None
+                    and neighbour not in used
+                    and neighbour not in found
+                    and not (set(neighbour.neighbours()) & avoid)
+                ):
+                    found.append(neighbour)
+        return found
+
+    a_extra = extras((a, a2), {b, b2})[:2]
+    used |= set(a_extra)
+    b_extra = extras((b, b2), {a, a2})[:2]
+    assert len(a_extra) == 2
+    assert len(b_extra) == 2
+    for position, kind, in_town in (
+        (a, BuildingType.STRONGHOLD, True),
+        (a2, BuildingType.TRADING_HOUSE, True),
+        (a_extra[0], BuildingType.DWELLING, True),
+        (a_extra[1], BuildingType.DWELLING, True),
+        (b, BuildingType.STRONGHOLD, False),
+        (b_extra[0], BuildingType.TRADING_HOUSE, False),
+        (b_extra[1], BuildingType.DWELLING, False),
+    ):
+        board = board.place(position, Building(kind, P1, in_town=in_town))
+    assert (
+        _build_river_choices(
+            board,
+            P1,
+            FACTION_BY_TYPE[FactionType.MERMAIDS],
+            b2,
+            TOWN_SUPPLY,
+        )
+        == []
+    )
 
 
 def test_mermaids_only_list_join_when_it_changes_the_town() -> None:

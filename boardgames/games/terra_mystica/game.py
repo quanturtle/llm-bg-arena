@@ -2338,8 +2338,10 @@ def _changing_rivers(
     player: PlayerId,
     towns_left: int,
 ) -> list[Hex]:
-    """River spaces whose skip would change the town for this component."""
-    direct = _town_outcome(board, position, player, None, towns_left)
+    """River spaces that let this component found a new town."""
+    direct = _town_outcome(board, position, player, None, towns_left)[1]
+    if direct:
+        return []
     rivers = {
         neighbour
         for member in board.connected(position, player)
@@ -2349,7 +2351,7 @@ def _changing_rivers(
     return [
         river
         for river in sorted(rivers)
-        if _town_outcome(board, position, player, river, towns_left) != direct
+        if _town_outcome(board, position, player, river, towns_left)[1]
     ]
 
 
