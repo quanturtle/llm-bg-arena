@@ -13,7 +13,6 @@ from typing import ClassVar
 from boardgames.core import (
     ActionSpace,
     Decision,
-    Event,
     FlatActionSpace,
     Game,
     IllegalActionError,
@@ -32,25 +31,17 @@ from boardgames.core.records import (
     tagged_json_object,
     to_json_object,
 )
-from boardgames.games.puerto_rico.constants import (
-    GOODS,
-    Role,
-)
+from boardgames.games.puerto_rico.constants import GOODS
 from boardgames.games.puerto_rico.model import (
     Action,
     DiscardGoods,
     FinishPlacement,
     Pass,
-    Phase,
     PuertoRicoConfig,
     PuertoRicoState,
-    SelectRole,
     building_points,
     end_game_bonus,
     public_points,
-    replace_player,
-    replace_role,
-    role_state,
     total_points,
 )
 from boardgames.games.puerto_rico.notation import format_action, parse_action
@@ -72,13 +63,16 @@ from boardgames.games.puerto_rico.roles.craftsman import (
     apply_craftsman,
     craftsman_actions,
     explain_craftsman,
-    run_production,
 )
 from boardgames.games.puerto_rico.roles.mayor import (
     apply_mayor,
-    distribute_colonists,
     explain_mayor,
     mayor_actions,
+)
+from boardgames.games.puerto_rico.roles.selection import (
+    apply_selection,
+    explain_selection,
+    selection_actions,
 )
 from boardgames.games.puerto_rico.roles.settler import (
     apply_settler,
@@ -90,22 +84,13 @@ from boardgames.games.puerto_rico.roles.trader import (
     explain_trader,
     trader_actions,
 )
-from boardgames.games.puerto_rico.rounds import advance_role_picker, tiebreak_key
+from boardgames.games.puerto_rico.rounds import tiebreak_key
 from boardgames.games.puerto_rico.setup import check_config, start_game
 from boardgames.games.puerto_rico.view import (
     describe_action,
     observe,
     render_text,
 )
-
-ROLE_PHASE: dict[Role, Phase] = {
-    "settler": "settler_action",
-    "mayor": "mayor_action",
-    "builder": "builder_action",
-    "craftsman": "craftsman_action",
-    "trader": "trader_action",
-    "captain": "captain_action",
-}
 
 
 @register_game
@@ -178,9 +163,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     ) -> Transition[PuertoRicoState]:
         """Apply an action already checked by `legal_actions`."""
         if state.phase == "role_selection":
-            if not isinstance(action, SelectRole):
-                raise IllegalActionError("choose a role now")
-            return self.take_role(state, player, action.role)
+            return apply_selection(state, player, action)
         if state.phase == "settler_action":
             return apply_settler(state, player, action)
         if state.phase == "mayor_action":
@@ -258,104 +241,6 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
     def action_json(self, action: Action) -> dict[str, JsonValue]:
         return tagged_json_object(action)
 
-    # Role selection -------------------------------------------------------
-
-    def take_role(
-        self, state: PuertoRicoState, player: PlayerId, role: Role
-    ) -> Transition[PuertoRicoState]:
-        role_entry = role_state(state, role)
-        if role_entry.taken_by is not None:
-            raise IllegalActionError(f"{role} has already been chosen this round")
-        if player != state.active_player:
-            raise IllegalActionError(f"it is not {seat_label(player)}'s turn")
-        owner = state.players[player]
-        owner = replace(owner, doubloons=owner.doubloons + role_entry.doubloons)
-        state = replace_player(state, player, owner)
-        state = replace_role(
-            state, role, replace(role_entry, doubloons=0, taken_by=player)
-        )
-        events = [
-            Event(
-                "role_taken",
-                f"{seat_label(player)} chose {role} "
-                f"(+{role_entry.doubloons} doubloons).",
-                {
-                    "player": player,
-                    "role": role,
-                    "doubloons": role_entry.doubloons,
-                },
-            )
-        ]
-        if role in ("prospector", "prospector_2"):
-            owner = replace(
-                state.players[player], doubloons=state.players[player].doubloons + 1
-            )
-            state = replace_player(state, player, owner)
-            events.append(
-                Event(
-                    "prospector_bonus",
-                    f"{seat_label(player)} took a prospector: +1 doubloon.",
-                    {"player": player, "doubloons": 1},
-                )
-            )
-            state = advance_role_picker(state)
-            return Transition(state, tuple(events))
-        state, phase_events = self.start_role_phase(state, role, player)
-        events.extend(phase_events)
-        return Transition(state, tuple(events))
-
-    def start_role_phase(
-        self, state: PuertoRicoState, role: Role, player: PlayerId
-    ) -> tuple[PuertoRicoState, tuple[Event, ...]]:
-        phase = ROLE_PHASE[role]
-        state = replace(
-            state,
-            active_role=role,
-            phase=phase,
-            active_player=player,
-            players_acted=frozenset(),
-            captain_passes=0,
-        )
-        events: list[Event] = []
-        if role == "settler":
-            state = replace(
-                state,
-                players=tuple(
-                    replace(item, hacienda_used=False) for item in state.players
-                ),
-            )
-        elif role == "mayor":
-            has_extra = state.colonist_supply > 0
-            state = distribute_colonists(state, player)
-            events.append(
-                Event(
-                    "colonists_distributed",
-                    "Colonists from the ship are distributed; "
-                    + (
-                        f"{seat_label(player)} takes the extra colonist."
-                        if has_extra
-                        else "the supply is empty, so there is no extra colonist."
-                    ),
-                    {"player": player},
-                )
-            )
-        elif role == "craftsman":
-            state, produced_events = run_production(state, player)
-            events.extend(produced_events)
-        elif role == "captain":
-            state = replace(
-                state,
-                players=tuple(
-                    replace(
-                        item,
-                        captain_first_load_done=False,
-                        wharf_used=False,
-                    )
-                    for item in state.players
-                ),
-            )
-        return state, tuple(events)
-
 
 # Helpers ------------------------------------------------------------------
 
@@ -363,7 +248,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
 def legal_action_list(state: PuertoRicoState, player: PlayerId) -> list[Action]:
     """Every action the deciding player may choose right now."""
     if state.phase == "role_selection":
-        return [SelectRole(role.role) for role in state.roles if role.taken_by is None]
+        return selection_actions(state)
     owner = state.players[player]
     if state.phase == "settler_action":
         return settler_actions(state, player, owner)
@@ -439,15 +324,7 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
     """Why `action` is not legal for `player` now."""
     phase = state.phase
     if phase == "role_selection":
-        if isinstance(action, SelectRole):
-            entry = next(
-                (item for item in state.roles if item.role == action.role), None
-            )
-            if entry is None:
-                return f"There is no {action.role} role in this game."
-            if entry.taken_by is not None:
-                return f"{action.role} was already chosen this round."
-        return "Choose a role that nobody has taken this round."
+        return explain_selection(state, action)
     if phase == "settler_action":
         return explain_settler(state, player, action)
     if phase == "mayor_action":
