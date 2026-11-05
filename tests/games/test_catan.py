@@ -93,6 +93,7 @@ from boardgames.games.catan.rules import (
     trade_rates,
 )
 from boardgames.games.catan.setup import setup_order
+from boardgames.games.catan.turn import roll_dice
 from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import LogRecord
 from tests.arena.support import FakeClock, MemorySink, random_agents
@@ -743,7 +744,7 @@ def test_discard_amount_after_a_seven() -> None:
         rng=Rng.seeded(seed),
         hands=(hand_from(wheat=9), hand_from(wood=7), empty_hand()),
     )
-    transition = GAME.roll_dice(state, P1)
+    transition = roll_dice(state, P1)
     assert transition.state.phase == "discard"
     assert transition.state.discard_remaining == (4, 0, 0)
 

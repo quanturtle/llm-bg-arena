@@ -41,7 +41,6 @@ from boardgames.games.catan.awards import (
 from boardgames.games.catan.model import (
     CITY_COST,
     DEV_COST,
-    DISCARD_THRESHOLD,
     RESOURCES,
     ROAD_COST,
     SETTLEMENT_COST,
@@ -73,14 +72,9 @@ from boardgames.games.catan.model import (
     can_afford,
     dev_get,
     dev_with,
-    empty_dev_hand,
     empty_hand,
-    hand_cards,
     hand_get,
-    hand_json,
     hand_minus,
-    hand_plus,
-    hand_total,
     hand_with,
     playable_dev_hand,
     point_breakdown,
@@ -91,9 +85,7 @@ from boardgames.games.catan.rules import (
     city_legal,
     distance_rule_ok,
     legal_free_road_edges,
-    production,
     road_legal,
-    robber_victims,
     settlement_connected,
     settlement_legal,
     settlement_pieces_available,
@@ -106,6 +98,19 @@ from boardgames.games.catan.setup import (
     setup_road_actions,
     setup_settlement_actions,
     start_game,
+)
+from boardgames.games.catan.turn import (
+    discard_actions,
+    discard_card,
+    end_turn,
+    explain_discard,
+    explain_end_turn,
+    explain_robber,
+    explain_roll,
+    move_robber,
+    move_robber_and_steal,
+    robber_actions,
+    roll_dice,
 )
 from boardgames.games.catan.view import (
     describe_action,
@@ -205,15 +210,15 @@ class Catan:
                 raise IllegalActionError("only a road is legal during setup")
             return place_setup_road(state, player, action.edge)
         if state.phase == "roll":
-            return self.roll_dice(state, player)
+            return roll_dice(state, player)
         if state.phase == "discard":
             if not isinstance(action, Discard):
                 raise IllegalActionError("only discards are legal now")
-            return self.discard_card(state, player, action.resource)
+            return discard_card(state, player, action.resource)
         if state.phase == "move_robber":
             if not isinstance(action, MoveRobber):
                 raise IllegalActionError("move the robber now")
-            return self.move_robber(state, player, action.hex, action.victim)
+            return move_robber(state, player, action.hex, action.victim)
         if state.phase == "free_road":
             if not isinstance(action, PlaceRoad):
                 raise IllegalActionError("place a free road now")
@@ -271,105 +276,6 @@ class Catan:
 
     def action_json(self, action: Action) -> dict[str, JsonValue]:
         return tagged_json_object(action)
-
-    def roll_dice(self, state: CatanState, player: PlayerId) -> Transition[CatanState]:
-        first, rng = state.rng.roll(6)
-        second, rng = rng.roll(6)
-        total = first + second
-        events = [
-            Event(
-                "dice_rolled",
-                f"{seat_label(player)} rolled {first} + {second} = {total}.",
-                {"player": player, "dice": [first, second], "total": total},
-            )
-        ]
-        rolled = replace(state, rng=rng, dice=(first, second))
-        if total == 7:
-            remaining = tuple(
-                hand_total(hand) // 2 if hand_total(hand) > DISCARD_THRESHOLD else 0
-                for hand in state.hands
-            )
-            owed = [
-                f"{seat_label(PlayerId(seat))} {count}"
-                for seat, count in enumerate(remaining)
-                if count
-            ]
-            events.append(
-                Event(
-                    "seven_rolled",
-                    "A 7 is rolled. "
-                    + (
-                        "Discards: " + ", ".join(owed) + "."
-                        if owed
-                        else "No one holds more than seven cards."
-                    ),
-                    {"discard": list(remaining)},
-                )
-            )
-            phase: Phase = "discard" if any(remaining) else "move_robber"
-            return Transition(
-                replace(
-                    rolled,
-                    phase=phase,
-                    discard_remaining=remaining,
-                    dev_played_this_turn=False,
-                ),
-                tuple(events),
-            )
-        gains = production(state, total)
-        hands = tuple(
-            hand_plus(hand, gain) for hand, gain in zip(state.hands, gains, strict=True)
-        )
-        events.append(production_event(gains, total))
-        return Transition(
-            replace(rolled, hands=hands, phase="actions"),
-            tuple(events),
-        )
-
-    def discard_card(
-        self, state: CatanState, player: PlayerId, resource: Resource
-    ) -> Transition[CatanState]:
-        hand = state.hands[player]
-        if hand_get(hand, resource) < 1:
-            raise IllegalActionError(f"you have no {resource} to discard")
-        hands = replace_at(state.hands, player, hand_with(hand, resource, -1))
-        remaining = list(state.discard_remaining)
-        remaining[player] -= 1
-        events = [
-            Event(
-                "discarded",
-                f"{seat_label(player)} discarded 1 {resource}.",
-                {"player": player, "resource": resource},
-                audience=frozenset({player}),
-            ),
-            Event(
-                "discard_notice",
-                f"{seat_label(player)} discarded a card.",
-                {"player": player},
-            ),
-        ]
-        phase: Phase = (
-            "move_robber" if all(count == 0 for count in remaining) else "discard"
-        )
-        return Transition(
-            replace(
-                state,
-                hands=hands,
-                discard_remaining=tuple(remaining),
-                phase=phase,
-            ),
-            tuple(events),
-        )
-
-    def move_robber(
-        self,
-        state: CatanState,
-        player: PlayerId,
-        hex_id: int,
-        victim: PlayerId | None,
-    ) -> Transition[CatanState]:
-        moved, events = move_robber_and_steal(state, player, hex_id, victim)
-        return Transition(replace(moved, phase="actions"), tuple(events))
 
     def place_free_road(
         self, state: CatanState, player: PlayerId, edge: int
@@ -431,7 +337,7 @@ class Catan:
         if isinstance(action, PlayMonopoly):
             return self.play_monopoly(state, player, action.resource)
         if isinstance(action, EndTurn):
-            return self.end_turn(state, player)
+            return end_turn(state, player)
         raise IllegalActionError("that action is not available in the action phase")
 
     def build_road(
@@ -752,37 +658,6 @@ class Catan:
             tuple(events),
         )
 
-    def end_turn(self, state: CatanState, player: PlayerId) -> Transition[CatanState]:
-        next_player = PlayerId((player + 1) % state.config.num_players)
-        events = [
-            Event(
-                "turn_ended",
-                f"{seat_label(player)} ended their turn.",
-                {"player": player},
-            ),
-            Event(
-                "turn_started",
-                f"{seat_label(next_player)}'s turn.",
-                {"player": next_player},
-            ),
-        ]
-        return Transition(
-            replace(
-                state,
-                active=next_player,
-                turn=state.turn + 1,
-                phase="roll",
-                dice=None,
-                free_roads=0,
-                offers_this_turn=0,
-                dev_bought=empty_dev_hand(),
-                dev_played_this_turn=False,
-                pending_offer=None,
-                discard_remaining=(0,) * state.config.num_players,
-            ),
-            tuple(events),
-        )
-
 
 def decision_kind(phase: Phase) -> str:
     """Decision kind recorded in logs for a phase."""
@@ -834,11 +709,7 @@ def legal_action_list(state: CatanState, player: PlayerId) -> list[Action]:
     if state.phase == "roll":
         return [Roll()]
     if state.phase == "discard":
-        return [
-            Discard(resource)
-            for resource in RESOURCES
-            if hand_get(state.hands[player], resource) > 0
-        ]
+        return discard_actions(state, player)
     if state.phase == "move_robber":
         return robber_actions(state, player, knight=False)
     if state.phase == "free_road":
@@ -924,27 +795,6 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
     return actions
 
 
-def robber_actions(
-    state: CatanState, player: PlayerId, *, knight: bool
-) -> list[Action]:
-    """Move-robber choices: every other hex, with each eligible victim."""
-    actions: list[Action] = []
-    for hex_id in range(len(state.hexes)):
-        if hex_id == state.robber:
-            continue
-        victims = robber_victims(state, hex_id, player)
-        if victims:
-            for victim in victims:
-                actions.append(
-                    PlayKnight(hex_id, victim) if knight else MoveRobber(hex_id, victim)
-                )
-        else:
-            actions.append(
-                PlayKnight(hex_id, None) if knight else MoveRobber(hex_id, None)
-            )
-    return actions
-
-
 def pay_cost(state: CatanState, player: PlayerId, cost: Hand) -> CatanState:
     """Subtract a cost from a player's hand or raise."""
     hand = hand_minus(state.hands[player], cost)
@@ -953,91 +803,14 @@ def pay_cost(state: CatanState, player: PlayerId, cost: Hand) -> CatanState:
     return replace(state, hands=replace_at(state.hands, player, hand))
 
 
-def move_robber_and_steal(
-    state: CatanState,
-    player: PlayerId,
-    hex_id: int,
-    victim: PlayerId | None,
-) -> tuple[CatanState, list[Event]]:
-    """Move the robber and take one random card from an eligible victim."""
-    events = [
-        Event(
-            "robber_moved",
-            f"{seat_label(player)} moved the robber to {hex_name(state, hex_id)}.",
-            {"player": player, "hex": hex_id, "victim": victim},
-        )
-    ]
-    moved = replace(state, robber=hex_id)
-    if victim is None:
-        return moved, events
-    cards = hand_cards(moved.hands[victim])
-    if not cards:
-        return moved, events
-    index, rng = moved.rng.below(len(cards))
-    resource = cards[index]
-    robbed = replace_at(
-        moved.hands, victim, hand_with(moved.hands[victim], resource, -1)
-    )
-    hands = replace_at(robbed, player, hand_with(robbed[player], resource, 1))
-    events.extend(
-        [
-            Event(
-                "stolen",
-                f"{seat_label(player)} stole a card from {seat_label(victim)}.",
-                {"player": player, "victim": victim},
-            ),
-            Event(
-                "stole_card",
-                f"You stole 1 {resource} from {seat_label(victim)}.",
-                {"player": player, "from": victim, "resource": resource},
-                audience=frozenset({player}),
-            ),
-            Event(
-                "card_stolen",
-                f"{seat_label(player)} stole 1 {resource} from you.",
-                {"player": player, "from": victim, "resource": resource},
-                audience=frozenset({victim}),
-            ),
-        ]
-    )
-    return replace(moved, rng=rng, hands=hands), events
-
-
-def production_event(gains: tuple[Hand, ...], total: int) -> Event:
-    """Public summary of resources produced by a roll."""
-    parts: list[str] = []
-    for player, gain in enumerate(gains):
-        cards = [
-            f"{count} {resource}"
-            for resource, count in zip(RESOURCES, gain, strict=True)
-            if count
-        ]
-        if cards:
-            parts.append(f"{seat_label(PlayerId(player))} {', '.join(cards)}")
-    text = (
-        f"Production on {total}: " + "; ".join(parts) + "."
-        if parts
-        else f"No resources are produced on {total}."
-    )
-    return Event(
-        "production",
-        text,
-        {"total": total, "gains": [hand_json(gain) for gain in gains]},
-    )
-
-
 def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
     """Why an action is illegal, in terms useful to a retrying LLM."""
     hand = state.hands[player]
     match action:
         case Roll():
-            if state.phase != "roll":
-                return "You can only roll at the start of your turn."
-            return "Rolling is not legal now."
+            return explain_roll(state)
         case EndTurn():
-            if state.phase != "actions":
-                return "You can only end your turn after rolling and acting."
-            return "You cannot end your turn now."
+            return explain_end_turn(state)
         case PlaceSettlement(vertex=vertex):
             return explain_settlement(state, player, hand, vertex)
         case PlaceRoad(edge=edge):
@@ -1053,11 +826,7 @@ def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
                 )
             return "You cannot buy a development card now."
         case Discard(resource=resource):
-            if state.phase != "discard":
-                return "You only discard after a 7."
-            if hand_get(hand, resource) < 1:
-                return f"You have no {resource} to discard."
-            return "You cannot discard that card now."
+            return explain_discard(state, hand, resource)
         case MoveRobber(hex=hex_id, victim=victim):
             return explain_robber(state, player, hex_id, victim, knight=False)
         case PlayKnight(hex=hex_id, victim=victim):
@@ -1177,38 +946,6 @@ def explain_city(state: CatanState, player: PlayerId, hand: Hand, vertex: int) -
     return "You cannot build a city now."
 
 
-def explain_robber(
-    state: CatanState,
-    player: PlayerId,
-    hex_id: int,
-    victim: PlayerId | None,
-    *,
-    knight: bool,
-) -> str:
-    """Why a robber move or knight play is illegal."""
-    label = "knight" if knight else "robber"
-    if knight and state.dev_played_this_turn:
-        return "You may play only one development card per turn."
-    if knight and dev_get(playable_dev_hand(state, player), "knight") < 1:
-        return "You have no playable knight card."
-    if not knight and state.phase != "move_robber":
-        return "You can only move the robber after rolling a 7."
-    if not 0 <= hex_id < len(state.hexes):
-        return f"h{hex_id} is not on the board."
-    if hex_id == state.robber:
-        return "The robber is already on that hex; choose a different hex."
-    if victim == player:
-        return "You cannot steal from yourself."
-    victims = robber_victims(state, hex_id, player)
-    if victims and victim is None:
-        return "You must steal from an eligible player on that hex."
-    if victim is not None and victim not in victims:
-        return f"{seat_label(victim)} has no building on h{hex_id}."
-    if not victims and victim is not None:
-        return f"No player on h{hex_id} has a building to rob."
-    return f"You cannot move the {label} there now."
-
-
 def missing_text(hand: Hand, cost: Hand) -> str:
     """ "2 wood, 1 ore" for the cards a hand lacks toward a cost."""
     parts = [
@@ -1217,13 +954,6 @@ def missing_text(hand: Hand, cost: Hand) -> str:
         if have < need
     ]
     return ", ".join(parts) or "nothing"
-
-
-def hex_name(state: CatanState, hex_id: int) -> str:
-    """ "h5 forest 6" for event text."""
-    board_hex = state.hexes[hex_id]
-    number = "" if board_hex.number is None else f" {board_hex.number}"
-    return f"h{hex_id} {board_hex.terrain}{number}"
 
 
 def dev_name(card: DevCard) -> str:
