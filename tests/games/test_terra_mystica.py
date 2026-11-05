@@ -830,6 +830,24 @@ def test_action_phase_spades_score_spade_round_points() -> None:
     assert after.players[player].victory_points - before == cost * 2
 
 
+def test_giants_one_spade_power_action_is_not_only_a_skip() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.GIANTS,
+            resources=Resources(
+                coins=15, workers=3, priests=0, power1=0, power2=0, power3=12
+            ),
+        ),
+    )
+    state = GAME.apply(state, player, PowerAction("spade")).state
+    assert any(isinstance(action, UseCultSpade) for action in listing(state))
+
+
 def test_power_spade_pays_workers_for_missing_spades() -> None:
     state, player, _start, first, _second = _action_spade_state(FactionType.GIANTS, 1)
     tile = state.board.tile(first)
