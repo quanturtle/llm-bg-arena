@@ -337,7 +337,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     spade_topup=True,
                     spade_require_all=False,
                 )
-                return self.build_dwelling(state, player, action.position, action.river)
+                return self.build_dwelling(
+                    state, player, action.position, action.river, reach_paid=True
+                )
             if isinstance(action, UseCultSpade):
                 return self.use_cult_spade(state, player, action.position, action.to)
             if isinstance(action, SkipCultSpade):
@@ -496,6 +498,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         player: PlayerId,
         position: Hex,
         river: Hex | None = None,
+        *,
+        reach_paid: bool = False,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
         profile = owner.profile
@@ -526,7 +530,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             bool(state.board.adjacent_opponents(position, player)),
         )
         reach_cost = (
-            effective_reach_cost(state.board, player, profile) if tunneling else Cost()
+            effective_reach_cost(state.board, player, profile)
+            if tunneling and not reach_paid
+            else Cost()
         )
         total = _add_costs(_add_costs(terrain_cost, build_cost), reach_cost)
         if not can_pay(owner.resources, total):
@@ -545,7 +551,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             victory_points += spades * profile.spade_vp_bonus
             if _round_scoring(state) is ScoringAction.SPADE:
                 victory_points += spades * SCORING_VALUES[ScoringAction.SPADE]
-        if tunneling:
+        if tunneling and not reach_paid:
             victory_points += profile.reach_vp
         if _round_scoring(state) is ScoringAction.DWELLING:
             victory_points += SCORING_VALUES[ScoringAction.DWELLING]

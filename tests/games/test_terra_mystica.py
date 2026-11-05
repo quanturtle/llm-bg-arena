@@ -900,11 +900,14 @@ def test_power_spades_reach_through_tunneling() -> None:
         active_player=player,
     )
     assert UseCultSpade(target) in listing(state)
-    before = state.players[player].resources
+    before = state.players[player]
     after = GAME.apply(state, player, UseCultSpade(target)).state
     tile = after.board.tile(target)
     assert tile is not None and tile.terrain is Terrain.MOUNTAIN
-    assert after.players[player].resources.workers == before.workers - 2
+    assert BuildDwelling(target) in listing(after)
+    after = GAME.apply(after, player, BuildDwelling(target)).state
+    assert after.players[player].resources.workers == before.resources.workers - 3
+    assert after.players[player].victory_points == before.victory_points + 4
 
 
 def test_action_phase_spades_use_a_single_tile_then_one_extra() -> None:
