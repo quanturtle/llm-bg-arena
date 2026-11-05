@@ -1637,11 +1637,22 @@ def test_stronghold_one_time_rewards() -> None:
     assert (resources.power1, resources.power2, resources.power3) == (0, 5, 7)
 
     state, player, position = _stronghold_state(FactionType.MERMAIDS)
-    before = state.players[player].shipping
+    state = replace_player(state, player, replace(state.players[player], shipping=1))
+    before_player = state.players[player]
     after = GAME.apply(
         state, player, UpgradeBuilding(position, BuildingType.STRONGHOLD)
     ).state
-    assert after.players[player].shipping == before + 1
+    assert after.players[player].shipping == 2
+    assert after.players[player].victory_points == before_player.victory_points + 2
+
+    state, player, position = _stronghold_state(FactionType.MERMAIDS)
+    state = replace_player(state, player, replace(state.players[player], shipping=5))
+    before_player = state.players[player]
+    after = GAME.apply(
+        state, player, UpgradeBuilding(position, BuildingType.STRONGHOLD)
+    ).state
+    assert after.players[player].shipping == 5
+    assert after.players[player].victory_points == before_player.victory_points
 
 
 def test_halfling_and_darkling_stronghold_rewards_need_a_choice() -> None:

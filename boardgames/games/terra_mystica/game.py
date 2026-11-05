@@ -2004,14 +2004,30 @@ def _stronghold_reward(
             )
         )
     elif profile.type is FactionType.MERMAIDS:
-        owner = replace(owner, shipping=owner.shipping + 1)
-        events.append(
-            Event(
-                "stronghold_reward",
-                f"{seat_label(player)} advanced to shipping {owner.shipping}.",
-                {"player": player, "shipping": owner.shipping},
+        if owner.shipping < profile.shipping_max:
+            level = owner.shipping + 1
+            owner = replace(
+                owner,
+                shipping=level,
+                victory_points=owner.victory_points
+                + shipping_points(level, profile.shipping_start),
             )
-        )
+            events.append(
+                Event(
+                    "stronghold_reward",
+                    f"{seat_label(player)} advanced to shipping {level} "
+                    "and scored its points.",
+                    {"player": player, "shipping": level},
+                )
+            )
+        else:
+            events.append(
+                Event(
+                    "stronghold_reward",
+                    f"{seat_label(player)} is already at maximum shipping.",
+                    {"player": player, "shipping": owner.shipping},
+                )
+            )
     elif profile.type is FactionType.HALFLINGS:
         owner = replace(
             owner,
