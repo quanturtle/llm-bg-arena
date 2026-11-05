@@ -17,3 +17,6 @@ runs/
 
 # design notes kept on this machine only
 docs/
+
+# Puerto Rico art without a declared licence, kept on this machine only
+web/public/puerto_rico/
