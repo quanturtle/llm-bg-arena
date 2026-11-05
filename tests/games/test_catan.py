@@ -46,7 +46,7 @@ from boardgames.games.catan.awards import (
     update_largest_army,
     update_longest_road,
 )
-from boardgames.games.catan.game import legal_action_list, setup_order
+from boardgames.games.catan.game import legal_action_list
 from boardgames.games.catan.geometry import (
     COASTAL_EDGES,
     EDGE_HEXES,
@@ -92,6 +92,7 @@ from boardgames.games.catan.rules import (
     settlement_pieces_available,
     trade_rates,
 )
+from boardgames.games.catan.setup import setup_order
 from boardgames.logs.replay import replay_match
 from boardgames.logs.schema import LogRecord
 from tests.arena.support import FakeClock, MemorySink, random_agents
