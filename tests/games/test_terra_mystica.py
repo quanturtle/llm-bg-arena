@@ -707,6 +707,28 @@ def test_spade_power_action_opens_a_spade_phase() -> None:
     assert state.active_player != player
 
 
+
+def test_spade_build_is_not_listed_without_a_dwelling() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    positions = empty_land_tiles(state)
+    board = state.board
+    for position in positions[:8]:
+        board = board.place(position, Building(BuildingType.DWELLING, player))
+    target = positions[8]
+    state = replace(
+        state,
+        board=board,
+        phase="cult_spades",
+        cult_spades=replace_at(state.cult_spades, player, 0),
+        spade_return="action",
+        spade_actor=player,
+        power_spade_tiles=(target,),
+        active_player=player,
+    )
+    assert BuildDwelling(target) not in listing(state)
+    assert SkipCultSpade() in listing(state)
+
 def test_priest_supply_caps_cult_bonuses() -> None:
     state = play_setup(start(num_players=2, seed=1, rounds=2))
     priest_tile = ScoringTile(

@@ -1431,7 +1431,9 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
                 actions.append(UseCultSpade(tile.position))
             else:
                 actions.append(UseCultSpade(tile.position, target))
-    if state.spade_return == "action":
+    if state.spade_return == "action" and can_place_building(
+        state.board, player, BuildingType.DWELLING
+    ):
         for position in state.power_spade_tiles:
             build_cost = building_cost(
                 owner.profile,
