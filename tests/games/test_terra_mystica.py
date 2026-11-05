@@ -59,7 +59,6 @@ from boardgames.games.terra_mystica.constants import (
     ScoringTile,
     Terrain,
 )
-from boardgames.games.terra_mystica.game import _build_river_choices
 from boardgames.games.terra_mystica.model import (
     PlayerState,
     advance_cult,
@@ -85,6 +84,7 @@ from boardgames.games.terra_mystica.scoring import (
     split_rank_points,
 )
 from boardgames.games.terra_mystica.setup import initial_setup_queue
+from boardgames.games.terra_mystica.towns import build_river_choices
 from boardgames.logs.replay import replay_match
 from tests.arena.support import FakeClock, MemorySink, random_agents
 from tests.invariants.playthrough import random_playthrough
@@ -1629,7 +1629,7 @@ def test_mermaids_do_not_list_a_river_that_would_cancel_a_new_town() -> None:
     ):
         board = board.place(position, Building(kind, P1, in_town=in_town))
     assert (
-        _build_river_choices(
+        build_river_choices(
             board,
             P1,
             FACTION_BY_TYPE[FactionType.MERMAIDS],
