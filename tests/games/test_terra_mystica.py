@@ -1237,7 +1237,9 @@ def _mermaid_gap_state(
         replace(
             state.players[player],
             faction=FactionType.MERMAIDS,
-            resources=Resources(coins=50, workers=50, priests=5),
+            resources=Resources(
+                coins=50, workers=50, priests=5, power1=5, power2=7
+            ),
             shipping=1,
         ),
     )
@@ -1607,13 +1609,19 @@ def _stronghold_state(
     state = replace_player(
         state,
         player,
-        replace(
-            state.players[player],
-            faction=faction,
-            resources=Resources(coins=50, workers=50, priests=5),
-        ),
+        replace(state.players[player], faction=faction),
     )
     state = action_state(state, player, (position, BuildingType.TRADING_HOUSE))
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            resources=Resources(
+                coins=50, workers=50, priests=5, power1=5, power2=7
+            ),
+        ),
+    )
     return _neutral_scoring(state), player, position
 
 
@@ -1629,7 +1637,8 @@ def test_stronghold_one_time_rewards() -> None:
     after = GAME.apply(
         state, player, UpgradeBuilding(position, BuildingType.STRONGHOLD)
     ).state
-    assert after.players[player].resources.power1 == 12
+    resources = after.players[player].resources
+    assert (resources.power1, resources.power2, resources.power3) == (0, 5, 7)
 
     state, player, position = _stronghold_state(FactionType.MERMAIDS)
     before = state.players[player].shipping

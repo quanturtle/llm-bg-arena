@@ -1983,14 +1983,11 @@ def _stronghold_reward(
             )
         )
     elif profile.type is FactionType.ALCHEMISTS:
-        owner = replace(
-            owner,
-            resources=replace(owner.resources, power1=12, power2=0, power3=0),
-        )
+        owner = replace(owner, resources=gain_power(owner.resources, 12))
         events.append(
             Event(
                 "stronghold_reward",
-                f"{seat_label(player)} took 12 power from the stronghold.",
+                f"{seat_label(player)} gained 12 power from the stronghold.",
                 {"player": player, "power": 12},
             )
         )
