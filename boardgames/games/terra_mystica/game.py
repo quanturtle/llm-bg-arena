@@ -30,7 +30,6 @@ from boardgames.core.records import (
 )
 from boardgames.games.terra_mystica.constants import (
     CULT_ORDER,
-    CULT_ORDER_STEPS,
     MAX_BUILDINGS,
     POWER_ACTION_COSTS,
     POWER_ACTION_INCOME,
@@ -41,7 +40,6 @@ from boardgames.games.terra_mystica.constants import (
     TOWN_TILES,
     BuildingType,
     Cost,
-    Cult,
     FactionProfile,
     FactionType,
     Income,
@@ -49,6 +47,14 @@ from boardgames.games.terra_mystica.constants import (
     Resources,
     ScoringAction,
     Terrain,
+)
+from boardgames.games.terra_mystica.cults import (
+    advance_cult_with_priest,
+    cult_top_occupied,
+    explain_advance_cult,
+    explain_send_priest,
+    priest_actions,
+    send_priest,
 )
 from boardgames.games.terra_mystica.model import (
     Action,
@@ -81,7 +87,6 @@ from boardgames.games.terra_mystica.model import (
     can_place_building,
     can_spend_power,
     cap_priests,
-    cult_limit,
     effective_reach,
     effective_reach_cost,
     gain_power,
@@ -356,9 +361,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         if isinstance(action, AdvanceDigging):
             return self.advance_digging(state, player)
         if isinstance(action, SendPriest):
-            return self.send_priest(state, player, action.cult, action.order)
+            return send_priest(state, player, action.cult, action.order)
         if isinstance(action, AdvanceCult):
-            return self.advance_cult_with_priest(state, player, action.cult)
+            return advance_cult_with_priest(state, player, action.cult)
         if isinstance(action, PowerAction):
             return self.take_power_action(state, player, action.kind)
         if isinstance(action, TradeVpForCoin):
@@ -680,70 +685,6 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         )
         return advance_turn(state, player, (event,))
 
-    def send_priest(
-        self,
-        state: TerraMysticaState,
-        player: PlayerId,
-        cult: Cult,
-        order: int,
-    ) -> Transition[TerraMysticaState]:
-        owner = state.players[player]
-        if owner.resources.priests <= 0:
-            raise IllegalActionError("you have no priest to send")
-        if (cult, order) in state.used_orders:
-            raise IllegalActionError("that order space is already occupied")
-        resources = replace(owner.resources, priests=owner.resources.priests - 1)
-        owner = replace(owner, resources=resources)
-        state = replace(state, used_orders={**state.used_orders, (cult, order): player})
-        steps = CULT_ORDER_STEPS[order]
-        owner, gained = advance_cult(
-            owner,
-            cult,
-            steps,
-            top_occupied=_cult_top_occupied(state, player, cult),
-        )
-        state = replace_player(state, player, owner)
-        event = Event(
-            "priest_sent",
-            f"{seat_label(player)} sent a priest to {cult.value} order {order} "
-            f"and advanced {steps} (gain {gained} power).",
-            {
-                "player": player,
-                "cult": cult.value,
-                "order": order,
-                "steps": steps,
-                "power": gained,
-            },
-        )
-        return advance_turn(state, player, (event,))
-
-    def advance_cult_with_priest(
-        self, state: TerraMysticaState, player: PlayerId, cult: Cult
-    ) -> Transition[TerraMysticaState]:
-        owner = state.players[player]
-        if owner.resources.priests <= 0:
-            raise IllegalActionError("you have no priest to send")
-        if owner.cult(cult) >= _cult_limit_for(state, player, cult):
-            raise IllegalActionError("that cult track cannot advance further")
-        owner = replace(
-            owner,
-            resources=replace(owner.resources, priests=owner.resources.priests - 1),
-        )
-        owner, gained = advance_cult(
-            owner,
-            cult,
-            1,
-            top_occupied=_cult_top_occupied(state, player, cult),
-        )
-        state = replace_player(state, player, owner)
-        event = Event(
-            "cult_advanced",
-            f"{seat_label(player)} spent a priest and advanced {cult.value} by 1 "
-            f"(gain {gained} power).",
-            {"player": player, "cult": cult.value, "steps": 1, "power": gained},
-        )
-        return advance_turn(state, player, (event,))
-
     def take_town_tile(
         self, state: TerraMysticaState, player: PlayerId, index: int
     ) -> Transition[TerraMysticaState]:
@@ -773,7 +714,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     owner,
                     cult,
                     1,
-                    top_occupied=_cult_top_occupied(state, player, cult),
+                    top_occupied=cult_top_occupied(state, player, cult),
                 )
                 gained.append(f"{cult.value} +1 ({power} power)")
         state = replace_player(state, player, owner)
@@ -1357,13 +1298,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     if _digging_reason(state, player) is None:
         actions.append(AdvanceDigging())
 
-    if owner.resources.priests > 0:
-        for cult in CULT_ORDER:
-            for order in range(4):
-                if (cult, order) not in state.used_orders:
-                    actions.append(SendPriest(cult, order))
-            if owner.cult(cult) < _cult_limit_for(state, player, cult):
-                actions.append(AdvanceCult(cult))
+    actions.extend(priest_actions(state, player))
 
     for kind in POWER_ACTION_KINDS:
         if kind in state.used_power_actions:
@@ -1608,17 +1543,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
     if isinstance(action, AdvanceDigging):
         return _digging_reason(state, player) or "You cannot advance digging now."
     if isinstance(action, SendPriest):
-        if owner.resources.priests <= 0:
-            return "You have no priest to send."
-        if (action.cult, action.order) in state.used_orders:
-            return "That order space is already occupied."
-        return "You cannot send a priest there now."
+        return explain_send_priest(state, player, action)
     if isinstance(action, AdvanceCult):
-        if owner.resources.priests <= 0:
-            return "You have no priest to send."
-        if owner.cult(action.cult) >= _cult_limit_for(state, player, action.cult):
-            return "That cult track cannot advance further."
-        return "You cannot advance that cult now."
+        return explain_advance_cult(state, player, action)
     if isinstance(action, PowerAction):
         if action.kind in state.used_power_actions:
             return "That power action was already used this round."
@@ -1640,17 +1567,6 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
     if isinstance(action, Pass):
         return "Passing is always legal."
     return "That action is not legal now."
-
-
-def _cult_top_occupied(state: TerraMysticaState, player: PlayerId, cult: Cult) -> bool:
-    return any(
-        other != player and state.players[other].cult(cult) >= 10
-        for other in seats(len(state.players))
-    )
-
-
-def _cult_limit_for(state: TerraMysticaState, player: PlayerId, cult: Cult) -> int:
-    return cult_limit(state.players[player], _cult_top_occupied(state, player, cult))
 
 
 def _shipping_reason(state: TerraMysticaState, player: PlayerId) -> str | None:
