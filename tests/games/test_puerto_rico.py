@@ -47,7 +47,6 @@ from boardgames.games.puerto_rico.constants import (
     STARTING_DOUBLOONS,
     Role,
 )
-from boardgames.games.puerto_rico.game import discard_actions
 from boardgames.games.puerto_rico.model import (
     CargoShip,
     OwnedBuilding,
@@ -74,6 +73,7 @@ from boardgames.games.puerto_rico.model import (
     ship_victory_points,
     total_points,
 )
+from boardgames.games.puerto_rico.roles.captain import discard_actions
 from boardgames.games.puerto_rico.roles.craftsman import (
     craftsman_actions,
     run_production,
