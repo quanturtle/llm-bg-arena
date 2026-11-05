@@ -322,7 +322,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 and state.spade_return == "action"
                 and action.position in state.power_spade_tiles
             ):
-                if state.spade_require_all and state.cult_spades[player] > 0:
+                if (
+                    state.spade_require_all
+                    and state.cult_spades[player] > 0
+                    and _has_spade_transform(state, player)
+                ):
                     raise IllegalActionError(
                         "spend all the stronghold spades before building"
                     )
@@ -1571,7 +1575,11 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
     if (
         action_phase
         and state.power_spade_tiles
-        and (not state.spade_require_all or budget == 0)
+        and (
+            not state.spade_require_all
+            or budget == 0
+            or not any(isinstance(action, UseCultSpade) for action in actions)
+        )
         and can_place_building(state.board, player, BuildingType.DWELLING)
     ):
         for position in state.power_spade_tiles:
@@ -1599,6 +1607,13 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
 
     actions.append(SkipCultSpade())
     return actions
+
+
+def _has_spade_transform(state: TerraMysticaState, player: PlayerId) -> bool:
+    return any(
+        isinstance(action, UseCultSpade)
+        for action in _cult_spade_actions(state, player)
+    )
 
 
 def _round_tile(state: TerraMysticaState) -> ScoringTile:
@@ -1940,7 +1955,11 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 return "You do not have enough cult-bonus spades."
             return "That cult-bonus spade cannot be used there now."
         if isinstance(action, BuildDwelling):
-            if state.spade_require_all and budget > 0:
+            if (
+                state.spade_require_all
+                and budget > 0
+                and _has_spade_transform(state, player)
+            ):
                 return "Spend all the stronghold spades before building."
             if action.position not in state.power_spade_tiles:
                 return "No spade has transformed that tile."

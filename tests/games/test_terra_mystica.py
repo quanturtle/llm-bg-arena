@@ -962,6 +962,11 @@ def test_halfling_stronghold_spades_must_all_be_used_before_building() -> None:
     assert state.cult_spades[player] == 0
     assert BuildDwelling(first) in listing(state)
     assert BuildDwelling(second) not in listing(state)
+    state = replace(
+        state,
+        cult_spades=replace_at(state.cult_spades, player, 1),
+    )
+    assert BuildDwelling(first) in listing(state)
 
 
 def test_post_spade_build_lists_mermaid_rivers_and_alchemist_trades() -> None:
