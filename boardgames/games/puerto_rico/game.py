@@ -41,14 +41,12 @@ from boardgames.games.puerto_rico.constants import (
 )
 from boardgames.games.puerto_rico.model import (
     Action,
-    Build,
     CargoShip,
     DiscardGoods,
     FinishPlacement,
     Goods,
     LoadShip,
     LoadWharf,
-    OwnedBuilding,
     Pass,
     Phase,
     PlayerState,
@@ -57,8 +55,6 @@ from boardgames.games.puerto_rico.model import (
     PuertoRicoState,
     SelectRole,
     Sell,
-    available_to_build,
-    build_cost,
     building_points,
     can_load_on_ship,
     can_ship,
@@ -85,13 +81,16 @@ from boardgames.games.puerto_rico.model import (
     wharf_goods,
 )
 from boardgames.games.puerto_rico.notation import format_action, parse_action
+from boardgames.games.puerto_rico.roles.builder import (
+    apply_builder,
+    builder_actions,
+    explain_builder,
+)
 from boardgames.games.puerto_rico.roles.mayor import (
     apply_mayor,
-    can_take_colonist,
     distribute_colonists,
     explain_mayor,
     mayor_actions,
-    take_colonist,
 )
 from boardgames.games.puerto_rico.roles.settler import (
     apply_settler,
@@ -198,7 +197,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         if state.phase == "mayor_action":
             return apply_mayor(state, player, action)
         if state.phase == "builder_action":
-            return self.apply_builder(state, player, action)
+            return apply_builder(state, player, action)
         if state.phase == "craftsman_action":
             return self.apply_craftsman(state, player, action)
         if state.phase == "trader_action":
@@ -367,64 +366,6 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 ),
             )
         return state, tuple(events)
-
-    # Builder --------------------------------------------------------------
-
-    def apply_builder(
-        self, state: PuertoRicoState, player: PlayerId, action: Action
-    ) -> Transition[PuertoRicoState]:
-        if isinstance(action, Build):
-            name = action.building
-            cost = build_cost(state, player, name)
-            owner = state.players[player]
-            state = replace_player(
-                state,
-                player,
-                replace(
-                    owner,
-                    doubloons=owner.doubloons - cost,
-                    buildings=(*owner.buildings, OwnedBuilding(name)),
-                ),
-            )
-            available = list(state.available_buildings)
-            available.remove(name)
-            state = replace(state, available_buildings=tuple(available))
-            events = [
-                Event(
-                    "building_built",
-                    f"{seat_label(player)} built {name} for {cost} doubloons.",
-                    {"player": player, "building": name, "cost": cost},
-                )
-            ]
-            if owner.active("university") and action.use_university:
-                state, colonized = take_colonist(state)
-                if colonized:
-                    new_buildings = list(state.players[player].buildings)
-                    index = len(new_buildings) - 1
-                    new_buildings[index] = replace(new_buildings[index], colonists=1)
-                    state = replace_player(
-                        state,
-                        player,
-                        replace(state.players[player], buildings=tuple(new_buildings)),
-                    )
-                    events.append(
-                        Event(
-                            "university_colonist",
-                            f"The University placed a colonist on {name}.",
-                            {"player": player, "building": name},
-                        )
-                    )
-            state, advanced = mark_acted(state, player)
-            return Transition(state, (*events, *advanced))
-        if isinstance(action, Pass):
-            state, advanced = mark_acted(state, player)
-            event = Event(
-                "builder_passed",
-                f"{seat_label(player)} built nothing.",
-                {"player": player},
-            )
-            return Transition(state, (event, *advanced))
-        raise IllegalActionError("only build or pass actions are legal")
 
     # Craftsman ------------------------------------------------------------
 
@@ -781,18 +722,6 @@ def legal_action_list(state: PuertoRicoState, player: PlayerId) -> list[Action]:
     return []
 
 
-def builder_actions(state: PuertoRicoState, player: PlayerId) -> list[Action]:
-    owner = state.players[player]
-    university = owner.active("university") and can_take_colonist(state)
-    actions: list[Action] = []
-    for name in available_to_build(state, player):
-        actions.append(Build(name))
-        if university:
-            actions.append(Build(name, use_university=False))
-    actions.append(Pass())
-    return actions
-
-
 def craftsman_actions(state: PuertoRicoState, owner: PlayerState) -> list[Action]:
     actions: list[Action] = []
     potential = production(owner)
@@ -960,17 +889,7 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
     if phase == "mayor_action":
         return explain_mayor(state, player, action)
     if phase == "builder_action":
-        owner = state.players[player]
-        if isinstance(action, Build) and action.building not in available_to_build(
-            state, player
-        ):
-            return "You cannot afford that building or have no room."
-        if isinstance(action, Build) and not action.use_university:
-            if not owner.active("university"):
-                return "You have no active University."
-            if not can_take_colonist(state):
-                return "There is no colonist available to place."
-        return "Build an available building or pass."
+        return explain_builder(state, player, action)
     if phase == "craftsman_action":
         if isinstance(action, ProducePrivilege):
             potential = production(state.players[player])
