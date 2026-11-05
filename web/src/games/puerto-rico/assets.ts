@@ -1,7 +1,7 @@
 // Art and colours for Puerto Rico: one colour and barrel per good, one card per role.
 import type { Good } from "@/games/puerto-rico/observation";
 
-// served from web/public/puerto_rico; SOURCE.md there says where the art comes from
+// served from web/public/puerto_rico, which isn't in the repo; Art draws a placeholder without it
 const ASSET_ROOT = "/puerto_rico";
 
 export function asset(path: string): string {
@@ -16,6 +16,7 @@ export const GOOD_META: Record<Good, { label: string; color: string; barrel: str
   coffee: { label: "Coffee", color: "#5b3a29", barrel: "goods/coffee_barrel.png", tile: "plantations/coffee.png", occupied: "plantations/coffee_occupied.png" },
 };
 export const QUARRY_COLOR = "#8d8f94";
+export const COIN_COLOR = "#d4a72c";
 
 export const ROLE_META: Record<string, { label: string; art: string }> = {
   settler: { label: "Settler", art: "roles/settler.png" },

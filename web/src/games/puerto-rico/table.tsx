@@ -137,7 +137,7 @@ function TradingHouse({ observation }: { observation: PuertoRicoObservation }) {
             style={good ? { background: `color-mix(in oklab, ${GOOD_META[good].color} 18%, transparent)` } : undefined}
             title={good ? GOOD_META[good].label : "Empty trading-house space"}
           >
-            {good ? <Art path={GOOD_META[good].barrel} alt={GOOD_META[good].label} size={24} className="size-6" /> : null}
+            {good ? <Art path={GOOD_META[good].barrel} alt={GOOD_META[good].label} size={24} color={GOOD_META[good].color} className="size-6" /> : null}
           </div>
         );
       })}
@@ -153,7 +153,7 @@ function CargoShips({ observation }: { observation: PuertoRicoObservation }) {
         const meta = ship.good ? GOOD_META[ship.good] : null;
         return (
           <li key={index} className="flex h-4 items-center gap-1.5 text-xs" title={`Cargo ship ${index + 1}`}>
-            {meta ? <Art path={meta.barrel} alt={meta.label} size={16} className="size-4" /> : <span className="size-4 rounded-full border border-dashed" />}
+            {meta ? <Art path={meta.barrel} alt={meta.label} size={16} color={meta.color} className="size-4" /> : <span className="size-4 rounded-full border border-dashed" />}
             <span className={cn("w-14 truncate", !meta && "text-muted-foreground")}>{meta ? meta.label : "empty"}</span>
             <Pips filled={ship.filled} total={ship.capacity} color={meta?.color} round={false} />
             <span className="ml-auto pl-1 text-muted-foreground tabular-nums">
