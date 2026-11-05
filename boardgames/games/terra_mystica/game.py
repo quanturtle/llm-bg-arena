@@ -244,11 +244,12 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 ),
             )
         if state.phase == "cult_spades":
+            kind = "spade" if state.spade_return == "action" else "cult-bonus spade"
             return (
                 Decision(
                     state.active_player,
                     "cult_spade",
-                    "Spend a cult-bonus spade on a reachable tile, or skip.",
+                    f"Spend a {kind} on a reachable tile, or skip.",
                 ),
             )
         if state.phase == "stronghold_convert":
@@ -1189,6 +1190,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         self, state: TerraMysticaState, player: PlayerId
     ) -> Transition[TerraMysticaState]:
         remaining = state.cult_spades[player]
+        kind = "spade" if state.spade_return == "action" else "cult-bonus spade"
         state = replace(
             state,
             cult_spades=replace_at(state.cult_spades, player, 0),
@@ -1197,7 +1199,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         )
         event = Event(
             "cult_spade_skipped",
-            f"{seat_label(player)} skipped {remaining} cult-bonus spade(s).",
+            f"{seat_label(player)} skipped {remaining} {kind}(s).",
             {"player": player, "spades": remaining},
         )
         return self._advance_cult_spades(state, (event,))

@@ -55,6 +55,7 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "scoring": scoring,
         "scoring_bonuses": [cult_bonus_json(tile.bonus) for tile in state.scoring],
         "cult_spades": list(state.cult_spades),
+        "spade_return": state.spade_return,
         "town_tiles": list(state.town_tiles),
         "used_orders": [
             {"cult": cult.value, "order": order, "player": player}
@@ -155,10 +156,13 @@ def render_text(observation: Observation) -> str:
     lines.append(
         "Legend: P plains, S swamp, L lake, F forest, M mountain, "
         "W wasteland, D desert, R river. A digit is the owner of a building; "
-        "'.' is empty. Actions: build q,r; transform q,r; "
-        "upgrade q,r trading_house|temple|stronghold|sanctuary; shipping; "
-        "digging; priest fire|water|earth|air 0-3; advance fire|water|earth|air; "
-        "power priest|workers|coins; spade q,r; skip spade; pass."
+        "'.' is empty. Actions: build q,r [river q,r]; transform q,r [to T]; "
+        "upgrade q,r trading_house|temple|stronghold|sanctuary [river q,r]; "
+        "shipping; digging; priest fire|water|earth|air 0-3; "
+        "advance fire|water|earth|air; "
+        "power priest|workers|coins|spade|double_spade; town 0-4; "
+        "stronghold 0-3; spade q,r [to T]; skip spade; "
+        "alchemist vp|coins; pass."
     )
     return "\n".join(lines)
 
@@ -229,7 +233,8 @@ def cult_spades_line(data: JsonObject) -> str:
         return ""
     active = _int(data, "active")
     budget = _ints(data, "cult_spades")[active]
-    return f"{seat_label(PlayerId(active))} has {budget} cult-bonus spade(s)."
+    kind = "spade" if _str(data, "spade_return") == "action" else "cult-bonus spade"
+    return f"{seat_label(PlayerId(active))} has {budget} {kind}(s)."
 
 
 def player_lines(data: JsonObject) -> list[str]:
@@ -338,9 +343,19 @@ def describe_action(observation: Observation, action: Action) -> str:
             target = (
                 "toward your home terrain" if terrain is None else f"to {terrain.value}"
             )
-            return f"Use cult-bonus spades at {position.notation()} {target}."
+            spade_kind = (
+                "spade"
+                if observation.data.get("spade_return") == "action"
+                else "cult-bonus spade"
+            )
+            return f"Use {spade_kind}s at {position.notation()} {target}."
         case SkipCultSpade():
-            return "Skip the remaining cult-bonus spades."
+            spade_kind = (
+                "spade"
+                if observation.data.get("spade_return") == "action"
+                else "cult-bonus spade"
+            )
+            return f"Skip the remaining {spade_kind}s."
         case TradeVpForCoin():
             return "Trade 1 victory point for 1 coin."
         case TradeCoinsForVp():

@@ -15,8 +15,19 @@ This implementation uses the standard 113-tile base map, all fourteen base-game
 factions and their starting resources, building costs and cost/track exceptions.
 Dwarves may tunnel two spaces and Fakirs may fly two spaces (three with a
 stronghold), so both can build and score across rivers. Not yet implemented:
-bonus cards, favor tiles, leeching power from opponents and bridges. The core
-economy, terraforming, cults, towns, faction rewards and scoring are playable.
+bonus cards, favor tiles, leeching power from opponents, bridges, power
+conversions, the faction special actions, and the Alchemists' 2 power per spade
+after their stronghold. The core economy, terraforming, cults, towns, the
+stronghold rewards and scoring are playable.
+
+Known limitations:
+- A Mermaid town's skipped river is not stored after the build or upgrade that
+  founded it, so later structures must reach the existing town without it.
+- The river skip is only offered during a build or upgrade, not as a free action.
+- The cult steps on town tile 4 are assigned in a fixed order, not chosen.
+- `transform` and `spade` list the bare home-terrain form; the explicit
+  `to <home terrain>` form is accepted but not listed.
+- The spade phase does not list transforming one of your own home tiles.
 
 ## Round structure
 Each round has an income phase, an action phase and cleanup.
@@ -87,9 +98,14 @@ to the player it is announced for; the text and observation show it until that
 player uses or skips it. A cult-bonus spade may transform a tile part of the way,
 stopping at any terrain on the wheel; the player spends up to the budget and keeps
 whatever is left. Spades may be split across tiles and aimed at any terrain on
-the wheel. Halflings score 1 victory point for every spade they receive. Priests
-are limited to each faction's supply of seven; priests sent to cult order spaces
-still count against that supply.
+the wheel. Power spades and the Halflings' stronghold spades are action-phase
+spades: each tile is transformed all the way to home terrain, and missing spades
+may be paid for with workers (priests for the Darklings), except for the
+Halflings' stronghold spades. The first transformed tile may be built on; leftover
+spades may go to one second tile, which cannot be built on. Action-phase spades
+may use tunneling or carpet flight and score the spade round tile. Halflings score
+1 victory point for every spade they receive. Priests are limited to each faction's
+supply of seven; priests sent to cult order spaces still count against that supply.
 
 ## Final scoring
 - Each cult track: 8/4/2 points for first/second/third, split evenly on ties.
@@ -111,10 +127,10 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `priest fire 0` — send a priest to the Fire order space 0.
 - `advance air` — spend a priest to advance Air by 1.
 - `stronghold 0-3` — trade up to three Darkling workers for one priest each.
-- `power priest` — spend power for a priest or another power action.
-- `spade 0,0` — use cult-bonus spades on a reachable tile.
-- `spade 0,0 to forest` — aim them at a chosen terrain.
-- `skip spade` — forfeit the rest of your cult-bonus spades.
+- `power priest|workers|coins|spade|double_spade` — spend power for that action.
+- `spade 0,0` — use your spades on a reachable tile.
+- `spade 0,0 to forest` — aim cult-bonus spades at a chosen terrain.
+- `skip spade` — forfeit the rest of your spades.
 - `town 0` — take town tile 0.
 - `alchemist vp` / `alchemist coins` — the Alchemists' 1 VP for 1 coin or 2 coins for 1 VP.
 - `pass` — stop acting this round.

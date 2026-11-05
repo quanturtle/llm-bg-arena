@@ -13,6 +13,7 @@ from boardgames.core import (
     NotationError,
     PlayerId,
     create_game,
+    seat_label,
     seats,
 )
 from boardgames.games.terra_mystica import (
@@ -1331,6 +1332,30 @@ def test_observation_and_text_show_passes_power_actions_and_cult_spades() -> Non
     )
     spade_text = GAME.render_text(GAME.observe(spade_state, None))
     assert "P1 has 2 cult-bonus spade(s)." in spade_text
+
+
+def test_action_phase_spade_text_does_not_say_cult_bonus() -> None:
+    state = start(num_players=2, seed=1, rounds=1)
+    player = state.order[0]
+    state = replace(
+        state,
+        phase="cult_spades",
+        spade_return="action",
+        spade_actor=player,
+        cult_spades=replace_at(state.cult_spades, player, 2),
+        active_player=player,
+    )
+    observation = GAME.observe(state, None)
+    text = GAME.render_text(observation)
+    assert f"{seat_label(player)} has 2 spade(s)." in text
+    assert f"{seat_label(player)} has 2 cult-bonus spade(s)." not in text
+    (decision,) = GAME.pending_decisions(state)
+    assert "cult-bonus" not in decision.prompt
+    assert "spade" in decision.prompt
+    assert "cult-bonus" not in GAME.describe_action(
+        observation, UseCultSpade(Hex(0, 0))
+    )
+    assert "cult-bonus" not in GAME.describe_action(observation, SkipCultSpade())
 
 
 def test_cult_spade_turn_handoff_announces_the_next_budget() -> None:
