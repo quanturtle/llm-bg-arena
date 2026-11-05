@@ -2242,6 +2242,7 @@ def _stronghold_reward(
             cult_spades=replace_at(state.cult_spades, player, 3),
             spade_return="action",
             spade_actor=player,
+            power_spade_tiles=(),
             spade_second=None,
             spade_topup=False,
             spade_require_all=True,
