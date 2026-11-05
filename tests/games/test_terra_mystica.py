@@ -59,10 +59,7 @@ from boardgames.games.terra_mystica.constants import (
     ScoringTile,
     Terrain,
 )
-from boardgames.games.terra_mystica.game import (
-    _build_river_choices,
-    initial_setup_queue,
-)
+from boardgames.games.terra_mystica.game import _build_river_choices
 from boardgames.games.terra_mystica.model import (
     PlayerState,
     advance_cult,
@@ -87,6 +84,7 @@ from boardgames.games.terra_mystica.scoring import (
     largest_area,
     split_rank_points,
 )
+from boardgames.games.terra_mystica.setup import initial_setup_queue
 from boardgames.logs.replay import replay_match
 from tests.arena.support import FakeClock, MemorySink, random_agents
 from tests.invariants.playthrough import random_playthrough

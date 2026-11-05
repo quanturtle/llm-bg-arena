@@ -7,7 +7,6 @@ from typing import ClassVar
 
 from boardgames.core import (
     ActionSpace,
-    ConfigError,
     Decision,
     Event,
     FlatActionSpace,
@@ -17,7 +16,6 @@ from boardgames.core import (
     JsonValue,
     Observation,
     PlayerId,
-    Rng,
     Scores,
     Transition,
     checked_apply,
@@ -33,13 +31,10 @@ from boardgames.core.records import (
 from boardgames.games.terra_mystica.constants import (
     CULT_ORDER,
     CULT_ORDER_STEPS,
-    FACTION_BY_TYPE,
-    FACTIONS_BY_TERRAIN,
     MAX_BUILDINGS,
     POWER_ACTION_COSTS,
     POWER_ACTION_INCOME,
     POWER_ACTION_KINDS,
-    SCORING_TILES,
     SCORING_VALUES,
     TERRAIN_WHEEL,
     TOWN_SUPPLY,
@@ -66,7 +61,6 @@ from boardgames.games.terra_mystica.model import (
     ChooseStrongholdPriests,
     Hex,
     Pass,
-    PlayerState,
     PowerAction,
     SendPriest,
     SkipCultSpade,
@@ -87,7 +81,6 @@ from boardgames.games.terra_mystica.model import (
     can_place_building,
     can_spend_power,
     cap_priests,
-    cult_bonus_json,
     cult_limit,
     effective_reach,
     effective_reach_cost,
@@ -108,16 +101,21 @@ from boardgames.games.terra_mystica.model import (
 from boardgames.games.terra_mystica.notation import format_action, parse_action
 from boardgames.games.terra_mystica.rounds import (
     advance_turn,
-    bonus_text,
     cult_spade_event,
     next_cult_spade_player,
     pass_turn,
     round_scoring,
     round_tile,
     start_next_round,
-    start_round,
 )
 from boardgames.games.terra_mystica.scoring import final_scores
+from boardgames.games.terra_mystica.setup import (
+    check_config,
+    explain_setup,
+    place_starting_dwelling,
+    setup_actions,
+    start_game,
+)
 from boardgames.games.terra_mystica.view import (
     describe_action,
     observe,
@@ -147,95 +145,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     def setup(
         self, config: TerraMysticaConfig, seed: int
     ) -> Transition[TerraMysticaState]:
-        rng = Rng.seeded(seed)
-        n = config.num_players
-        first_seat, rng = rng.below(n)
-        order: tuple[PlayerId, ...] = tuple(
-            PlayerId((first_seat + offset) % n) for offset in range(n)
-        )
-        terrains, rng = rng.shuffled(TERRAIN_WHEEL)
-        factions: list[FactionType] = []
-        for terrain in terrains[:n]:
-            options = FACTIONS_BY_TERRAIN[terrain]
-            choice, rng = rng.below(len(options))
-            factions.append(options[choice])
-        while True:
-            scoring_order, rng = rng.shuffled(SCORING_TILES)
-            late = scoring_order[4 : config.rounds]
-            if not any(tile.action is ScoringAction.SPADE for tile in late):
-                break
-        scoring = scoring_order[: config.rounds]
-
-        profiles = [FACTION_BY_TYPE[faction] for faction in factions]
-        player_states = tuple(
-            PlayerState(
-                faction=profile.type,
-                resources=profile.starting_resources,
-                victory_points=20,
-                cults=profile.starting_cults,
-                shipping=profile.shipping_start,
-                digging=profile.digging_start,
-            )
-            for profile in profiles
-        )
-
-        setup_queue = initial_setup_queue(order, player_states)
-        state = TerraMysticaState(
-            config=config,
-            rng=rng,
-            board=Board.base(),
-            players=player_states,
-            order=order,
-            active_player=setup_queue[0],
-            phase="setup",
-            setup_queue=setup_queue,
-            passed=frozenset(),
-            pass_order=(),
-            round=1,
-            scoring=scoring,
-            cult_spades=(0,) * n,
-            used_power_actions=frozenset(),
-            used_orders={},
-        )
-        events = (
-            Event(
-                "game_started",
-                f"Terra Mystica: {n} players, {seat_label(order[0])} starts.",
-                {"num_players": n, "starting_player": order[0]},
-            ),
-            Event(
-                "factions",
-                "; ".join(
-                    f"{seat_label(PlayerId(seat))} plays {player.faction.value}"
-                    for seat, player in enumerate(player_states)
-                ),
-                {
-                    "factions": [
-                        {"player": seat, "faction": player.faction.value}
-                        for seat, player in enumerate(player_states)
-                    ]
-                },
-            ),
-            Event(
-                "scoring_tiles",
-                "Round scoring: "
-                + ", ".join(
-                    f"{tile.action.value} ({bonus_text(tile.bonus)})"
-                    for tile in scoring
-                )
-                + ".",
-                {
-                    "scoring": [tile.action.value for tile in scoring],
-                    "bonuses": [cult_bonus_json(tile.bonus) for tile in scoring],
-                },
-            ),
-            Event(
-                "setup_dwelling",
-                f"{seat_label(setup_queue[0])} places a starting dwelling.",
-                {"player": setup_queue[0]},
-            ),
-        )
-        return Transition(state, events)
+        return start_game(config, seed)
 
     # Decisions ------------------------------------------------------------
 
@@ -322,7 +232,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         if state.phase == "setup":
             if not isinstance(action, BuildDwelling):
                 raise IllegalActionError("place a starting dwelling now")
-            return self.place_starting_dwelling(state, player, action.position)
+            return place_starting_dwelling(state, player, action.position)
         if state.phase == "cult_spades":
             if (
                 isinstance(action, BuildDwelling)
@@ -427,50 +337,6 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
 
     def action_json(self, action: Action) -> dict[str, JsonValue]:
         return tagged_json_object(action)
-
-    # Setup actions --------------------------------------------------------
-
-    def place_starting_dwelling(
-        self, state: TerraMysticaState, player: PlayerId, position: Hex
-    ) -> Transition[TerraMysticaState]:
-        owner = state.players[player]
-        tile = state.board.tile(position)
-        if tile is None:
-            raise IllegalActionError("there is no tile there")
-        if not tile.is_land:
-            raise IllegalActionError("you cannot build on a river")
-        if tile.terrain is not owner.home_terrain:
-            raise IllegalActionError("starting dwellings must be on home terrain")
-        if tile.building is not None:
-            raise IllegalActionError("that tile is occupied")
-        board = state.board.place(position, Building(BuildingType.DWELLING, player))
-        queue = state.setup_queue[1:]
-        events = [
-            Event(
-                "dwelling_placed",
-                f"{seat_label(player)} placed a starting dwelling at "
-                f"{position.notation()}.",
-                {"player": player, "position": position.notation()},
-            )
-        ]
-        if queue:
-            state = replace(
-                state,
-                board=board,
-                setup_queue=queue,
-                active_player=queue[0],
-            )
-            events.append(
-                Event(
-                    "setup_dwelling",
-                    f"{seat_label(queue[0])} places a starting dwelling.",
-                    {"player": queue[0]},
-                )
-            )
-            return Transition(state, tuple(events))
-        state = replace(state, board=board, setup_queue=())
-        state, round_events = start_round(state)
-        return Transition(state, (*events, *round_events))
 
     # Round plumbing -------------------------------------------------------
 
@@ -1227,35 +1093,6 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         return Transition(replace(state, active_player=next_player), (*events, event))
 
 
-def check_config(config: TerraMysticaConfig) -> None:
-    if not 2 <= config.num_players <= 5:
-        raise ConfigError(
-            f"Terra Mystica needs 2 to 5 players, got {config.num_players}"
-        )
-    if not 1 <= config.rounds <= 6:
-        raise ConfigError(f"rounds must be from 1 to 6, got {config.rounds}")
-    return
-
-
-def initial_setup_queue(
-    order: tuple[PlayerId, ...], players: tuple[PlayerState, ...]
-) -> tuple[PlayerId, ...]:
-    """Clockwise first, counterclockwise second, then Nomads and Chaos Magicians."""
-    first = tuple(
-        seat for seat in order if players[seat].profile.starting_dwellings > 1
-    )
-    second = tuple(reversed(first))
-    extras = tuple(
-        seat
-        for seat in order
-        for _ in range(max(0, players[seat].profile.starting_dwellings - 2))
-    )
-    chaos = tuple(
-        seat for seat in order if players[seat].profile.starting_dwellings == 1
-    )
-    return (*first, *second, *extras, *chaos)
-
-
 def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     owner = state.players[player]
     profile = owner.profile
@@ -1354,14 +1191,7 @@ def _has_spade_transform(state: TerraMysticaState, player: PlayerId) -> bool:
 
 def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     if state.phase == "setup":
-        owner = state.players[player]
-        return [
-            BuildDwelling(tile.position)
-            for tile in state.board.tiles
-            if tile.is_land
-            and tile.terrain is owner.home_terrain
-            and tile.building is None
-        ]
+        return setup_actions(state, player)
     if state.phase == "cult_spades":
         return _cult_spade_actions(state, player)
     if state.phase == "stronghold_convert":
@@ -1553,17 +1383,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
 
 def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) -> str:
     if state.phase == "setup":
-        if isinstance(action, BuildDwelling):
-            tile = state.board.tile(action.position)
-            if tile is None:
-                return "There is no tile there."
-            if not tile.is_land:
-                return "You cannot build on a river."
-            if tile.building is not None:
-                return "That tile is occupied."
-            if tile.terrain is not state.players[player].home_terrain:
-                return "Starting dwellings must be on your home terrain."
-        return "Place a starting dwelling on a free home-terrain tile."
+        return explain_setup(state, player, action)
     if state.phase == "cult_spades":
         owner = state.players[player]
         profile = owner.profile
