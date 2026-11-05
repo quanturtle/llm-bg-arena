@@ -424,6 +424,11 @@ def can_afford(hand: Hand, cost: Hand) -> bool:
     return all(have >= need for have, need in zip(hand, cost, strict=True))
 
 
+def replace_at[T](items: tuple[T, ...], index: int, value: T) -> tuple[T, ...]:
+    """A tuple with one item replaced."""
+    return (*items[:index], value, *items[index + 1 :])
+
+
 def building_counts(state: CatanState, player: PlayerId) -> tuple[int, int]:
     """Settlements and cities on the board for one player."""
     settlements = 0

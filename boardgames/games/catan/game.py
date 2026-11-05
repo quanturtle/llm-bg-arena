@@ -98,6 +98,7 @@ from boardgames.games.catan.model import (
     hand_with,
     playable_dev_hand,
     point_breakdown,
+    replace_at,
     total_points,
 )
 from boardgames.games.catan.notation import format_action, parse_action
@@ -1617,8 +1618,3 @@ def hex_name(state: CatanState, hex_id: int) -> str:
 def dev_name(card: DevCard) -> str:
     """Human name of a development card, as event texts spell it."""
     return card.replace("_", " ")
-
-
-def replace_at[T](items: tuple[T, ...], index: int, value: T) -> tuple[T, ...]:
-    """A tuple with one item replaced."""
-    return (*items[:index], value, *items[index + 1 :])
