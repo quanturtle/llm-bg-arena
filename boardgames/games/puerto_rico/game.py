@@ -35,7 +35,6 @@ from boardgames.core.records import (
 )
 from boardgames.games.puerto_rico.constants import (
     GOODS,
-    TRADING_HOUSE_SPACES,
     Good,
     Role,
 )
@@ -53,7 +52,6 @@ from boardgames.games.puerto_rico.model import (
     PuertoRicoConfig,
     PuertoRicoState,
     SelectRole,
-    Sell,
     building_points,
     can_load_on_ship,
     can_ship,
@@ -71,7 +69,6 @@ from boardgames.games.puerto_rico.model import (
     replace_role,
     role_chooser,
     role_state,
-    sell_price,
     ship_victory_points,
     total_points,
     wharf_goods,
@@ -99,11 +96,12 @@ from boardgames.games.puerto_rico.roles.settler import (
     explain_settler,
     settler_actions,
 )
-from boardgames.games.puerto_rico.rounds import (
-    advance_role_picker,
-    mark_acted,
-    tiebreak_key,
+from boardgames.games.puerto_rico.roles.trader import (
+    apply_trader,
+    explain_trader,
+    trader_actions,
 )
+from boardgames.games.puerto_rico.rounds import advance_role_picker, tiebreak_key
 from boardgames.games.puerto_rico.setup import check_config, start_game
 from boardgames.games.puerto_rico.view import (
     describe_action,
@@ -203,7 +201,7 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
         if state.phase == "craftsman_action":
             return apply_craftsman(state, player, action)
         if state.phase == "trader_action":
-            return self.apply_trader(state, player, action)
+            return apply_trader(state, player, action)
         if state.phase == "captain_action":
             return self.apply_captain(state, player, action)
         if state.phase == "captain_discard":
@@ -368,39 +366,6 @@ class PuertoRico(Game[PuertoRicoState, Action, PuertoRicoConfig]):
                 ),
             )
         return state, tuple(events)
-
-    # Trader ---------------------------------------------------------------
-
-    def apply_trader(
-        self, state: PuertoRicoState, player: PlayerId, action: Action
-    ) -> Transition[PuertoRicoState]:
-        owner = state.players[player]
-        if isinstance(action, Sell):
-            good = action.good
-            price = sell_price(state, player, good)
-            owner = replace(
-                owner,
-                doubloons=owner.doubloons + price,
-                goods=goods_remove(owner.goods, good, 1),
-            )
-            state = replace_player(state, player, owner)
-            state = replace(state, trading_house=(*state.trading_house, good))
-            event = Event(
-                "good_sold",
-                f"{seat_label(player)} sold a {good} for {price} doubloons.",
-                {"player": player, "good": good, "price": price},
-            )
-            state, advanced = mark_acted(state, player)
-            return Transition(state, (event, *advanced))
-        if isinstance(action, Pass):
-            state, advanced = mark_acted(state, player)
-            event = Event(
-                "trader_passed",
-                f"{seat_label(player)} sold nothing.",
-                {"player": player},
-            )
-            return Transition(state, (event, *advanced))
-        raise IllegalActionError("only sell or pass actions are legal")
 
     # Captain --------------------------------------------------------------
 
@@ -625,19 +590,6 @@ def legal_action_list(state: PuertoRicoState, player: PlayerId) -> list[Action]:
     return []
 
 
-def trader_actions(state: PuertoRicoState, owner: PlayerState) -> list[Action]:
-    actions: list[Action] = []
-    if len(state.trading_house) < TRADING_HOUSE_SPACES:
-        for good in GOODS:
-            if goods_get(owner.goods, good) <= 0:
-                continue
-            if good in state.trading_house and not owner.active("office"):
-                continue
-            actions.append(Sell(good))
-    actions.append(Pass())
-    return actions
-
-
 def captain_actions(
     state: PuertoRicoState, player: PlayerId, owner: PlayerState
 ) -> list[Action]:
@@ -786,18 +738,7 @@ def explain_illegal(state: PuertoRicoState, player: PlayerId, action: Action) ->
     if phase == "craftsman_action":
         return explain_craftsman(state, player, action)
     if phase == "trader_action":
-        if isinstance(action, Sell):
-            owner = state.players[player]
-            if goods_get(owner.goods, action.good) <= 0:
-                return f"You have no {action.good}."
-            if len(state.trading_house) >= TRADING_HOUSE_SPACES:
-                return "The trading house is full."
-            if action.good in state.trading_house and not owner.active("office"):
-                return (
-                    f"The trading house already holds {action.good}; "
-                    "you need an Office."
-                )
-        return "Sell a good you hold or pass."
+        return explain_trader(state, player, action)
     if phase == "captain_action":
         if isinstance(action, LoadShip):
             owner = state.players[player]
