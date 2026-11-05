@@ -31,9 +31,6 @@ from boardgames.core.records import (
 from boardgames.games.terra_mystica.constants import (
     CULT_ORDER,
     MAX_BUILDINGS,
-    POWER_ACTION_COSTS,
-    POWER_ACTION_INCOME,
-    POWER_ACTION_KINDS,
     SCORING_VALUES,
     TERRAIN_WHEEL,
     TOWN_SUPPLY,
@@ -43,7 +40,6 @@ from boardgames.games.terra_mystica.constants import (
     FactionProfile,
     FactionType,
     Income,
-    PowerActionKind,
     Resources,
     ScoringAction,
     Terrain,
@@ -82,10 +78,8 @@ from boardgames.games.terra_mystica.model import (
     add_income,
     advance_cult,
     building_cost,
-    burn_power,
     can_pay,
     can_place_building,
-    can_spend_power,
     cap_priests,
     effective_reach,
     effective_reach_cost,
@@ -98,10 +92,19 @@ from boardgames.games.terra_mystica.model import (
     shipping_points,
     spade_cost,
     spades_for,
-    spend_power,
     terrain_distance,
 )
 from boardgames.games.terra_mystica.notation import format_action, parse_action
+from boardgames.games.terra_mystica.power import (
+    alchemist_trades,
+    explain_power_action,
+    explain_trade_coins_for_vp,
+    explain_trade_vp_for_coin,
+    power_actions,
+    take_power_action,
+    trade_coins_for_vp,
+    trade_vp_for_coin,
+)
 from boardgames.games.terra_mystica.rounds import (
     advance_turn,
     cult_spade_event,
@@ -279,13 +282,13 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 and isinstance(action, TradeVpForCoin)
                 and state.players[player].profile.type is FactionType.ALCHEMISTS
             ):
-                return self.trade_vp_for_coin(state, player)
+                return trade_vp_for_coin(state, player)
             if (
                 state.spade_return == "action"
                 and isinstance(action, TradeCoinsForVp)
                 and state.players[player].profile.type is FactionType.ALCHEMISTS
             ):
-                return self.trade_coins_for_vp(state, player)
+                return trade_coins_for_vp(state, player)
             raise IllegalActionError("spend a spade or skip now")
         if state.phase == "stronghold_convert":
             if not isinstance(action, ChooseStrongholdPriests):
@@ -369,11 +372,11 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         if isinstance(action, AdvanceCult):
             return advance_cult_with_priest(state, player, action.cult)
         if isinstance(action, PowerAction):
-            return self.take_power_action(state, player, action.kind)
+            return take_power_action(state, player, action.kind)
         if isinstance(action, TradeVpForCoin):
-            return self.trade_vp_for_coin(state, player)
+            return trade_vp_for_coin(state, player)
         if isinstance(action, TradeCoinsForVp):
-            return self.trade_coins_for_vp(state, player)
+            return trade_coins_for_vp(state, player)
         if isinstance(action, Pass):
             return pass_turn(state, player)
         raise IllegalActionError("unknown action")
@@ -746,96 +749,6 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         state = replace(state, phase="action", active_player=player)
         return advance_turn(state, player, tuple(events))
 
-    def take_power_action(
-        self, state: TerraMysticaState, player: PlayerId, kind: PowerActionKind
-    ) -> Transition[TerraMysticaState]:
-        owner = state.players[player]
-        cost = POWER_ACTION_COSTS[kind]
-        if kind in state.used_power_actions:
-            raise IllegalActionError("that power action was already used this round")
-        resources = burn_power(owner.resources, cost)
-        if resources is None:
-            raise IllegalActionError("you do not have enough power to burn")
-        spent = spend_power(resources, cost)
-        assert spent is not None
-        owner = replace(owner, resources=spent)
-        if kind in ("spade", "double_spade"):
-            amount = 1 if kind == "spade" else 2
-            if owner.profile.type is FactionType.HALFLINGS:
-                owner = replace(
-                    owner,
-                    victory_points=owner.victory_points
-                    + amount * owner.profile.spade_vp_bonus,
-                )
-            state = replace_player(state, player, owner)
-            state = replace(
-                state,
-                used_power_actions=state.used_power_actions | {kind},
-                phase="cult_spades",
-                cult_spades=replace_at(state.cult_spades, player, amount),
-                spade_return="action",
-                spade_actor=player,
-                power_spade_tiles=(),
-                spade_second=None,
-                spade_topup=True,
-                spade_require_all=False,
-                active_player=player,
-            )
-            event = Event(
-                "power_action",
-                f"{seat_label(player)} spent {cost} power for {amount} spade(s).",
-                {"player": player, "kind": kind, "cost": cost, "spades": amount},
-            )
-            return Transition(state, (event,))
-        resources = cap_priests(
-            state, player, add_income(spent, POWER_ACTION_INCOME[kind])
-        )
-        owner = replace(owner, resources=resources)
-        state = replace_player(state, player, owner)
-        state = replace(state, used_power_actions=state.used_power_actions | {kind})
-        event = Event(
-            "power_action",
-            f"{seat_label(player)} spent {cost} power for {kind}.",
-            {"player": player, "kind": kind, "cost": cost},
-        )
-        return advance_turn(state, player, (event,))
-
-    def trade_vp_for_coin(
-        self, state: TerraMysticaState, player: PlayerId
-    ) -> Transition[TerraMysticaState]:
-        owner = state.players[player]
-        if owner.victory_points <= 0:
-            raise IllegalActionError("you have no victory point to trade")
-        owner = replace(
-            owner,
-            victory_points=owner.victory_points - 1,
-            resources=replace(owner.resources, coins=owner.resources.coins + 1),
-        )
-        event = Event(
-            "alchemist_trade",
-            f"{seat_label(player)} traded 1 victory point for 1 coin.",
-            {"player": player, "coins": 1, "victory_points": -1},
-        )
-        return Transition(replace_player(state, player, owner), (event,))
-
-    def trade_coins_for_vp(
-        self, state: TerraMysticaState, player: PlayerId
-    ) -> Transition[TerraMysticaState]:
-        owner = state.players[player]
-        if owner.resources.coins < 2:
-            raise IllegalActionError("you have no two coins to trade")
-        owner = replace(
-            owner,
-            victory_points=owner.victory_points + 1,
-            resources=replace(owner.resources, coins=owner.resources.coins - 2),
-        )
-        event = Event(
-            "alchemist_trade",
-            f"{seat_label(player)} traded 2 coins for 1 victory point.",
-            {"player": player, "coins": -2, "victory_points": 1},
-        )
-        return Transition(replace_player(state, player, owner), (event,))
-
     def use_cult_spade(
         self,
         state: TerraMysticaState,
@@ -1091,11 +1004,8 @@ def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Acti
                 ):
                     actions.append(BuildDwelling(position, river=river))
 
-    if action_phase and profile.type is FactionType.ALCHEMISTS:
-        if owner.victory_points > 0:
-            actions.append(TradeVpForCoin())
-        if owner.resources.coins >= 2:
-            actions.append(TradeCoinsForVp())
+    if action_phase:
+        actions.extend(alchemist_trades(state, player))
 
     actions.append(SkipCultSpade())
     return actions
@@ -1274,18 +1184,8 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
         actions.append(AdvanceDigging())
 
     actions.extend(priest_actions(state, player))
-
-    for kind in POWER_ACTION_KINDS:
-        if kind in state.used_power_actions:
-            continue
-        if can_spend_power(owner.resources, POWER_ACTION_COSTS[kind]):
-            actions.append(PowerAction(kind))
-
-    if profile.type is FactionType.ALCHEMISTS:
-        if owner.victory_points > 0:
-            actions.append(TradeVpForCoin())
-        if owner.resources.coins >= 2:
-            actions.append(TradeCoinsForVp())
+    actions.extend(power_actions(state, player))
+    actions.extend(alchemist_trades(state, player))
 
     actions.append(Pass())
     return actions
@@ -1366,17 +1266,9 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
                 return "That river does not change the town here."
             return "That dwelling cannot be built there now."
         if isinstance(action, TradeVpForCoin):
-            if profile.type is not FactionType.ALCHEMISTS:
-                return "Only the Alchemists may trade victory points for coins."
-            if owner.victory_points <= 0:
-                return "You have no victory point to trade."
-            return "That trade is not legal now."
+            return explain_trade_vp_for_coin(state, player)
         if isinstance(action, TradeCoinsForVp):
-            if profile.type is not FactionType.ALCHEMISTS:
-                return "Only the Alchemists may trade coins for victory points."
-            if owner.resources.coins < 2:
-                return "You need 2 coins for that trade."
-            return "That trade is not legal now."
+            return explain_trade_coins_for_vp(state, player)
         if isinstance(action, SkipCultSpade):
             return "Skipping is always legal."
         return "Spend a spade or skip."
@@ -1515,23 +1407,11 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
     if isinstance(action, AdvanceCult):
         return explain_advance_cult(state, player, action)
     if isinstance(action, PowerAction):
-        if action.kind in state.used_power_actions:
-            return "That power action was already used this round."
-        if not can_spend_power(owner.resources, POWER_ACTION_COSTS[action.kind]):
-            return "You do not have enough power to burn."
-        return "That power action is not legal now."
+        return explain_power_action(state, player, action)
     if isinstance(action, TradeVpForCoin):
-        if profile.type is not FactionType.ALCHEMISTS:
-            return "Only the Alchemists may trade victory points for coins."
-        if owner.victory_points <= 0:
-            return "You have no victory point to trade."
-        return "That trade is not legal now."
+        return explain_trade_vp_for_coin(state, player)
     if isinstance(action, TradeCoinsForVp):
-        if profile.type is not FactionType.ALCHEMISTS:
-            return "Only the Alchemists may trade coins for victory points."
-        if owner.resources.coins < 2:
-            return "You need 2 coins for that trade."
-        return "That trade is not legal now."
+        return explain_trade_coins_for_vp(state, player)
     if isinstance(action, Pass):
         return "Passing is always legal."
     return "That action is not legal now."
