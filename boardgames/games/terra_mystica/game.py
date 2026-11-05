@@ -321,6 +321,10 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 and state.spade_return == "action"
                 and action.position in state.power_spade_tiles
             ):
+                if state.spade_require_all and state.cult_spades[player] > 0:
+                    raise IllegalActionError(
+                        "spend all the stronghold spades before building"
+                    )
                 state = replace(
                     state,
                     phase="action",
@@ -328,13 +332,28 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     spade_return="round",
                     spade_actor=None,
                     power_spade_tiles=(),
+                    spade_second=None,
+                    spade_topup=True,
+                    spade_require_all=False,
                 )
                 return self.build_dwelling(state, player, action.position, action.river)
             if isinstance(action, UseCultSpade):
                 return self.use_cult_spade(state, player, action.position, action.to)
             if isinstance(action, SkipCultSpade):
                 return self.skip_cult_spade(state, player)
-            raise IllegalActionError("spend a cult-bonus spade or skip now")
+            if (
+                state.spade_return == "action"
+                and isinstance(action, TradeVpForCoin)
+                and state.players[player].profile.type is FactionType.ALCHEMISTS
+            ):
+                return self.trade_vp_for_coin(state, player)
+            if (
+                state.spade_return == "action"
+                and isinstance(action, TradeCoinsForVp)
+                and state.players[player].profile.type is FactionType.ALCHEMISTS
+            ):
+                return self.trade_coins_for_vp(state, player)
+            raise IllegalActionError("spend a spade or skip now")
         if state.phase == "stronghold_convert":
             if not isinstance(action, ChooseStrongholdPriests):
                 raise IllegalActionError("choose how many workers to trade")
@@ -954,6 +973,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 spade_return="action",
                 spade_actor=player,
                 power_spade_tiles=(),
+                spade_second=None,
+                spade_topup=True,
+                spade_require_all=False,
                 active_player=player,
             )
             event = Event(
@@ -1043,34 +1065,102 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         to: Terrain | None = None,
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
+        profile = owner.profile
         tile = state.board.tile(position)
         budget = state.cult_spades[player]
+        action_phase = state.spade_return == "action"
         if tile is None or not tile.is_land or tile.building is not None:
             raise IllegalActionError("choose an empty land tile")
-        target = to or owner.home_terrain
+        target = to or profile.home_terrain
         if tile.terrain is target:
             raise IllegalActionError("that tile is already that terrain")
-        if position not in state.board.reachable_land(player, owner.shipping):
+        reach = effective_reach(state.board, player, profile) if action_phase else 0
+        if position not in state.board.reachable_land(player, owner.shipping, reach):
             raise IllegalActionError("that tile is not reachable")
-        if (
-            owner.profile.terraform_spades is not None
-            and target is not owner.home_terrain
-        ):
+        if profile.terraform_spades is not None and target is not profile.home_terrain:
             raise IllegalActionError("the Giants can only reach home terrain")
-        cost = spades_for(owner.profile, tile.terrain)
-        if target is not owner.home_terrain:
-            cost = terrain_distance(tile.terrain, target)
         if budget <= 0:
-            raise IllegalActionError("you have no cult-bonus spades left")
-        if owner.profile.terraform_spades is not None and budget < cost:
+            raise IllegalActionError("you have no spades left")
+
+        if action_phase:
+            if target is not profile.home_terrain:
+                raise IllegalActionError(
+                    "spades must transform a tile all the way to home terrain"
+                )
+            first = state.power_spade_tiles[0] if state.power_spade_tiles else None
+            if first is not None:
+                if position == first:
+                    raise IllegalActionError("that tile is already transformed")
+                if state.spade_second is not None:
+                    raise IllegalActionError(
+                        "spades may only be applied to one more tile"
+                    )
+            cost = spades_for(profile, tile.terrain)
+            missing = max(0, cost - budget)
+            if missing > 0 and not state.spade_topup:
+                raise IllegalActionError("you do not have enough spades")
+            tunneling = reach > 0 and not _adjacent_to_own(
+                state.board, player, position
+            )
+            payment = spade_cost(profile, owner.digging, missing)
+            if tunneling:
+                payment = _add_costs(
+                    payment, effective_reach_cost(state.board, player, profile)
+                )
+            if not can_pay(owner.resources, payment):
+                raise IllegalActionError(
+                    "you cannot pay for the missing spades or the tunnel"
+                )
+            spent = cost
+            remaining = max(0, budget - cost)
+            points = profile.reach_vp if tunneling else 0
+            if _round_scoring(state) is ScoringAction.SPADE:
+                points += spent * SCORING_VALUES[ScoringAction.SPADE]
+            first_tiles = (position,) if first is None else state.power_spade_tiles
+            second = None if first is None else position
+            resources = pay(owner.resources, payment)
+            owner = replace(
+                owner,
+                resources=resources,
+                victory_points=owner.victory_points + points,
+            )
+            state = replace_player(
+                replace(
+                    state,
+                    board=state.board.replace_tile(
+                        position, replace(tile, terrain=target)
+                    ),
+                    cult_spades=replace_at(state.cult_spades, player, remaining),
+                    power_spade_tiles=first_tiles,
+                    spade_second=second,
+                ),
+                player,
+                owner,
+            )
+            event = Event(
+                "cult_spade_used",
+                f"{seat_label(player)} used {spent} spade(s) at "
+                f"{position.notation()} and made it {target.value}.",
+                {
+                    "player": player,
+                    "position": position.notation(),
+                    "spades": spent,
+                    "remaining": remaining,
+                    "terrain": target.value,
+                    "victory_points": points,
+                },
+            )
+            return self._advance_cult_spades(state, (event,))
+
+        cost = spades_for(profile, tile.terrain)
+        if target is not profile.home_terrain:
+            cost = terrain_distance(tile.terrain, target)
+        if profile.terraform_spades is not None and budget < cost:
             raise IllegalActionError("the Giants forfeit a single cult-bonus spade")
         if cost > budget:
             raise IllegalActionError("you do not have enough cult-bonus spades")
         spent = cost
-        terrain = target
-        board = state.board.replace_tile(position, replace(tile, terrain=terrain))
-        points = 0
-        owner = replace(owner, victory_points=owner.victory_points + points)
+        board = state.board.replace_tile(position, replace(tile, terrain=target))
         state = replace_player(
             replace(
                 state,
@@ -1080,22 +1170,17 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             player,
             owner,
         )
-        if state.spade_return == "action" and terrain is owner.home_terrain:
-            state = replace(
-                state,
-                power_spade_tiles=(*state.power_spade_tiles, position),
-            )
         event = Event(
             "cult_spade_used",
             f"{seat_label(player)} used {spent} cult-bonus spade(s) at "
-            f"{position.notation()} and made it {terrain.value}.",
+            f"{position.notation()} and made it {target.value}.",
             {
                 "player": player,
                 "position": position.notation(),
                 "spades": spent,
                 "remaining": budget - spent,
-                "terrain": terrain.value,
-                "victory_points": points,
+                "terrain": target.value,
+                "victory_points": 0,
             },
         )
         return self._advance_cult_spades(state, (event,))
@@ -1108,6 +1193,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             state,
             cult_spades=replace_at(state.cult_spades, player, 0),
             power_spade_tiles=(),
+            spade_second=None,
         )
         event = Event(
             "cult_spade_skipped",
@@ -1131,6 +1217,9 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 spade_return="round",
                 spade_actor=None,
                 power_spade_tiles=(),
+                spade_second=None,
+                spade_topup=True,
+                spade_require_all=False,
                 active_player=actor,
             )
             return self.advance_turn(state, actor, events)
@@ -1201,6 +1290,9 @@ def start_round(
         spade_return="round",
         spade_actor=None,
         power_spade_tiles=(),
+        spade_second=None,
+        spade_topup=True,
+        spade_require_all=False,
     )
     events: list[Event] = [
         Event(
@@ -1296,6 +1388,10 @@ def end_round(
             cult_spades=budgets,
             spade_return="round",
             spade_actor=None,
+            power_spade_tiles=(),
+            spade_second=None,
+            spade_topup=True,
+            spade_require_all=False,
         )
         next_player = _next_cult_spade_player(state)
         if next_player is None:
@@ -1325,6 +1421,9 @@ def _start_next_round(
         spade_return="round",
         spade_actor=None,
         power_spade_tiles=(),
+        spade_second=None,
+        spade_topup=True,
+        spade_require_all=False,
     )
     state, round_events = start_round(state)
     return Transition(state, (*events, *round_events))
@@ -1411,43 +1510,85 @@ def _cap_priests(
 
 def _cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     owner = state.players[player]
+    profile = owner.profile
     budget = state.cult_spades[player]
-    reachable = set(state.board.reachable_land(player, owner.shipping))
+    action_phase = state.spade_return == "action"
+    reach = effective_reach(state.board, player, profile) if action_phase else 0
+    reachable = set(state.board.reachable_land(player, owner.shipping, reach))
     actions: list[Action] = []
-    for tile in state.board.tiles:
-        if not tile.is_land or tile.building is not None:
-            continue
-        if tile.terrain is owner.home_terrain:
-            continue
-        if tile.position not in reachable:
-            continue
-        if budget <= 0:
-            continue
-        if owner.profile.terraform_spades is not None:
-            if budget >= spades_for(owner.profile, tile.terrain):
-                actions.append(UseCultSpade(tile.position))
-            continue
-        for target in TERRAIN_WHEEL:
-            if target is tile.terrain:
-                continue
-            cost = terrain_distance(tile.terrain, target)
-            if cost > budget:
-                continue
-            if target is owner.home_terrain:
-                actions.append(UseCultSpade(tile.position))
-            else:
-                actions.append(UseCultSpade(tile.position, target))
-    if state.spade_return == "action" and can_place_building(
-        state.board, player, BuildingType.DWELLING
+
+    if budget > 0:
+        first = state.power_spade_tiles[0] if state.power_spade_tiles else None
+        if not (first is not None and state.spade_second is not None):
+            for tile in state.board.tiles:
+                if not tile.is_land or tile.building is not None:
+                    continue
+                if tile.terrain is profile.home_terrain:
+                    continue
+                if tile.position not in reachable:
+                    continue
+                if first is not None and tile.position == first:
+                    continue
+                if action_phase:
+                    cost = spades_for(profile, tile.terrain)
+                    missing = max(0, cost - budget)
+                    if missing > 0 and not state.spade_topup:
+                        continue
+                    payment = spade_cost(profile, owner.digging, missing)
+                    if reach > 0 and not _adjacent_to_own(
+                        state.board, player, tile.position
+                    ):
+                        payment = _add_costs(
+                            payment,
+                            effective_reach_cost(state.board, player, profile),
+                        )
+                    if can_pay(owner.resources, payment):
+                        actions.append(UseCultSpade(tile.position))
+                    continue
+                if profile.terraform_spades is not None:
+                    if budget >= spades_for(profile, tile.terrain):
+                        actions.append(UseCultSpade(tile.position))
+                    continue
+                for target in TERRAIN_WHEEL:
+                    if target is tile.terrain:
+                        continue
+                    cost = terrain_distance(tile.terrain, target)
+                    if cost > budget:
+                        continue
+                    if target is profile.home_terrain:
+                        actions.append(UseCultSpade(tile.position))
+                    else:
+                        actions.append(UseCultSpade(tile.position, target))
+
+    if (
+        action_phase
+        and state.power_spade_tiles
+        and (not state.spade_require_all or budget == 0)
+        and can_place_building(state.board, player, BuildingType.DWELLING)
     ):
         for position in state.power_spade_tiles:
             build_cost = building_cost(
-                owner.profile,
+                profile,
                 BuildingType.DWELLING,
                 bool(state.board.adjacent_opponents(position, player)),
             )
             if can_pay(owner.resources, build_cost):
                 actions.append(BuildDwelling(position))
+                for river in _build_river_choices(
+                    state.board,
+                    player,
+                    profile,
+                    position,
+                    TOWN_SUPPLY - state.towns,
+                ):
+                    actions.append(BuildDwelling(position, river=river))
+
+    if action_phase and profile.type is FactionType.ALCHEMISTS:
+        if owner.victory_points > 0:
+            actions.append(TradeVpForCoin())
+        if owner.resources.coins >= 2:
+            actions.append(TradeCoinsForVp())
+
     actions.append(SkipCultSpade())
     return actions
 
@@ -1739,33 +1880,86 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
         return "Place a starting dwelling on a free home-terrain tile."
     if state.phase == "cult_spades":
         owner = state.players[player]
+        profile = owner.profile
+        budget = state.cult_spades[player]
+        action_phase = state.spade_return == "action"
         if isinstance(action, UseCultSpade):
             tile = state.board.tile(action.position)
             if tile is None or not tile.is_land or tile.building is not None:
                 return "There is no empty land tile there."
-            target = action.to or owner.home_terrain
+            target = action.to or profile.home_terrain
             if tile.terrain is target:
                 return "That tile is already that terrain."
+            reach = effective_reach(state.board, player, profile) if action_phase else 0
             if action.position not in state.board.reachable_land(
-                player, owner.shipping
+                player, owner.shipping, reach
             ):
                 return "That tile is not reachable."
-            if state.cult_spades[player] <= 0:
-                return "You have no cult-bonus spades left."
-            cost = spades_for(owner.profile, tile.terrain)
-            if target is not owner.home_terrain:
+            if budget <= 0:
+                return "You have no spades left."
+            if action_phase:
+                if target is not profile.home_terrain:
+                    return "Spades must transform a tile all the way to home terrain."
+                first = state.power_spade_tiles[0] if state.power_spade_tiles else None
+                if first is not None:
+                    if action.position == first:
+                        return "That tile is already transformed."
+                    if state.spade_second is not None:
+                        return "Spades may only be applied to one more tile."
+                cost = spades_for(profile, tile.terrain)
+                missing = max(0, cost - budget)
+                if missing > 0 and not state.spade_topup:
+                    return "You do not have enough spades."
+                payment = spade_cost(profile, owner.digging, missing)
+                if reach > 0 and not _adjacent_to_own(
+                    state.board, player, action.position
+                ):
+                    payment = _add_costs(
+                        payment, effective_reach_cost(state.board, player, profile)
+                    )
+                if not can_pay(owner.resources, payment):
+                    return "You cannot pay for the missing spades or the tunnel."
+                return "That spade cannot be used there now."
+            cost = spades_for(profile, tile.terrain)
+            if target is not profile.home_terrain:
                 cost = terrain_distance(tile.terrain, target)
-            if owner.profile.terraform_spades is not None:
-                if target is not owner.home_terrain:
+            if profile.terraform_spades is not None:
+                if target is not profile.home_terrain:
                     return "The Giants can only reach home terrain."
-                if state.cult_spades[player] < cost:
+                if budget < cost:
                     return "The Giants forfeit a single cult-bonus spade."
-            if state.cult_spades[player] < cost:
+            if budget < cost:
                 return "You do not have enough cult-bonus spades."
             return "That cult-bonus spade cannot be used there now."
+        if isinstance(action, BuildDwelling):
+            if state.spade_require_all and budget > 0:
+                return "Spend all the stronghold spades before building."
+            if action.position not in state.power_spade_tiles:
+                return "No spade has transformed that tile."
+            if action.river is not None and action.river not in _build_river_choices(
+                state.board,
+                player,
+                profile,
+                action.position,
+                TOWN_SUPPLY - state.towns,
+            ):
+                return "That river does not change the town here."
+            return "That dwelling cannot be built there now."
+        if isinstance(action, TradeVpForCoin):
+            if profile.type is not FactionType.ALCHEMISTS:
+                return "Only the Alchemists may trade victory points for coins."
+            if owner.victory_points <= 0:
+                return "You have no victory point to trade."
+            return "That trade is not legal now."
+        if isinstance(action, TradeCoinsForVp):
+            if profile.type is not FactionType.ALCHEMISTS:
+                return "Only the Alchemists may trade coins for victory points."
+            if owner.resources.coins < 2:
+                return "You need 2 coins for that trade."
+            return "That trade is not legal now."
         if isinstance(action, SkipCultSpade):
             return "Skipping is always legal."
-        return "Spend a cult-bonus spade or skip."
+        return "Spend a spade or skip."
     if state.phase == "stronghold_convert":
         owner = state.players[player]
         supply = _priest_capacity(state, player) - owner.resources.priests
@@ -2040,6 +2234,9 @@ def _stronghold_reward(
             cult_spades=replace_at(state.cult_spades, player, 3),
             spade_return="action",
             spade_actor=player,
+            spade_second=None,
+            spade_topup=False,
+            spade_require_all=True,
             active_player=player,
         )
         events.append(

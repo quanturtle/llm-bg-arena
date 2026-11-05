@@ -729,6 +729,228 @@ def test_spade_build_is_not_listed_without_a_dwelling() -> None:
     assert SkipCultSpade() in listing(state)
 
 
+def _adjacent_empty_pair(
+    state: TerraMysticaState,
+) -> tuple[Hex, Hex, Hex]:
+    for tile in state.board.tiles:
+        if not tile.is_land or tile.building is not None:
+            continue
+        empty = [
+            neighbour
+            for neighbour in tile.position.neighbours()
+            if (other := state.board.tile(neighbour)) is not None
+            and other.is_land
+            and other.building is None
+        ]
+        if len(empty) >= 2:
+            return tile.position, empty[0], empty[1]
+    raise AssertionError("no tile with two empty land neighbours")
+
+
+def _action_spade_state(
+    faction: FactionType, budget: int, *, seed: int = 1
+) -> tuple[TerraMysticaState, PlayerId, Hex, Hex, Hex]:
+    state = start(num_players=2, seed=seed)
+    player = state.order[0]
+    start_position, first, second = _adjacent_empty_pair(state)
+    state = action_state(state, player, (start_position, BuildingType.DWELLING))
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=faction,
+            resources=Resources(coins=50, workers=50, priests=10, power1=5, power2=7),
+        ),
+    )
+    state = _neutral_scoring(state)
+    state = replace(
+        state,
+        phase="cult_spades",
+        spade_return="action",
+        spade_actor=player,
+        cult_spades=replace_at(state.cult_spades, player, budget),
+        power_spade_tiles=(),
+        spade_second=None,
+        spade_topup=True,
+        spade_require_all=False,
+        active_player=player,
+    )
+    return state, player, start_position, first, second
+
+
+def test_action_phase_spades_score_spade_round_points() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.WITCHES,
+            resources=Resources(
+                coins=50, workers=50, priests=10, power1=0, power2=0, power3=12
+            ),
+        ),
+    )
+    state = replace(
+        state,
+        scoring=(ScoringTile(ScoringAction.SPADE, CultBonus(Cult.AIR, 4, "spades")),),
+    )
+    state = GAME.apply(state, player, PowerAction("spade")).state
+    action = next(
+        action for action in listing(state) if isinstance(action, UseCultSpade)
+    )
+    tile = state.board.tile(action.position)
+    assert tile is not None
+    cost = spades_for(state.players[player].profile, tile.terrain)
+    before = state.players[player].victory_points
+    after = GAME.apply(state, player, action).state
+    assert after.players[player].victory_points - before == cost * 2
+
+
+def test_power_spade_pays_workers_for_missing_spades() -> None:
+    state, player, _start, first, _second = _action_spade_state(FactionType.GIANTS, 1)
+    tile = state.board.tile(first)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.FOREST)),
+    )
+    assert UseCultSpade(first) in listing(state)
+    before = state.players[player].resources
+    after = GAME.apply(state, player, UseCultSpade(first)).state
+    tile = after.board.tile(first)
+    assert tile is not None and tile.terrain is Terrain.WASTELAND
+    assert after.players[player].resources.workers == before.workers - 3
+
+
+def test_power_spades_reach_through_tunneling() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    start_position, target = next(
+        (tile.position, other.position)
+        for tile in state.board.tiles
+        if tile.is_land and tile.building is None
+        for other in state.board.tiles
+        if other.is_land
+        and other.building is None
+        and other.terrain is not Terrain.MOUNTAIN
+        and tile.position.distance(other.position) == 2
+    )
+    state = action_state(state, player, (start_position, BuildingType.DWELLING))
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.DWARVES,
+            resources=Resources(coins=50, workers=50, priests=10),
+        ),
+    )
+    state = _neutral_scoring(state)
+    state = replace(
+        state,
+        phase="cult_spades",
+        spade_return="action",
+        spade_actor=player,
+        cult_spades=replace_at(state.cult_spades, player, 2),
+        power_spade_tiles=(),
+        spade_second=None,
+        spade_topup=True,
+        active_player=player,
+    )
+    assert UseCultSpade(target) in listing(state)
+    before = state.players[player].resources
+    after = GAME.apply(state, player, UseCultSpade(target)).state
+    tile = after.board.tile(target)
+    assert tile is not None and tile.terrain is Terrain.MOUNTAIN
+    assert after.players[player].resources.workers == before.workers - 2
+
+
+def test_action_phase_spades_use_a_single_tile_then_one_extra() -> None:
+    state, player, _start, first, second = _action_spade_state(FactionType.WITCHES, 2)
+    board = state.board
+    for position in (first, second):
+        tile = board.tile(position)
+        assert tile is not None
+        board = board.replace_tile(position, replace(tile, terrain=Terrain.LAKE))
+    state = replace(state, board=board)
+    actions = listing(state)
+    assert not any(
+        action.to is not None for action in actions if isinstance(action, UseCultSpade)
+    )
+    state = GAME.apply(state, player, UseCultSpade(first)).state
+    assert state.spade_second is None
+    actions = listing(state)
+    assert UseCultSpade(second) in actions
+    assert not any(
+        action.position == first
+        for action in actions
+        if isinstance(action, UseCultSpade)
+    )
+    state = GAME.apply(state, player, UseCultSpade(second)).state
+    assert state.spade_second == second
+    assert BuildDwelling(first) in listing(state)
+    assert BuildDwelling(second) not in listing(state)
+    assert not any(isinstance(action, UseCultSpade) for action in listing(state))
+
+
+def test_post_spade_build_lists_mermaid_rivers_and_alchemist_trades() -> None:
+    state, player, target, river = _mermaid_gap_state()
+    tile = state.board.tile(target)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(target, replace(tile, terrain=Terrain.LAKE)),
+        phase="cult_spades",
+        spade_return="action",
+        spade_actor=player,
+        cult_spades=replace_at(state.cult_spades, player, 0),
+        power_spade_tiles=(target,),
+        spade_second=None,
+        spade_topup=True,
+        spade_require_all=False,
+        active_player=player,
+    )
+    assert BuildDwelling(target) in listing(state)
+    assert BuildDwelling(target, river=river) in listing(state)
+
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    start_position, target = _adjacent_empty_pair(state)[:2]
+    state = action_state(state, player, (start_position, BuildingType.DWELLING))
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.ALCHEMISTS,
+            resources=Resources(coins=0, workers=50, priests=10),
+            victory_points=10,
+        ),
+    )
+    state = _neutral_scoring(
+        replace(
+            state,
+            phase="cult_spades",
+            spade_return="action",
+            spade_actor=player,
+            cult_spades=replace_at(state.cult_spades, player, 0),
+            power_spade_tiles=(target,),
+            spade_second=None,
+            spade_topup=True,
+            spade_require_all=False,
+            active_player=player,
+        )
+    )
+    assert TradeVpForCoin() in listing(state)
+    after = GAME.apply(state, player, TradeVpForCoin()).state
+    assert after.phase == "cult_spades"
+    assert after.players[player].resources.coins == 1
+    assert after.players[player].victory_points == 9
+
+
 def test_priest_supply_caps_cult_bonuses() -> None:
     state = play_setup(start(num_players=2, seed=1, rounds=2))
     priest_tile = ScoringTile(

@@ -312,6 +312,9 @@ class TerraMysticaState:
     spade_return: Literal["round", "action"] = "round"
     spade_actor: PlayerId | None = None
     power_spade_tiles: tuple[Hex, ...] = ()
+    spade_second: Hex | None = None
+    spade_topup: bool = True
+    spade_require_all: bool = False
     end_reason: str | None = None
 
 
