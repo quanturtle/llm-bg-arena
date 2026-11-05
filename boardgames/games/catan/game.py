@@ -33,22 +33,27 @@ from boardgames.core.records import (
     tagged_json_object,
     to_json_object,
 )
-from boardgames.games.catan.awards import (
-    finish_if_won,
-    update_largest_army,
-    update_longest_road,
+from boardgames.games.catan.awards import finish_if_won, update_largest_army
+from boardgames.games.catan.building import (
+    build_actions,
+    build_city,
+    build_road,
+    build_settlement,
+    explain_city,
+    explain_road,
+    explain_settlement,
+    free_road_actions,
+    missing_text,
+    pay_cost,
+    place_free_road,
 )
 from boardgames.games.catan.model import (
-    CITY_COST,
     DEV_COST,
     RESOURCES,
-    ROAD_COST,
-    SETTLEMENT_COST,
     AcceptOffer,
     Action,
     BankTrade,
     BuildCity,
-    Building,
     BuyDev,
     CatanConfig,
     CatanState,
@@ -56,7 +61,6 @@ from boardgames.games.catan.model import (
     DevCard,
     Discard,
     EndTurn,
-    Hand,
     MoveRobber,
     Offer,
     OfferTrade,
@@ -81,16 +85,7 @@ from boardgames.games.catan.model import (
     replace_at,
 )
 from boardgames.games.catan.notation import format_action, parse_action
-from boardgames.games.catan.rules import (
-    city_legal,
-    distance_rule_ok,
-    legal_free_road_edges,
-    road_legal,
-    settlement_connected,
-    settlement_legal,
-    settlement_pieces_available,
-    trade_rates,
-)
+from boardgames.games.catan.rules import legal_free_road_edges, trade_rates
 from boardgames.games.catan.setup import (
     check_config,
     place_setup_road,
@@ -222,7 +217,7 @@ class Catan:
         if state.phase == "free_road":
             if not isinstance(action, PlaceRoad):
                 raise IllegalActionError("place a free road now")
-            return self.place_free_road(state, player, action.edge)
+            return place_free_road(state, player, action.edge)
         if state.phase == "trade_response":
             if isinstance(action, AcceptOffer):
                 return self.accept_offer(state, player)
@@ -277,51 +272,15 @@ class Catan:
     def action_json(self, action: Action) -> dict[str, JsonValue]:
         return tagged_json_object(action)
 
-    def place_free_road(
-        self, state: CatanState, player: PlayerId, edge: int
-    ) -> Transition[CatanState]:
-        roads = replace_at(state.roads, edge, player)
-        free_roads = state.free_roads - 1
-        events = [
-            Event(
-                "road_built",
-                f"{seat_label(player)} placed a free road on e{edge}.",
-                {"player": player, "edge": edge, "free": True},
-            )
-        ]
-        built = replace(state, roads=roads, free_roads=free_roads)
-        built, award_events = update_longest_road(state, built)
-        events.extend(award_events)
-        finished = finish_if_won(built, tuple(events))
-        if finished.state.phase == "game_over":
-            return finished
-        if free_roads > 0 and legal_free_road_edges(finished.state, player):
-            return Transition(
-                replace(finished.state, phase="free_road"), finished.events
-            )
-        exhausted = (
-            Event(
-                "free_roads_exhausted",
-                "No more free roads can be placed.",
-                {"player": player},
-            )
-            if free_roads > 0
-            else None
-        )
-        return Transition(
-            replace(finished.state, phase="actions", free_roads=0),
-            (*finished.events, *((exhausted,) if exhausted is not None else ())),
-        )
-
     def apply_action_phase(
         self, state: CatanState, player: PlayerId, action: Action
     ) -> Transition[CatanState]:
         if isinstance(action, PlaceRoad):
-            return self.build_road(state, player, action.edge)
+            return build_road(state, player, action.edge)
         if isinstance(action, PlaceSettlement):
-            return self.build_settlement(state, player, action.vertex)
+            return build_settlement(state, player, action.vertex)
         if isinstance(action, BuildCity):
-            return self.build_city(state, player, action.vertex)
+            return build_city(state, player, action.vertex)
         if isinstance(action, BuyDev):
             return self.buy_dev(state, player)
         if isinstance(action, BankTrade):
@@ -339,54 +298,6 @@ class Catan:
         if isinstance(action, EndTurn):
             return end_turn(state, player)
         raise IllegalActionError("that action is not available in the action phase")
-
-    def build_road(
-        self, state: CatanState, player: PlayerId, edge: int
-    ) -> Transition[CatanState]:
-        paid = pay_cost(state, player, ROAD_COST)
-        roads = replace_at(paid.roads, edge, player)
-        events = [
-            Event(
-                "road_built",
-                f"{seat_label(player)} built a road on e{edge}.",
-                {"player": player, "edge": edge},
-            )
-        ]
-        built, award_events = update_longest_road(state, replace(paid, roads=roads))
-        events.extend(award_events)
-        return finish_if_won(built, tuple(events))
-
-    def build_settlement(
-        self, state: CatanState, player: PlayerId, vertex: int
-    ) -> Transition[CatanState]:
-        paid = pay_cost(state, player, SETTLEMENT_COST)
-        buildings = replace_at(paid.buildings, vertex, Building(player, "settlement"))
-        events = [
-            Event(
-                "settlement_built",
-                f"{seat_label(player)} built a settlement on v{vertex}.",
-                {"player": player, "vertex": vertex},
-            )
-        ]
-        built, award_events = update_longest_road(
-            state, replace(paid, buildings=buildings)
-        )
-        events.extend(award_events)
-        return finish_if_won(built, tuple(events))
-
-    def build_city(
-        self, state: CatanState, player: PlayerId, vertex: int
-    ) -> Transition[CatanState]:
-        paid = pay_cost(state, player, CITY_COST)
-        buildings = replace_at(paid.buildings, vertex, Building(player, "city"))
-        events = [
-            Event(
-                "city_built",
-                f"{seat_label(player)} upgraded v{vertex} to a city.",
-                {"player": player, "vertex": vertex},
-            )
-        ]
-        return finish_if_won(replace(paid, buildings=buildings), tuple(events))
 
     def buy_dev(self, state: CatanState, player: PlayerId) -> Transition[CatanState]:
         paid = pay_cost(state, player, DEV_COST)
@@ -713,11 +624,7 @@ def legal_action_list(state: CatanState, player: PlayerId) -> list[Action]:
     if state.phase == "move_robber":
         return robber_actions(state, player, knight=False)
     if state.phase == "free_road":
-        return [
-            PlaceRoad(edge)
-            for edge in legal_free_road_edges(state, player)
-            if state.roads[edge] is None
-        ]
+        return free_road_actions(state, player)
     if state.phase == "trade_response":
         offer = state.pending_offer
         actions: list[Action] = []
@@ -738,21 +645,7 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
     """Everything the active player may do after rolling."""
     actions: list[Action] = [EndTurn()]
     hand = state.hands[player]
-    for edge in range(len(state.roads)):
-        if (
-            state.roads[edge] is None
-            and road_legal(state, edge, player)
-            and can_afford(hand, ROAD_COST)
-        ):
-            actions.append(PlaceRoad(edge))
-    for vertex in range(len(state.buildings)):
-        if settlement_legal(state, vertex, player) and can_afford(
-            hand, SETTLEMENT_COST
-        ):
-            actions.append(PlaceSettlement(vertex))
-    for vertex in range(len(state.buildings)):
-        if city_legal(state, vertex, player) and can_afford(hand, CITY_COST):
-            actions.append(BuildCity(vertex))
+    actions.extend(build_actions(state, player))
     if state.dev_deck and can_afford(hand, DEV_COST):
         actions.append(BuyDev())
     rates = trade_rates(state, player)
@@ -793,14 +686,6 @@ def action_phase_actions(state: CatanState, player: PlayerId) -> list[Action]:
         if dev_get(playable, "monopoly") > 0:
             actions.extend(PlayMonopoly(resource) for resource in RESOURCES)
     return actions
-
-
-def pay_cost(state: CatanState, player: PlayerId, cost: Hand) -> CatanState:
-    """Subtract a cost from a player's hand or raise."""
-    hand = hand_minus(state.hands[player], cost)
-    if hand is None:
-        raise IllegalActionError("you do not have the cards for that build")
-    return replace(state, hands=replace_at(state.hands, player, hand))
 
 
 def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
@@ -887,73 +772,6 @@ def explain_illegal(state: CatanState, player: PlayerId, action: Action) -> str:
                 return "You have no playable Monopoly card."
             return f"You cannot play Monopoly on {resource} now."
     return f"{format_action(action)!r} is not a legal action now."
-
-
-def explain_settlement(
-    state: CatanState, player: PlayerId, hand: Hand, vertex: int
-) -> str:
-    """Why a settlement placement is illegal."""
-    if not 0 <= vertex < len(state.buildings):
-        return f"v{vertex} is not on the board."
-    building = state.buildings[vertex]
-    if building is not None:
-        return f"v{vertex} already has a {building.kind}."
-    if not distance_rule_ok(state, vertex):
-        return f"v{vertex} is adjacent to another building."
-    if state.phase == "setup_settlement":
-        return "That intersection is not available during setup."
-    if not settlement_connected(state, vertex, player):
-        return f"A settlement on v{vertex} must touch one of your roads."
-    if not settlement_pieces_available(state, player):
-        return "You have no settlement pieces left."
-    if not can_afford(hand, SETTLEMENT_COST):
-        return f"You lack {missing_text(hand, SETTLEMENT_COST)} for a settlement."
-    return "You cannot place a settlement now."
-
-
-def explain_road(state: CatanState, player: PlayerId, hand: Hand, edge: int) -> str:
-    """Why a road placement is illegal."""
-    if not 0 <= edge < len(state.roads):
-        return f"e{edge} is not on the board."
-    if state.roads[edge] is not None:
-        return f"e{edge} already has a road."
-    if state.phase == "setup_road":
-        if state.setup_vertex is None:
-            return "Place a settlement first."
-        return f"Your setup road must touch v{state.setup_vertex}."
-    if not road_legal(state, edge, player):
-        return f"e{edge} does not connect to your network or you have no roads left."
-    if state.phase == "actions" and not can_afford(hand, ROAD_COST):
-        return f"You lack {missing_text(hand, ROAD_COST)} for a road."
-    return "You cannot place a road now."
-
-
-def explain_city(state: CatanState, player: PlayerId, hand: Hand, vertex: int) -> str:
-    """Why a city upgrade is illegal."""
-    if not 0 <= vertex < len(state.buildings):
-        return f"v{vertex} is not on the board."
-    building = state.buildings[vertex]
-    if building is None:
-        return f"v{vertex} has no settlement to upgrade."
-    if building.player != player:
-        return f"v{vertex} belongs to {seat_label(building.player)}."
-    if building.kind == "city":
-        return f"v{vertex} is already a city."
-    if not city_legal(state, vertex, player):
-        return "You have no city pieces left."
-    if not can_afford(hand, CITY_COST):
-        return f"You lack {missing_text(hand, CITY_COST)} for a city."
-    return "You cannot build a city now."
-
-
-def missing_text(hand: Hand, cost: Hand) -> str:
-    """ "2 wood, 1 ore" for the cards a hand lacks toward a cost."""
-    parts = [
-        f"{need - have} {resource}"
-        for resource, have, need in zip(RESOURCES, hand, cost, strict=True)
-        if have < need
-    ]
-    return ", ".join(parts) or "nothing"
 
 
 def dev_name(card: DevCard) -> str:
