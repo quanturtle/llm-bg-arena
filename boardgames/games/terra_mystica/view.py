@@ -15,7 +15,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceDigging,
     AdvanceShipping,
     BuildDwelling,
-    ChooseStrongholdCult,
+    ChooseStrongholdPriests,
     Pass,
     PowerAction,
     SendPriest,
@@ -325,10 +325,10 @@ def describe_action(observation: Observation, action: Action) -> str:
             return f"Send a priest to the {cult.value} order space {order}."
         case AdvanceCult(cult=cult):
             return f"Spend a priest to advance {cult.value} by one space."
-        case ChooseStrongholdCult(cult=cult):
+        case ChooseStrongholdPriests(workers=workers):
             return (
-                f"Advance {cult.value} by one space as the Darklings' "
-                "stronghold reward."
+                f"Trade {workers} worker(s) for {workers} priest(s) as the "
+                "Darklings' stronghold reward."
             )
         case TakeTownTile(index=index):
             return f"Take town tile {index}."

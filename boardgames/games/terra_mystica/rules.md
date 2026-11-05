@@ -109,7 +109,7 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `shipping` / `digging` — advance that track.
 - `priest fire 0` — send a priest to the Fire order space 0.
 - `advance air` — spend a priest to advance Air by 1.
-- `stronghold fire` — take the Darklings' stronghold cult step.
+- `stronghold 0-3` — trade up to three Darkling workers for one priest each.
 - `power priest` — spend power for a priest or another power action.
 - `spade 0,0` — use cult-bonus spades on a reachable tile.
 - `spade 0,0 to forest` — aim them at a chosen terrain.

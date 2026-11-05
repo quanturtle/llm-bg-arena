@@ -69,7 +69,7 @@ from boardgames.games.terra_mystica.model import (
     Board,
     BuildDwelling,
     Building,
-    ChooseStrongholdCult,
+    ChooseStrongholdPriests,
     Hex,
     Pass,
     PlayerState,
@@ -251,12 +251,12 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     "Spend a cult-bonus spade on a reachable tile, or skip.",
                 ),
             )
-        if state.phase == "stronghold_cult":
+        if state.phase == "stronghold_convert":
             return (
                 Decision(
                     state.active_player,
-                    "stronghold_cult",
-                    "Choose a cult track for the Darklings' stronghold reward.",
+                    "stronghold_convert",
+                    "Trade up to three workers for one priest each.",
                 ),
             )
         if state.phase == "town_choice":
@@ -335,10 +335,10 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             if isinstance(action, SkipCultSpade):
                 return self.skip_cult_spade(state, player)
             raise IllegalActionError("spend a cult-bonus spade or skip now")
-        if state.phase == "stronghold_cult":
-            if not isinstance(action, ChooseStrongholdCult):
-                raise IllegalActionError("choose a cult for the stronghold reward")
-            return self.choose_stronghold_cult(state, player, action.cult)
+        if state.phase == "stronghold_convert":
+            if not isinstance(action, ChooseStrongholdPriests):
+                raise IllegalActionError("choose how many workers to trade")
+            return self.choose_stronghold_priests(state, player, action.workers)
         if state.phase == "town_choice":
             if not isinstance(action, TakeTownTile):
                 raise IllegalActionError("choose a town tile now")
@@ -731,7 +731,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                 )
                 return Transition(state, tuple(events))
             state, events = _stronghold_reward(state, player, events)
-            if state.phase in ("cult_spades", "stronghold_cult"):
+            if state.phase in ("cult_spades", "stronghold_convert"):
                 return Transition(state, tuple(events))
         if founded:
             state = replace(state, phase="town_choice", active_player=player)
@@ -893,28 +893,34 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
         if state.pending_stronghold:
             state = replace(state, pending_stronghold=False)
             state, events = _stronghold_reward(state, player, events)
-            if state.phase in ("cult_spades", "stronghold_cult"):
+            if state.phase in ("cult_spades", "stronghold_convert"):
                 return Transition(state, tuple(events))
         state = replace(state, phase="action", active_player=player)
         return self.advance_turn(state, player, tuple(events))
 
-    def choose_stronghold_cult(
-        self, state: TerraMysticaState, player: PlayerId, cult: Cult
+    def choose_stronghold_priests(
+        self, state: TerraMysticaState, player: PlayerId, workers: int
     ) -> Transition[TerraMysticaState]:
         owner = state.players[player]
-        owner, gained = advance_cult(
-            owner,
-            cult,
-            1,
-            top_occupied=_cult_top_occupied(state, player, cult),
+        supply = _priest_capacity(state, player) - owner.resources.priests
+        maximum = max(0, min(3, owner.resources.workers, supply))
+        if workers < 0 or workers > maximum:
+            raise IllegalActionError(
+                "the Darklings may trade at most three workers this way"
+            )
+        resources = replace(
+            owner.resources,
+            workers=owner.resources.workers - workers,
+            priests=owner.resources.priests + workers,
         )
+        owner = replace(owner, resources=resources)
         state = replace_player(state, player, owner)
         state = replace(state, phase="action", active_player=player)
         event = Event(
-            "stronghold_cult",
-            f"{seat_label(player)} advanced {cult.value} by 1 as the Darklings' "
-            f"stronghold reward (gain {gained} power).",
-            {"player": player, "cult": cult.value, "power": gained},
+            "stronghold_convert",
+            f"{seat_label(player)} traded {workers} worker(s) for priests as the "
+            "Darklings' stronghold reward.",
+            {"player": player, "workers": workers, "priests": workers},
         )
         return self.advance_turn(state, player, (event,))
 
@@ -1531,8 +1537,11 @@ def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action
         ]
     if state.phase == "cult_spades":
         return _cult_spade_actions(state, player)
-    if state.phase == "stronghold_cult":
-        return [ChooseStrongholdCult(cult) for cult in CULT_ORDER]
+    if state.phase == "stronghold_convert":
+        owner = state.players[player]
+        supply = _priest_capacity(state, player) - owner.resources.priests
+        maximum = max(0, min(3, owner.resources.workers, supply))
+        return [ChooseStrongholdPriests(workers) for workers in range(maximum + 1)]
     if state.phase == "town_choice":
         return [
             TakeTownTile(index)
@@ -1757,12 +1766,15 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
         if isinstance(action, SkipCultSpade):
             return "Skipping is always legal."
         return "Spend a cult-bonus spade or skip."
-    if state.phase == "stronghold_cult":
-        if isinstance(action, ChooseStrongholdCult):
-            owner = state.players[player]
-            if owner.cult(action.cult) >= _cult_limit_for(state, player, action.cult):
-                return "That cult track cannot advance further."
-        return "Choose a cult track you can advance."
+    if state.phase == "stronghold_convert":
+        owner = state.players[player]
+        supply = _priest_capacity(state, player) - owner.resources.priests
+        maximum = max(0, min(3, owner.resources.workers, supply))
+        if isinstance(action, ChooseStrongholdPriests) and (
+            action.workers < 0 or action.workers > maximum
+        ):
+            return "Trade at most three workers for priests."
+        return "Choose how many workers to trade."
     if state.phase == "town_choice":
         if isinstance(action, TakeTownTile):
             if action.index < 0 or action.index >= len(TOWN_TILES):
@@ -2023,11 +2035,11 @@ def _stronghold_reward(
         )
         return state, events
     elif profile.type is FactionType.DARKLINGS:
-        state = replace(state, phase="stronghold_cult", active_player=player)
+        state = replace(state, phase="stronghold_convert", active_player=player)
         events.append(
             Event(
                 "stronghold_reward",
-                f"{seat_label(player)} chooses a cult for the stronghold.",
+                f"{seat_label(player)} may trade up to three workers for priests.",
                 {"player": player},
             )
         )

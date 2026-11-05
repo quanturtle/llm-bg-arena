@@ -17,7 +17,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceDigging,
     AdvanceShipping,
     BuildDwelling,
-    ChooseStrongholdCult,
+    ChooseStrongholdPriests,
     Hex,
     Pass,
     PowerAction,
@@ -37,7 +37,7 @@ TRANSFORM_PATTERN = re.compile(rf"transform {HEX_TEXT}(?: to ([a-z]+))?")
 UPGRADE_PATTERN = re.compile(rf"upgrade {HEX_TEXT} ([a-z_]+)(?: river {HEX_TEXT})?")
 PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
 ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
-STRONGHOLD_PATTERN = re.compile(r"stronghold (fire|water|earth|air)")
+STRONGHOLD_PATTERN = re.compile(r"stronghold ([0-3])")
 TOWN_PATTERN = re.compile(r"town ([0-4])")
 POWER_PATTERN = re.compile(rf"power ({'|'.join(POWER_ACTION_KINDS)})")
 CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}(?: to ([a-z]+))?")
@@ -68,8 +68,8 @@ def format_action(action: Action) -> str:
             return f"priest {cult.value} {order}"
         case AdvanceCult(cult=cult):
             return f"advance {cult.value}"
-        case ChooseStrongholdCult(cult=cult):
-            return f"stronghold {cult.value}"
+        case ChooseStrongholdPriests(workers=workers):
+            return f"stronghold {workers}"
         case TakeTownTile(index=index):
             return f"town {index}"
         case PowerAction(kind=kind):
@@ -129,7 +129,7 @@ def parse_action(text: str) -> Action:
     if match := ADVANCE_CULT_PATTERN.fullmatch(text):
         return AdvanceCult(Cult(match.group(1)))
     if match := STRONGHOLD_PATTERN.fullmatch(text):
-        return ChooseStrongholdCult(Cult(match.group(1)))
+        return ChooseStrongholdPriests(int(match.group(1)))
     if match := TOWN_PATTERN.fullmatch(text):
         return TakeTownTile(int(match.group(1)))
     if match := POWER_PATTERN.fullmatch(text):

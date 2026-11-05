@@ -28,7 +28,7 @@ from boardgames.games.terra_mystica.constants import (
 )
 
 type Phase = Literal[
-    "setup", "action", "cult_spades", "stronghold_cult", "town_choice", "game_over"
+    "setup", "action", "cult_spades", "stronghold_convert", "town_choice", "game_over"
 ]
 
 
@@ -375,10 +375,10 @@ class AdvanceCult:
 
 
 @dataclass(frozen=True)
-class ChooseStrongholdCult:
-    """The Darklings' stronghold reward: advance one chosen cult by 1."""
+class ChooseStrongholdPriests:
+    """The Darklings' stronghold reward: trade up to three workers for priests."""
 
-    cult: Cult
+    workers: int
 
 
 @dataclass(frozen=True)
@@ -431,7 +431,7 @@ type Action = (
     | AdvanceDigging
     | SendPriest
     | AdvanceCult
-    | ChooseStrongholdCult
+    | ChooseStrongholdPriests
     | TakeTownTile
     | PowerAction
     | UseCultSpade

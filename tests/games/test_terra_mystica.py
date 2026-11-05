@@ -22,7 +22,7 @@ from boardgames.games.terra_mystica import (
     Board,
     BuildDwelling,
     Building,
-    ChooseStrongholdCult,
+    ChooseStrongholdPriests,
     Hex,
     Pass,
     PowerAction,
@@ -539,7 +539,7 @@ def test_new_action_notation_round_trips() -> None:
         TakeTownTile(0),
         TradeVpForCoin(),
         TradeCoinsForVp(),
-        ChooseStrongholdCult(Cult.FIRE),
+        ChooseStrongholdPriests(2),
         TransformTerrain(Hex(0, 0), Terrain.LAKE),
         UseCultSpade(Hex(0, 0), Terrain.LAKE),
         PowerAction("spade"),
@@ -707,7 +707,6 @@ def test_spade_power_action_opens_a_spade_phase() -> None:
     assert state.active_player != player
 
 
-
 def test_spade_build_is_not_listed_without_a_dwelling() -> None:
     state = start(num_players=2, seed=1)
     player = state.order[0]
@@ -728,6 +727,7 @@ def test_spade_build_is_not_listed_without_a_dwelling() -> None:
     )
     assert BuildDwelling(target) not in listing(state)
     assert SkipCultSpade() in listing(state)
+
 
 def test_priest_supply_caps_cult_bonuses() -> None:
     state = play_setup(start(num_players=2, seed=1, rounds=2))
@@ -1237,9 +1237,7 @@ def _mermaid_gap_state(
         replace(
             state.players[player],
             faction=FactionType.MERMAIDS,
-            resources=Resources(
-                coins=50, workers=50, priests=5, power1=5, power2=7
-            ),
+            resources=Resources(coins=50, workers=50, priests=5, power1=5, power2=7),
             shipping=1,
         ),
     )
@@ -1617,9 +1615,7 @@ def _stronghold_state(
         player,
         replace(
             state.players[player],
-            resources=Resources(
-                coins=50, workers=50, priests=5, power1=5, power2=7
-            ),
+            resources=Resources(coins=50, workers=50, priests=4, power1=5, power2=7),
         ),
     )
     return _neutral_scoring(state), player, position
@@ -1664,10 +1660,13 @@ def test_halfling_and_darkling_stronghold_rewards_need_a_choice() -> None:
     after = GAME.apply(
         state, player, UpgradeBuilding(position, BuildingType.STRONGHOLD)
     ).state
-    assert after.phase == "stronghold_cult"
-    after = GAME.apply(after, player, ChooseStrongholdCult(Cult.FIRE)).state
+    assert after.phase == "stronghold_convert"
+    before_resources = after.players[player].resources
+    after = GAME.apply(after, player, ChooseStrongholdPriests(3)).state
     assert after.phase == "action"
-    assert after.players[player].cult(Cult.FIRE) >= 1
+    resources = after.players[player].resources
+    assert resources.workers == before_resources.workers - 3
+    assert resources.priests == before_resources.priests + 3
 
 
 def test_town_tile_choice_awards_its_reward() -> None:
