@@ -618,14 +618,21 @@ def _spade_detail(data: JsonObject, position: Hex, target: Terrain | None) -> st
     available = budget[active] if active < len(budget) else 0
     missing = max(0, full - available)
     if missing == 0:
-        detail = f"{_count(full, 'spade')}, already paid"
+        parts = [f"{_count(full, 'spade')}, already paid"]
     else:
         cost = spade_cost(profile, _int(player, "digging"), missing)
-        detail = (
+        parts = [
             f"{_count(full, 'spade')}; {_count(missing, 'spade')} missing = "
             f"{_cost_text(cost)}"
-        )
-    return f" ({detail})"
+        ]
+    if (
+        data.get("spade_return") == "action"
+        and profile.reach > 0
+        and not _adjacent_owner(data, position, _int(player, "seat"), opponent=False)
+    ):
+        route = "tunnel" if profile.reach_cost.workers else "carpet flight"
+        parts.append(f"{route} {_cost_text(_reach_cost(player, profile))}")
+    return " (" + "; ".join(parts) + ")"
 
 
 __all__ = ["describe_action", "observe", "render_text"]

@@ -11,7 +11,12 @@ from boardgames.games.terra_mystica import (
     UseCultSpade,
 )
 from boardgames.games.terra_mystica.constants import FactionType, Terrain
-from boardgames.games.terra_mystica.model import replace_at, replace_player
+from boardgames.games.terra_mystica.model import (
+    TerraMysticaState,
+    Tile,
+    replace_at,
+    replace_player,
+)
 from tests.games.terra_mystica.support import (
     GAME,
     P1,
@@ -19,6 +24,10 @@ from tests.games.terra_mystica.support import (
     play_setup,
     start,
     with_resources,
+)
+
+NON_DESERT_TERRAINS = tuple(
+    terrain for terrain in Terrain if terrain is not Terrain.DESERT
 )
 
 
@@ -190,6 +199,98 @@ def test_spade_build_does_not_charge_a_carpet_flight() -> None:
     )
     observation = GAME.observe(state, player)
     description = GAME.describe_action(observation, BuildDwelling(target.position))
+    assert "carpet flight" not in description
+    assert "priest" not in description
+
+
+def _non_adjacent_land(
+    state: TerraMysticaState,
+    player: PlayerId,
+    terrains: tuple[Terrain, ...] | None = None,
+) -> Tile:
+    own = {
+        tile.position
+        for tile in state.board.tiles
+        if tile.building is not None and tile.building.owner == player
+    }
+    return next(
+        tile
+        for tile in state.board.tiles
+        if tile.is_land
+        and tile.building is None
+        and (terrains is None or tile.terrain in terrains)
+        and not any(neighbour in own for neighbour in tile.position.neighbours())
+    )
+
+
+def test_action_spade_description_includes_carpet_flight() -> None:
+    state = play_setup(start(num_players=2, seed=1))
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.FAKIRS),
+    )
+    target = _non_adjacent_land(state, player, NON_DESERT_TERRAINS)
+    state = replace(
+        state,
+        phase="cult_spades",
+        spade_return="action",
+        spade_actor=player,
+        cult_spades=replace_at(state.cult_spades, player, 1),
+        active_player=player,
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, UseCultSpade(target.position))
+    assert "already paid" in description
+    assert "carpet flight 1 priest" in description
+
+
+def test_action_spade_description_includes_tunnel() -> None:
+    state = play_setup(start(num_players=2, seed=1))
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.DWARVES),
+    )
+    target = _non_adjacent_land(
+        state, player, (Terrain.FOREST, Terrain.WASTELAND)
+    )
+    state = replace(
+        state,
+        phase="cult_spades",
+        spade_return="action",
+        spade_actor=player,
+        cult_spades=replace_at(state.cult_spades, player, 1),
+        active_player=player,
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, UseCultSpade(target.position))
+    assert "already paid" in description
+    assert "tunnel 2 workers" in description
+
+
+def test_cult_bonus_spade_description_has_no_flight_fee() -> None:
+    state = play_setup(start(num_players=2, seed=1))
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.FAKIRS),
+    )
+    target = _non_adjacent_land(state, player, NON_DESERT_TERRAINS)
+    state = replace(
+        state,
+        phase="cult_spades",
+        spade_return="round",
+        spade_actor=None,
+        cult_spades=replace_at(state.cult_spades, player, 1),
+        active_player=player,
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, UseCultSpade(target.position))
+    assert "already paid" in description
     assert "carpet flight" not in description
     assert "priest" not in description
 
