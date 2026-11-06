@@ -1,8 +1,8 @@
 // The table pieces around the map: the round tiles picked for the match, the town-tile bonuses
 // and the shared power actions. The cult tracks have their own tab.
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, type LucideIcon } from "lucide-react";
 
-import { bonusText } from "@/games/terra-mystica/format";
+import { bonusReward, bonusText } from "@/games/terra-mystica/format";
 import {
   CULT_META,
   POWER_ACTIONS,
@@ -20,7 +20,18 @@ function canAffordPower(power: [number, number, number], cost: number): boolean 
   return bowl2 >= 2 * (cost - bowl3);
 }
 
-/** The six round tiles, in round order: scoring action, points and end-of-round cult bonus. */
+// One half of a round tile. The sizes follow the window height, because the cards do.
+function RoundTileHalf({ icon: Icon, color, title, detail }: { icon: LucideIcon; color?: string; title: string; detail: string }) {
+  return (
+    <div className="flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-1 text-center">
+      <Icon className="size-[clamp(0.875rem,1.8dvh,2rem)] shrink-0" style={{ color }} aria-hidden="true" />
+      <span className="text-[clamp(0.6875rem,1.05dvh,0.8125rem)] leading-tight font-medium">{title}</span>
+      <span className="text-[clamp(0.625rem,0.95dvh,0.75rem)] leading-tight text-muted-foreground tabular-nums">{detail}</span>
+    </div>
+  );
+}
+
+/** The six round tiles, in round order: the scoring action and its points, then the cult bonus. */
 export function TerraMysticaRoundTiles({ observation }: { observation: TerraMysticaObservation }) {
   const current = observation.game_over ? null : observation.round;
   return (
@@ -35,7 +46,7 @@ export function TerraMysticaRoundTiles({ observation }: { observation: TerraMyst
           Picked for this match. Each scores its action and pays its cult bonus at the end of the round; the last bonus is not paid.
         </p>
       </header>
-      <ol className="grid grid-cols-2 gap-1.5 @4xl:flex @4xl:flex-1 @4xl:flex-col-reverse @4xl:justify-between">
+      <ol className="grid grid-cols-2 gap-1.5 @4xl:flex @4xl:flex-1 @4xl:flex-col-reverse">
         {observation.scoring.map((action, index) => {
           const round = index + 1;
           const meta = SCORING_META[action] ?? UNKNOWN_SCORING;
@@ -47,32 +58,29 @@ export function TerraMysticaRoundTiles({ observation }: { observation: TerraMyst
             <li
               key={`${round}-${action}`}
               className={cn(
-                "flex min-w-0 flex-col gap-0.5 rounded-md border px-1.5 py-1",
+                "relative grid min-w-0 rounded-md border @4xl:flex-1",
                 isCurrent && "border-primary bg-primary/5 ring-1 ring-primary",
                 isPast && "opacity-55",
                 observation.game_over && "opacity-75",
               )}
               title={`Round ${round}: ${meta.label} scores ${meta.points} VP${bonus ? `; ${bonusText(bonus)}` : ""}`}
             >
-              <div className="flex items-center gap-1">
-                <span className="text-[9px] font-semibold text-muted-foreground tabular-nums">R{round}</span>
+              <span className="absolute top-0.5 left-1 text-[clamp(0.5625rem,0.85dvh,0.75rem)] font-semibold text-muted-foreground tabular-nums">
+                R{round}
+              </span>
+              <span className="absolute top-0.5 right-1 text-[clamp(0.5625rem,0.85dvh,0.75rem)]">
                 {isCurrent ? (
-                  <span className="text-[9px] font-medium text-primary">now</span>
+                  <span className="font-medium text-primary">now</span>
                 ) : isPast ? (
                   <Check className="size-3 text-emerald-600 dark:text-emerald-400" aria-label="played" />
                 ) : null}
-                <span className="ml-auto text-[10px] font-normal text-muted-foreground tabular-nums">{meta.points} VP</span>
+              </span>
+              <div className="grid grid-cols-2 divide-x">
+                <RoundTileHalf icon={meta.icon} title={meta.label} detail={`${meta.points} VP`} />
+                {bonus && cult ? (
+                  <RoundTileHalf icon={cult.icon} color={cult.color} title={bonusReward(bonus)} detail={`per ${bonus.per} ${bonus.cult}`} />
+                ) : null}
               </div>
-              <div className="flex min-w-0 items-center gap-1 text-xs font-medium">
-                <meta.icon className="size-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{meta.label}</span>
-              </div>
-              {bonus && cult ? (
-                <div className="flex min-w-0 items-center gap-1 text-[10px] text-muted-foreground">
-                  <cult.icon className="size-3 shrink-0" style={{ color: cult.color }} aria-hidden="true" />
-                  <span className="truncate">{bonusText(bonus)}</span>
-                </div>
-              ) : null}
             </li>
           );
         })}

@@ -6,7 +6,7 @@ export function titleCase(value: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function bonusText(bonus: CultBonus): string {
+export function bonusReward(bonus: CultBonus): string {
   const singular: Record<string, string> = {
     priests: "priest",
     workers: "worker",
@@ -15,5 +15,9 @@ export function bonusText(bonus: CultBonus): string {
     spades: "spade",
   };
   const reward = bonus.amount === 1 ? (singular[bonus.reward] ?? bonus.reward) : bonus.reward;
-  return `${bonus.amount} ${reward} per ${bonus.per} ${bonus.cult}`;
+  return `${bonus.amount} ${reward}`;
+}
+
+export function bonusText(bonus: CultBonus): string {
+  return `${bonusReward(bonus)} per ${bonus.per} ${bonus.cult}`;
 }
