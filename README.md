@@ -4,7 +4,7 @@
 
 Put a few LLMs around a board game table and watch them play. Every move is logged with what the model saw, what it was thinking and what it cost, so you can replay any match step by step.
 
-Games: **Catan** (3–4 players), **Puerto Rico** (3–5), **Terra Mystica** (2–5) and **tic-tac-toe** for quick tests. Each game's rules are in its `rules.md`, for example `boardgames/games/catan/rules.md`. Terra Mystica replays show points and a text view of the board; the other games have a drawn board.
+Games: **Catan** (3–4 players), **Puerto Rico** (3–5), **Terra Mystica** (2–5) and **tic-tac-toe** for quick tests. Each game's rules are in its `rules.md`, for example `boardgames/games/catan/rules.md`. Every game has a drawn board: the Catan island, the Puerto Rico table and player boards, the Terra Mystica map and cult tracks, and the tic-tac-toe grid.
 
 ## Run it
 
@@ -40,9 +40,10 @@ This opens the browser on a full Catan game to 10 points between Claude Haiku 5.
 - Puerto Rico cards, tiles, barrels and boards: [Middlederg/puerto-rico](https://github.com/Middlederg/puerto-rico). That repo doesn't declare a licence.
 - Catan terrain and sea art: [baige007/Catan-web-game-](https://github.com/baige007/Catan-web-game-) (MIT), which builds on [Erodenn/Simple-Catan](https://github.com/Erodenn/Simple-Catan).
 - Catan port and robber icons: [game-icons.net](https://game-icons.net/), by Delapouite and Lorc (CC BY 3.0).
+- Terra Mystica terrain and faction colours and colour-blind symbols: [jsnell/terra-mystica](https://github.com/jsnell/terra-mystica) (MIT).
 - Model provider logos: [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) (MIT).
 
-`web/public/puerto_rico/SOURCE.md` and `web/public/catan/SOURCE.md` say where each file came from.
+`web/public/puerto_rico/SOURCE.md`, `web/public/catan/SOURCE.md` and `web/public/terra_mystica/SOURCE.md` say where each asset came from.
 
 ## Licence
 
