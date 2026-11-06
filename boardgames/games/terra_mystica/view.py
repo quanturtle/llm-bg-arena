@@ -8,7 +8,11 @@ from boardgames.core import (
     seat_label,
     seats,
 )
-from boardgames.games.terra_mystica.constants import CULT_ORDER
+from boardgames.games.terra_mystica.constants import (
+    CULT_ORDER,
+    POWER_ACTION_COSTS,
+    POWER_ACTION_TEXT,
+)
 from boardgames.games.terra_mystica.model import (
     Action,
     AdvanceCult,
@@ -28,6 +32,7 @@ from boardgames.games.terra_mystica.model import (
     UpgradeBuilding,
     UseCultSpade,
     cult_bonus_json,
+    power_shortfall,
 )
 from boardgames.games.terra_mystica.scoring import final_scores
 
@@ -338,7 +343,14 @@ def describe_action(observation: Observation, action: Action) -> str:
         case TakeTownTile(index=index):
             return f"Take town tile {index}."
         case PowerAction(kind=kind):
-            return f"Spend power for {kind}."
+            cost = POWER_ACTION_COSTS[kind]
+            power = _ints(_active_player(observation.data), "power")
+            charged = power[2] if len(power) > 2 else 0
+            burned = power_shortfall(charged, cost)
+            text = f"Spend {cost} power for {POWER_ACTION_TEXT[kind]}"
+            if burned:
+                text += f" (burn {burned} from Bowl II)"
+            return text + "."
         case UseCultSpade(position=position, to=terrain):
             target = (
                 "toward your home terrain" if terrain is None else f"to {terrain.value}"
@@ -401,6 +413,18 @@ def _ints(data: JsonObject, key: str) -> list[int]:
     return [
         item for item in value if isinstance(item, int) and not isinstance(item, bool)
     ]
+
+
+def _active_player(data: JsonObject) -> JsonObject:
+    active = _int(data, "active")
+    return next(
+        (
+            player
+            for player in _objects(data, "players")
+            if _int(player, "seat") == active
+        ),
+        {},
+    )
 
 
 __all__ = ["describe_action", "observe", "render_text"]

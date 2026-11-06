@@ -13,6 +13,7 @@ from boardgames.games.terra_mystica.constants import (
     POWER_ACTION_COSTS,
     POWER_ACTION_INCOME,
     POWER_ACTION_KINDS,
+    POWER_ACTION_TEXT,
     FactionType,
     PowerActionKind,
 )
@@ -26,6 +27,7 @@ from boardgames.games.terra_mystica.model import (
     burn_power,
     can_spend_power,
     cap_priests,
+    power_shortfall,
     replace_at,
     replace_player,
     spend_power,
@@ -40,6 +42,7 @@ def take_power_action(
     cost = POWER_ACTION_COSTS[kind]
     if kind in state.used_power_actions:
         raise IllegalActionError("that power action was already used this round")
+    burned = power_shortfall(owner.resources.power3, cost)
     resources = burn_power(owner.resources, cost)
     if resources is None:
         raise IllegalActionError("you do not have enough power to burn")
@@ -73,18 +76,35 @@ def take_power_action(
         )
         event = Event(
             "power_action",
-            f"{seat_label(player)} spent {cost} power for {amount} spade(s).",
-            {"player": player, "kind": kind, "cost": cost, "spades": amount},
+            (
+                f"{seat_label(player)} burned {burned} tokens and spent {cost} "
+                f"power for {amount} spade(s)."
+                if burned
+                else f"{seat_label(player)} spent {cost} power for {amount} spade(s)."
+            ),
+            {
+                "player": player,
+                "kind": kind,
+                "cost": cost,
+                "burned": burned,
+                "spades": amount,
+            },
         )
         return Transition(state, (event,))
     resources = cap_priests(state, player, add_income(spent, POWER_ACTION_INCOME[kind]))
     owner = replace(owner, resources=resources)
     state = replace_player(state, player, owner)
     state = replace(state, used_power_actions=state.used_power_actions | {kind})
+    reward = POWER_ACTION_TEXT[kind]
     event = Event(
         "power_action",
-        f"{seat_label(player)} spent {cost} power for {kind}.",
-        {"player": player, "kind": kind, "cost": cost},
+        (
+            f"{seat_label(player)} burned {burned} tokens and spent {cost} "
+            f"power for {reward}."
+            if burned
+            else f"{seat_label(player)} spent {cost} power for {reward}."
+        ),
+        {"player": player, "kind": kind, "cost": cost, "burned": burned},
     )
     return advance_turn(state, player, (event,))
 

@@ -319,6 +319,14 @@ POWER_ACTION_INCOME: dict[PowerActionKind, Income] = {
     "double_spade": Income(),
 }
 
+POWER_ACTION_TEXT: dict[PowerActionKind, str] = {
+    "priest": "a priest",
+    "workers": "two workers",
+    "coins": "seven coins",
+    "spade": "one spade",
+    "double_spade": "two spades",
+}
+
 # Cumulative incomes for factions whose trading houses or temples differ.
 NOMAD_TRADING_HOUSE_INCOME: tuple[Income, ...] = (
     Income(coins=2, power=1),

@@ -490,19 +490,22 @@ def gain_power(resources: Resources, amount: int) -> Resources:
     return replace(resources, power1=bowl1, power2=bowl2, power3=bowl3)
 
 
+def power_shortfall(power3: int, amount: int) -> int:
+    """How much Bowl II power must burn to pay `amount` from Bowl III."""
+    return max(0, amount - power3)
+
+
 def can_spend_power(resources: Resources, amount: int) -> bool:
     """Whether `amount` power can be taken from Bowl III, burning Bowl II if needed."""
-    if resources.power3 >= amount:
-        return True
-    deficit = amount - resources.power3
-    return resources.power2 >= 2 * deficit
+    deficit = power_shortfall(resources.power3, amount)
+    return deficit == 0 or resources.power2 >= 2 * deficit
 
 
 def burn_power(resources: Resources, amount: int) -> Resources | None:
     """Move power from Bowl II to Bowl III, removing one token per step moved."""
     if not can_spend_power(resources, amount):
         return None
-    deficit = max(0, amount - resources.power3)
+    deficit = power_shortfall(resources.power3, amount)
     return replace(
         resources,
         power2=resources.power2 - 2 * deficit,

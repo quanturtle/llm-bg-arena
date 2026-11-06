@@ -26,6 +26,17 @@ def test_power_actions_spend_bowl_three_power() -> None:
     assert action.kind in state.used_power_actions
 
 
+def test_power_action_reports_burned_tokens() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = with_resources(state, player, power1=5, power2=7, power3=0)
+    transition = GAME.apply(state, player, PowerAction("priest"))
+    event = next(event for event in transition.events if event.kind == "power_action")
+    assert event.data["burned"] == 3
+    assert "burned 3 tokens" in event.text
+    assert "spent 3 power for a priest" in event.text
+
+
 def test_alchemists_trade_vp_and_coins_without_ending_the_turn() -> None:
     state = play_setup(start(num_players=2, seed=2))
     player = state.active_player

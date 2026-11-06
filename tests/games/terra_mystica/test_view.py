@@ -3,9 +3,21 @@
 from dataclasses import replace
 
 from boardgames.core import Event, PlayerId, seat_label
-from boardgames.games.terra_mystica import Hex, SkipCultSpade, UseCultSpade
+from boardgames.games.terra_mystica import (
+    Hex,
+    PowerAction,
+    SkipCultSpade,
+    UseCultSpade,
+)
 from boardgames.games.terra_mystica.model import replace_at
-from tests.games.terra_mystica.support import GAME, P1, listing, start
+from tests.games.terra_mystica.support import (
+    GAME,
+    P1,
+    listing,
+    play_setup,
+    start,
+    with_resources,
+)
 
 
 def test_observation_is_public_and_renders() -> None:
@@ -96,3 +108,13 @@ def test_action_phase_spade_text_does_not_say_cult_bonus() -> None:
         observation, UseCultSpade(Hex(0, 0))
     )
     assert "cult-bonus" not in GAME.describe_action(observation, SkipCultSpade())
+
+
+def test_power_action_description_reports_burned_tokens() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = with_resources(state, player, power1=5, power2=7, power3=0)
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, PowerAction("priest"))
+    assert "Spend 3 power for a priest" in description
+    assert "burn 3 from Bowl II" in description
