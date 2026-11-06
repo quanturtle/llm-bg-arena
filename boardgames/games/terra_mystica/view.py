@@ -43,7 +43,7 @@ from boardgames.games.terra_mystica.model import (
     power_shortfall,
     spade_cost,
     spades_for,
-    transform_distance,
+    terrain_distance,
 )
 from boardgames.games.terra_mystica.scoring import final_scores
 
@@ -528,7 +528,7 @@ def _terrain_cost_text(
     spades = (
         spades_for(profile, source)
         if target is profile.home_terrain
-        else transform_distance(source, target, profile.home_terrain)
+        else terrain_distance(source, target)
     )
     if spades <= 0:
         return ""

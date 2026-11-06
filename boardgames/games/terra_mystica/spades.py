@@ -45,7 +45,7 @@ from boardgames.games.terra_mystica.model import (
     replace_player,
     spade_cost,
     spades_for,
-    transform_distance,
+    terrain_distance,
 )
 from boardgames.games.terra_mystica.power import (
     alchemist_trades,
@@ -116,7 +116,7 @@ def _action_spade_offer(
                 Cost(),
                 False,
             )
-        cost = transform_distance(tile.terrain, target, profile.home_terrain)
+        cost = terrain_distance(tile.terrain, target)
         if not transformed and not state.spade_require_all and cost < budget:
             return (
                 "Stopping at non-home terrain must use all your remaining spades.",
@@ -194,7 +194,7 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
             for target in TERRAIN_WHEEL:
                 if target is tile.terrain:
                     continue
-                cost = transform_distance(tile.terrain, target, profile.home_terrain)
+                cost = terrain_distance(tile.terrain, target)
                 if cost > budget:
                     continue
                 if target is profile.home_terrain:
@@ -387,7 +387,7 @@ def use_cult_spade(
 
     cost = spades_for(profile, tile.terrain)
     if target is not profile.home_terrain:
-        cost = transform_distance(tile.terrain, target, profile.home_terrain)
+        cost = terrain_distance(tile.terrain, target)
     if profile.terraform_spades is not None and budget < cost:
         raise IllegalActionError("the Giants forfeit a single cult-bonus spade")
     if cost > budget:
@@ -510,7 +510,7 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
             return reason or "That spade cannot be used there now."
         cost = spades_for(profile, tile.terrain)
         if target is not profile.home_terrain:
-            cost = transform_distance(tile.terrain, target, profile.home_terrain)
+            cost = terrain_distance(tile.terrain, target)
         if profile.terraform_spades is not None:
             if target is not profile.home_terrain:
                 return "The Giants can only reach home terrain."
