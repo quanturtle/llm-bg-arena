@@ -109,7 +109,7 @@ def _action_spade_offer(
                 Cost(),
                 False,
             )
-        if transformed or state.spade_intermediate:
+        if state.spade_intermediate:
             return (
                 "Spades may only stop at non-home terrain once per action.",
                 0,
@@ -117,7 +117,7 @@ def _action_spade_offer(
                 False,
             )
         cost = terrain_distance(tile.terrain, target)
-        if cost < budget:
+        if not transformed and not state.spade_require_all and cost < budget:
             return (
                 "Stopping at non-home terrain must use all your remaining spades.",
                 0,
@@ -169,11 +169,7 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
                 continue
             if action_phase:
                 targets = [profile.home_terrain]
-                if (
-                    profile.terraform_spades is None
-                    and not transformed
-                    and not state.spade_intermediate
-                ):
+                if profile.terraform_spades is None:
                     targets.extend(
                         target
                         for target in TERRAIN_WHEEL

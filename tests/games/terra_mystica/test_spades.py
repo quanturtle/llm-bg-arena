@@ -436,7 +436,7 @@ def test_darklings_can_top_up_the_first_non_home_spade_and_score() -> None:
     assert after.phase == "action"
 
 
-def test_second_non_home_spade_is_refused() -> None:
+def test_second_action_spade_tile_can_stop_at_non_home_terrain() -> None:
     state, player, _start, first, second = _action_spade_state(FactionType.WITCHES, 2)
     board = state.board
     for position, terrain in ((first, Terrain.LAKE), (second, Terrain.PLAINS)):
@@ -446,9 +446,16 @@ def test_second_non_home_spade_is_refused() -> None:
     state = replace(state, board=board)
     state = GAME.apply(state, player, UseCultSpade(first)).state
     action = UseCultSpade(second, Terrain.SWAMP)
-    assert action not in listing(state)
-    with pytest.raises(IllegalActionError):
-        GAME.apply(state, player, action)
+    assert action in listing(state)
+    after = GAME.apply(state, player, action).state
+    tile = after.board.tile(second)
+    assert tile is not None and tile.terrain is Terrain.SWAMP
+    assert after.spade_second == second
+    assert not any(
+        candidate.position == second
+        for candidate in listing(after)
+        if isinstance(candidate, BuildDwelling)
+    )
 
 
 def test_action_spade_cannot_tunnel_twice_in_one_action() -> None:
@@ -529,7 +536,7 @@ def test_only_the_first_action_spade_tile_can_be_topped_up() -> None:
     state = GAME.apply(state, player, UseCultSpade(first)).state
     assert state.cult_spades[player] == 1
     assert not any(
-        action.position == second
+        action.position == second and action.to is None
         for action in listing(state)
         if isinstance(action, UseCultSpade)
     )
@@ -658,6 +665,27 @@ def test_halfling_stronghold_spades_reach_three_tiles_and_all_can_build() -> Non
     assert state.phase == "action"
     built = state.board.tile(second)
     assert built is not None and built.building is not None
+
+
+def test_halfling_stronghold_spades_can_stop_short_of_home() -> None:
+    state, player, _start, first, _second = _action_spade_state(
+        FactionType.HALFLINGS, 3
+    )
+    tile = state.board.tile(first)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.SWAMP)),
+        spade_require_all=True,
+        spade_topup=False,
+    )
+    action = UseCultSpade(first, Terrain.LAKE)
+    assert action in listing(state)
+    after = GAME.apply(state, player, action).state
+    tile = after.board.tile(first)
+    assert tile is not None and tile.terrain is Terrain.LAKE
+    assert after.cult_spades[player] == 2
+    assert BuildDwelling(first) not in listing(after)
 
 
 def test_halflings_can_drop_leftover_stronghold_spades_and_still_build() -> None:
