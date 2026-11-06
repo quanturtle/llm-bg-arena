@@ -291,7 +291,7 @@ export interface paths {
          * Leaderboard Route
          * @description Agents ranked by Elo at one game, or by win rate across all games.
          *
-         *     `prompt` keeps only matches played with that prompt version; 0 means unversioned.
+         *     `prompt` keeps only matches played with that prompt version; 0, no model seat.
          */
         get: operations["leaderboard_route_api_leaderboard_get"];
         put?: never;
