@@ -43,3 +43,7 @@ This opens the browser on a full Catan game to 10 points between Claude Haiku 5.
 - Model provider logos: [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) (MIT).
 
 `web/public/puerto_rico/SOURCE.md` and `web/public/catan/SOURCE.md` say where each file came from.
+
+## Licence
+
+The code is under the [MIT licence](LICENSE). It doesn't cover the art and logos listed under Credits, which keep their own terms.
