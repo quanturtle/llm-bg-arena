@@ -35,7 +35,11 @@ export function LeaderboardView() {
     <>
       <PageTitle
         title="Leaderboard"
-        description={board.data ? `${board.data.finished_matches} finished matches` : "How each model plays, from finished matches."}
+        description={
+          board.data
+            ? `${board.data.finished_matches} finished ${board.data.finished_matches === 1 ? "match" : "matches"}`
+            : "How each model plays, from finished matches."
+        }
       >
         <Select value={game || ALL} onValueChange={(value) => setFilters({ game: value === ALL ? "" : value, prompt })}>
           <SelectTrigger className="w-44">
