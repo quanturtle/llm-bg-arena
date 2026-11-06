@@ -25,21 +25,12 @@ import { SeatChip } from "@/components/seat";
 import { defineGame, type BoardContext } from "@/games/define";
 import { TerraMysticaBoardSvg, TerrainLegend } from "@/games/terra-mystica/board-svg";
 import { TerraMysticaCults } from "@/games/terra-mystica/cults";
-import type { CultBonus, TerraMysticaObservation } from "@/games/terra-mystica/observation";
+import { bonusText, titleCase } from "@/games/terra-mystica/format";
+import type { TerraMysticaObservation } from "@/games/terra-mystica/observation";
 import { observationSchema } from "@/games/terra-mystica/observation";
 import { TerraMysticaPlayers } from "@/games/terra-mystica/players";
+import { TerraMysticaPowerActions, TerraMysticaRoundTiles, TerraMysticaTownTiles } from "@/games/terra-mystica/table";
 import type { MatchSummary } from "@/lib/api";
-
-function titleCase(value: string): string {
-  const text = value.replace(/_/g, " ");
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function bonusText(bonus: CultBonus): string {
-  const singular: Record<string, string> = { priests: "priest", workers: "worker", coins: "coin", power: "power", spades: "spade" };
-  const reward = bonus.amount === 1 ? (singular[bonus.reward] ?? bonus.reward) : bonus.reward;
-  return `${bonus.amount} ${reward} per ${bonus.per} ${bonus.cult}`;
-}
 
 function TerraMysticaStatus({ observation, match }: { observation: TerraMysticaObservation; match: MatchSummary }) {
   if (observation.game_over) {
@@ -101,14 +92,19 @@ function TerraMysticaBoard({ observation, context }: { observation: TerraMystica
   return (
     <div className="@container flex flex-col gap-3 xl:h-full">
       <TerraMysticaStatus observation={observation} match={context.match} />
-      <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_19rem] xl:min-h-0 xl:flex-1">
-        <div className="flex min-w-0 flex-col gap-2 xl:min-h-0">
-          <div className="relative mx-auto w-full max-w-[880px] xl:min-h-0 xl:flex-1">
+      <div className="grid gap-4 @4xl:grid-cols-[11rem_minmax(0,1fr)_18rem] @5xl:grid-cols-[12rem_minmax(0,1fr)_18rem] @4xl:min-h-0 @4xl:flex-1">
+        <TerraMysticaRoundTiles observation={observation} />
+        <div className="flex min-w-0 flex-col gap-2 @4xl:min-h-0">
+          <TerraMysticaTownTiles observation={observation} />
+          <div className="relative mx-auto w-full max-w-[880px] @4xl:min-h-0 @4xl:flex-1">
             <TerraMysticaBoardSvg observation={observation} events={context.frame.events} />
           </div>
+          <TerraMysticaPowerActions observation={observation} />
           <TerrainLegend />
         </div>
-        <TerraMysticaPlayers observation={observation} match={context.match} />
+        <div className="flex min-w-0 flex-col gap-3 @4xl:min-h-0 @4xl:overflow-y-auto">
+          <TerraMysticaPlayers observation={observation} match={context.match} />
+        </div>
       </div>
     </div>
   );
@@ -119,7 +115,7 @@ export const terraMystica = defineGame({
   usesLayout: false,
   tabs: [
     { id: "board", label: "Board", render: (observation, context) => <TerraMysticaBoard observation={observation} context={context} /> },
-    { id: "cults", label: "Cults", render: (observation) => <TerraMysticaCults observation={observation} /> },
+    { id: "cults", label: "Cult tracks", render: (observation) => <TerraMysticaCults observation={observation} /> },
   ],
   eventIcons: {
     game_started: Flag,

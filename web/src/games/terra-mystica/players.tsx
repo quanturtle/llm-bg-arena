@@ -147,7 +147,7 @@ export function TerraMysticaPlayers({
     ? Math.max(...observation.final_scores.map((score) => score.points))
     : null;
   return (
-    <div className="grid content-start gap-3 pt-2.5 @lg:grid-cols-2 @3xl:grid-cols-1 xl:min-h-0 xl:overflow-y-auto">
+    <div className="grid content-start gap-3 pt-2.5 @lg:grid-cols-2 @3xl:grid-cols-1">
       {observation.players.map((player) => (
         <PlayerCard key={player.seat} observation={observation} match={match} player={player} best={best} />
       ))}

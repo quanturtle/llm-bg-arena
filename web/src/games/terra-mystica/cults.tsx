@@ -2,6 +2,7 @@
 import { KeyRound, Zap } from "lucide-react";
 
 import { seatLabel } from "@/components/seat";
+import { bonusText } from "@/games/terra-mystica/format";
 import { CULTS, CULT_META, factionMeta, type Cult } from "@/games/terra-mystica/meta";
 import type { TerraMysticaObservation, TerraMysticaPlayer } from "@/games/terra-mystica/observation";
 import { cn } from "@/lib/utils";
@@ -122,6 +123,8 @@ function CultTrack({ cult, observation }: { cult: Cult; observation: TerraMystic
 
 /** The four religion tracks, with every player's cult marker and the priest order spaces. */
 export function TerraMysticaCults({ observation }: { observation: TerraMysticaObservation }) {
+  const bonus = observation.game_over ? undefined : observation.scoring_bonuses[observation.round - 1];
+  const bonusCult = bonus ? CULT_META[bonus.cult] : undefined;
   return (
     <div className="@container flex flex-col gap-3 xl:h-full">
       <div className="flex flex-wrap items-center gap-2">
@@ -145,6 +148,12 @@ export function TerraMysticaCults({ observation }: { observation: TerraMysticaOb
           );
         })}
       </div>
+      {bonus && bonusCult ? (
+        <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <bonusCult.icon className="size-3.5 shrink-0" style={{ color: bonusCult.color }} aria-hidden="true" />
+          This round&apos;s cult bonus: <span className="text-foreground">{bonusText(bonus)}</span>, paid at cleanup.
+        </p>
+      ) : null}
       <div className="grid gap-3 @2xl:grid-cols-2 @3xl:grid-cols-4 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
         {CULTS.map((cult) => (
           <CultTrack key={cult} cult={cult} observation={observation} />

@@ -2,7 +2,25 @@
 //
 // The terrain palette and colour-blind symbols follow jsnell/terra-mystica (MIT).
 // See web/public/terra_mystica/SOURCE.md for the full attribution.
-import { Droplet, Flame, Mountain, Wind, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  Castle,
+  Church,
+  Coins,
+  Crown,
+  Droplet,
+  Flame,
+  House,
+  Mountain,
+  Pickaxe,
+  Shovel,
+  Sparkles,
+  Target,
+  Users,
+  Wind,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 
 export const TERRAINS = ["plains", "swamp", "lake", "forest", "mountain", "wasteland", "desert", "river"] as const;
 export type Terrain = (typeof TERRAINS)[number];
@@ -73,3 +91,56 @@ export const BUILDING_LABEL: Record<BuildingType, string> = {
   stronghold: "Stronghold",
   sanctuary: "Sanctuary",
 };
+
+// The five scoring actions a round tile can reward, with the points each one scores.
+export type ScoringMeta = {
+  label: string;
+  short: string;
+  points: number;
+  icon: LucideIcon;
+};
+
+export const SCORING_META: Record<string, ScoringMeta> = {
+  dwelling: { label: "Dwelling", short: "Dwelling", points: 2, icon: House },
+  trading_house: { label: "Trading house", short: "Trading house", points: 3, icon: Building2 },
+  stronghold_or_sanctuary: { label: "Stronghold or sanctuary", short: "Stronghold", points: 5, icon: Castle },
+  spade: { label: "Spade", short: "Spade", points: 2, icon: Shovel },
+  town: { label: "Town", short: "Town", points: 5, icon: Crown },
+};
+
+export const UNKNOWN_SCORING: ScoringMeta = { label: "Unknown action", short: "Unknown", points: 0, icon: Target };
+
+// The shared power actions: any player may use each kind once per round.
+export type PowerActionKind = "priest" | "workers" | "coins" | "spade" | "double_spade";
+
+export type PowerActionMeta = {
+  kind: PowerActionKind;
+  label: string;
+  cost: number;
+  reward: string;
+  icon: LucideIcon;
+};
+
+export const POWER_ACTIONS: readonly PowerActionMeta[] = [
+  { kind: "priest", label: "Priest", cost: 3, reward: "1 priest", icon: Church },
+  { kind: "workers", label: "Two workers", cost: 4, reward: "2 workers", icon: Users },
+  { kind: "coins", label: "Seven coins", cost: 4, reward: "7 coins", icon: Coins },
+  { kind: "spade", label: "One spade", cost: 4, reward: "1 spade", icon: Shovel },
+  { kind: "double_spade", label: "Two spades", cost: 6, reward: "2 spades", icon: Pickaxe },
+];
+
+// The five town tiles, each with two copies; founding a town lets its owner take one.
+export type TownTileMeta = {
+  index: number;
+  victory_points: number;
+  reward: string;
+  icon: LucideIcon;
+};
+
+export const TOWN_TILES: readonly TownTileMeta[] = [
+  { index: 0, victory_points: 5, reward: "6 coins", icon: Coins },
+  { index: 1, victory_points: 7, reward: "2 workers", icon: Users },
+  { index: 2, victory_points: 9, reward: "1 priest", icon: Church },
+  { index: 3, victory_points: 6, reward: "8 power", icon: Zap },
+  { index: 4, victory_points: 8, reward: "1 cult step each", icon: Sparkles },
+];

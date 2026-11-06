@@ -265,7 +265,7 @@ export function TerraMysticaBoardSvg({
       viewBox={`${frame.left} ${frame.top} ${frame.width} ${frame.height}`}
       role="img"
       aria-label="Terra Mystica board"
-      className="block h-auto w-full select-none xl:absolute xl:inset-0 xl:h-full"
+      className="block h-auto w-full select-none @4xl:absolute @4xl:inset-0 @4xl:h-full"
       fontFamily="var(--font-geist-sans)"
     >
       <title>Terra Mystica board</title>
