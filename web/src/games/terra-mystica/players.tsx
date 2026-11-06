@@ -112,12 +112,9 @@ function PlayerCard({
         <Stat icon={Coins} label="Coins" value={player.coins} />
         <Stat icon={Users} label="Workers" value={player.workers} />
         <Stat icon={Church} label="Priests" value={player.priests} />
-        <Stat
-          className="col-span-3"
-          icon={Zap}
-          label="Power in bowls I / II / III"
-          value={`I ${player.power[0]} · II ${player.power[1]} · III ${player.power[2]}`}
-        />
+        <Stat icon={Zap} label="Power in bowl I" value={`I ${player.power[0]}`} />
+        <Stat icon={Zap} label="Power in bowl II" value={`II ${player.power[1]}`} />
+        <Stat icon={Zap} label="Power in bowl III" value={`III ${player.power[2]}`} />
         <Stat icon={Ship} label="Shipping track" value={player.shipping} />
         <Stat icon={Shovel} label="Digging track" value={player.digging} />
       </div>
