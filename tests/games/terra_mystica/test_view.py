@@ -254,9 +254,7 @@ def test_action_spade_description_includes_tunnel() -> None:
         player,
         replace(state.players[player], faction=FactionType.DWARVES),
     )
-    target = _non_adjacent_land(
-        state, player, (Terrain.FOREST, Terrain.WASTELAND)
-    )
+    target = _non_adjacent_land(state, player, (Terrain.FOREST, Terrain.WASTELAND))
     state = replace(
         state,
         phase="cult_spades",
