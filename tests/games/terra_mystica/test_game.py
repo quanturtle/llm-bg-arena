@@ -69,3 +69,12 @@ def test_random_play_keeps_state_invariants() -> None:
         13,
         check_terra_mystica_state,
     )
+
+
+def test_five_player_random_play_keeps_state_invariants() -> None:
+    random_playthrough(
+        GAME,
+        TerraMysticaConfig(num_players=5, rounds=1),
+        21,
+        check_terra_mystica_state,
+    )

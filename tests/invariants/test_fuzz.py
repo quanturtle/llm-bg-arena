@@ -186,10 +186,10 @@ def test_puerto_rico_random_play_keeps_invariants(
     return
 
 
-@settings(max_examples=6, deadline=None)
+@settings(max_examples=12, deadline=None)
 @given(
     seed=SEEDS,
-    players=st.integers(2, 3),
+    players=st.integers(2, 5),
 )
 def test_terra_mystica_random_play_keeps_invariants(seed: int, players: int) -> None:
     config = TerraMysticaConfig(num_players=players, rounds=1)
