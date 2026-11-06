@@ -34,8 +34,12 @@ function TicTacToeBoard({ observation, context }: { observation: Observation; co
   const marked = context.frame.events.find((event) => event.kind === "marked");
   const last = marked && typeof marked.data.cell === "string" ? marked.data.cell : null;
   return (
+    // the board grows with the window; 26rem is the height of everything around it on the match page
     <div className="flex flex-col items-center gap-4 py-6">
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `1.5rem repeat(${cols}, 4rem)` }}>
+      <div
+        className="@container grid w-[min(100%,max(16rem,calc(100dvh-26rem)))] gap-1.5"
+        style={{ gridTemplateColumns: `1.5rem repeat(${cols}, minmax(0, 1fr))` }}
+      >
         {observation.board.map((line, index) => {
           const row = rows - 1 - index;
           return [
@@ -51,7 +55,7 @@ function TicTacToeBoard({ observation, context }: { observation: Observation; co
                   title={name}
                   style={seat === undefined ? undefined : { color: seatColor(seat) }}
                   className={cn(
-                    "flex size-16 items-center justify-center rounded-lg border text-3xl font-bold",
+                    "flex aspect-square items-center justify-center rounded-lg border text-[clamp(1.875rem,18cqw,10rem)] font-bold",
                     winning.has(name) && "ring-2 ring-emerald-500",
                     name === last && "bg-muted",
                   )}

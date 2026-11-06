@@ -96,7 +96,7 @@ function TerraMysticaBoard({ observation, context }: { observation: TerraMystica
         <TerraMysticaRoundTiles observation={observation} />
         <div className="flex min-w-0 flex-col gap-2 @4xl:min-h-0">
           <TerraMysticaTownTiles observation={observation} />
-          <div className="relative mx-auto w-full max-w-[880px] @4xl:min-h-0 @4xl:flex-1">
+          <div className="relative w-full @4xl:min-h-0 @4xl:flex-1">
             <TerraMysticaBoardSvg observation={observation} events={context.frame.events} />
           </div>
           <TerraMysticaPowerActions observation={observation} />

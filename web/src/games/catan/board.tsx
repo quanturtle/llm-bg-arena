@@ -106,7 +106,7 @@ function CatanBoard({ observation, context }: { observation: CatanObservation; c
     <div className="@container flex flex-col gap-3 xl:h-full">
       <CatanStatus observation={observation} match={context.match} pending={context.frame.pending} />
       <div className="grid gap-4 @3xl:grid-cols-[minmax(0,1fr)_18rem] xl:min-h-0 xl:flex-1">
-        <div className="relative mx-auto w-full max-w-[760px] xl:h-full">
+        <div className="relative w-full xl:h-full">
           <CatanBoardSvg layout={layout.data} observation={observation} />
         </div>
         <CatanPlayers observation={observation} match={context.match} pending={context.frame.pending} />

@@ -24,7 +24,7 @@ export function SiteHeader() {
   return (
     // the border sits inside the 3.5rem height, which the match page subtracts from the window
     <header className="sticky top-0 z-40 h-14 border-b bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-full w-full max-w-[1840px] items-center gap-3 px-4 sm:gap-6 sm:px-6">
+      <div className="flex h-full w-full items-center gap-3 px-4 sm:gap-6 sm:px-6">
         <Link href="/matches" className="flex items-center gap-2 font-semibold" aria-label="Boardgames">
           <Dices className="size-5" />
           <span className="hidden sm:inline">Boardgames</span>
