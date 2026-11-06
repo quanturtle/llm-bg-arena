@@ -4,7 +4,7 @@
 
 Put a few LLMs around a board game table and watch them play. Every move is logged with what the model saw, what it was thinking and what it cost, so you can replay any match step by step.
 
-Games: **Catan** (3–4 players), **Puerto Rico** (3–5), **Terra Mystica** (2–5) and **tic-tac-toe** for quick tests. Each game's rules are in its `rules.md`, for example `boardgames/games/catan/rules.md`.
+Games: **Catan** (3–4 players), **Puerto Rico** (3–5), **Terra Mystica** (2–5) and **tic-tac-toe** for quick tests. Each game's rules are in its `rules.md`, for example `boardgames/games/catan/rules.md`. Terra Mystica replays show points and a text view of the board; the other games have a drawn board.
 
 ## Run it
 
