@@ -368,7 +368,10 @@ def describe_action(observation: Observation, action: Action) -> str:
             burned = power_shortfall(charged, cost)
             text = f"Spend {cost} power for {POWER_ACTION_TEXT[kind]}"
             if burned:
-                text += f" (burn {burned} from Bowl II)"
+                text += (
+                    f" (burn {_count(2 * burned, 'Bowl II token')} and permanently "
+                    f"lose {_count(burned, 'token')})"
+                )
             return text + "."
         case UseCultSpade(position=position, to=terrain):
             target = (
@@ -556,10 +559,13 @@ def _build_detail(data: JsonObject, position: Hex) -> str:
         _adjacent_owner(data, position, _int(player, "seat"), opponent=True),
     )
     parts.append(f"building {_cost_text(build_cost)}")
-    if profile.reach > 0 and not _adjacent_owner(
-        data, position, _int(player, "seat"), opponent=False
+    if (
+        data.get("phase") != "cult_spades"
+        and profile.reach > 0
+        and not _adjacent_owner(data, position, _int(player, "seat"), opponent=False)
     ):
-        parts.append(f"tunnel {_cost_text(_reach_cost(player, profile))}")
+        route = "tunnel" if profile.reach_cost.workers else "carpet flight"
+        parts.append(f"{route} {_cost_text(_reach_cost(player, profile))}")
     return " (" + "; ".join(part for part in parts if part) + ")"
 
 
@@ -600,8 +606,26 @@ def _spade_detail(data: JsonObject, position: Hex, target: Terrain | None) -> st
     if profile is None or source is None:
         return ""
     destination = target or profile.home_terrain
-    detail = _terrain_cost_text(player, profile, source, destination)
-    return f" ({detail})" if detail else ""
+    full = (
+        spades_for(profile, source)
+        if destination is profile.home_terrain
+        else terrain_distance(source, destination)
+    )
+    if full <= 0:
+        return ""
+    budget = _ints(data, "cult_spades")
+    active = _int(data, "active")
+    available = budget[active] if active < len(budget) else 0
+    missing = max(0, full - available)
+    if missing == 0:
+        detail = f"{_count(full, 'spade')}, already paid"
+    else:
+        cost = spade_cost(profile, _int(player, "digging"), missing)
+        detail = (
+            f"{_count(full, 'spade')}; {_count(missing, 'spade')} missing = "
+            f"{_cost_text(cost)}"
+        )
+    return f" ({detail})"
 
 
 __all__ = ["describe_action", "observe", "render_text"]

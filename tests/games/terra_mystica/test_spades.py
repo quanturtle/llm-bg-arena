@@ -401,6 +401,50 @@ def test_action_spade_can_stop_at_an_intermediate_terrain() -> None:
     assert not any(isinstance(candidate, BuildDwelling) for candidate in listing(after))
 
 
+def test_power_spade_description_says_already_paid() -> None:
+    state, player, _start, first, _second = _action_spade_state(FactionType.WITCHES, 1)
+    tile = state.board.tile(first)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.LAKE)),
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, UseCultSpade(first))
+    assert "1 spade, already paid" in description
+    assert "workers" not in description
+
+
+def test_cult_spade_description_says_already_paid() -> None:
+    state, player, _start, first, _second = _action_spade_state(FactionType.WITCHES, 1)
+    tile = state.board.tile(first)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.LAKE)),
+        spade_return="round",
+        spade_actor=None,
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, UseCultSpade(first))
+    assert "cult-bonus spade" in description
+    assert "1 spade, already paid" in description
+    assert "workers" not in description
+
+
+def test_spade_description_shows_only_missing_spades() -> None:
+    state, player, _start, first, _second = _action_spade_state(FactionType.WITCHES, 1)
+    tile = state.board.tile(first)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.SWAMP)),
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, UseCultSpade(first))
+    assert "2 spades; 1 spade missing = 3 workers" in description
+
+
 def test_non_home_partial_stop_must_use_all_remaining_spades() -> None:
     state, player, _start, first, _second = _action_spade_state(FactionType.WITCHES, 2)
     tile = state.board.tile(first)

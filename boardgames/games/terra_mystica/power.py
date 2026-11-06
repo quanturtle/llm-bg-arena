@@ -35,6 +35,19 @@ from boardgames.games.terra_mystica.model import (
 from boardgames.games.terra_mystica.rounds import advance_turn
 
 
+def _token_count(value: int) -> str:
+    return f"{value} token" if value == 1 else f"{value} tokens"
+
+
+def _burn_text(burned: int) -> str:
+    if not burned:
+        return ""
+    return (
+        f", burning {2 * burned} Bowl II tokens and permanently losing "
+        f"{_token_count(burned)}"
+    )
+
+
 def take_power_action(
     state: TerraMysticaState, player: PlayerId, kind: PowerActionKind
 ) -> Transition[TerraMysticaState]:
@@ -76,17 +89,14 @@ def take_power_action(
         )
         event = Event(
             "power_action",
-            (
-                f"{seat_label(player)} burned {burned} tokens and spent {cost} "
-                f"power for {amount} spade(s)."
-                if burned
-                else f"{seat_label(player)} spent {cost} power for {amount} spade(s)."
-            ),
+            f"{seat_label(player)} spent {cost} power for {amount} spade(s)"
+            f"{_burn_text(burned)}.",
             {
                 "player": player,
                 "kind": kind,
                 "cost": cost,
                 "burned": burned,
+                "bowl2_burned": 2 * burned,
                 "spades": amount,
             },
         )
@@ -98,13 +108,14 @@ def take_power_action(
     reward = POWER_ACTION_TEXT[kind]
     event = Event(
         "power_action",
-        (
-            f"{seat_label(player)} burned {burned} tokens and spent {cost} "
-            f"power for {reward}."
-            if burned
-            else f"{seat_label(player)} spent {cost} power for {reward}."
-        ),
-        {"player": player, "kind": kind, "cost": cost, "burned": burned},
+        f"{seat_label(player)} spent {cost} power for {reward}{_burn_text(burned)}.",
+        {
+            "player": player,
+            "kind": kind,
+            "cost": cost,
+            "burned": burned,
+            "bowl2_burned": 2 * burned,
+        },
     )
     return advance_turn(state, player, (event,))
 

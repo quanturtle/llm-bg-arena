@@ -120,7 +120,78 @@ def test_power_action_description_reports_burned_tokens() -> None:
     observation = GAME.observe(state, player)
     description = GAME.describe_action(observation, PowerAction("priest"))
     assert "Spend 3 power for a priest" in description
-    assert "burn 3 from Bowl II" in description
+    assert "burn 6 Bowl II tokens" in description
+    assert "permanently lose 3 tokens" in description
+    state = with_resources(state, player, power1=5, power2=7, power3=2)
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, PowerAction("priest"))
+    assert "permanently lose 1 token" in description
+
+
+def test_fakir_flight_is_called_a_carpet_flight() -> None:
+    state = play_setup(start(num_players=2, seed=1))
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.FAKIRS),
+    )
+    own = {
+        tile.position
+        for tile in state.board.tiles
+        if tile.building is not None and tile.building.owner == player
+    }
+    target = next(
+        tile
+        for tile in state.board.tiles
+        if tile.is_land
+        and tile.building is None
+        and not any(neighbour in own for neighbour in tile.position.neighbours())
+    )
+    state = replace(state, phase="action", active_player=player)
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, BuildDwelling(target.position))
+    assert "carpet flight 1 priest" in description
+    assert "tunnel" not in description
+
+
+def test_spade_build_does_not_charge_a_carpet_flight() -> None:
+    state = play_setup(start(num_players=2, seed=1))
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.FAKIRS),
+    )
+    own = {
+        tile.position
+        for tile in state.board.tiles
+        if tile.building is not None and tile.building.owner == player
+    }
+    target = next(
+        tile
+        for tile in state.board.tiles
+        if tile.is_land
+        and tile.building is None
+        and not any(neighbour in own for neighbour in tile.position.neighbours())
+    )
+    board = state.board.replace_tile(
+        target.position, replace(target, terrain=Terrain.DESERT)
+    )
+    state = replace(
+        state,
+        board=board,
+        phase="cult_spades",
+        spade_return="action",
+        spade_actor=player,
+        power_spade_tiles=(target.position,),
+        cult_spades=replace_at(state.cult_spades, player, 0),
+        active_player=player,
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, BuildDwelling(target.position))
+    assert "carpet flight" not in description
+    assert "priest" not in description
 
 
 def test_build_description_names_terrain_and_transform_cost() -> None:

@@ -33,8 +33,22 @@ def test_power_action_reports_burned_tokens() -> None:
     transition = GAME.apply(state, player, PowerAction("priest"))
     event = next(event for event in transition.events if event.kind == "power_action")
     assert event.data["burned"] == 3
-    assert "burned 3 tokens" in event.text
+    assert event.data["bowl2_burned"] == 6
     assert "spent 3 power for a priest" in event.text
+    assert "burning 6 Bowl II tokens" in event.text
+    assert "permanently losing 3 tokens" in event.text
+
+
+def test_power_action_reports_one_permanent_token() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = with_resources(state, player, power1=5, power2=7, power3=2)
+    transition = GAME.apply(state, player, PowerAction("priest"))
+    event = next(event for event in transition.events if event.kind == "power_action")
+    assert event.data["burned"] == 1
+    assert event.data["bowl2_burned"] == 2
+    assert "burning 2 Bowl II tokens" in event.text
+    assert "permanently losing 1 token" in event.text
 
 
 def test_alchemists_trade_vp_and_coins_without_ending_the_turn() -> None:

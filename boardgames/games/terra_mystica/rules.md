@@ -100,12 +100,13 @@ stopping at any terrain on the wheel; the player spends up to the budget and kee
 whatever is left. Spades may be split across tiles and aimed at any terrain on
 the wheel. Power spades and the Halflings' stronghold spades are action-phase
 spades. One transform per action may stop at an intermediate terrain. Missing
-spades may be paid for with workers (priests for the Darklings) on that first
-tile only, except for the Halflings' stronghold spades. The first transformed
-tile may be built on; leftover spades may go to one second tile, which cannot be
-built on, cannot be topped up and may stop short of home terrain. The Halflings'
-three stronghold spades may transform up to three tiles, every transformed home
-tile may be built on (only one dwelling), and leftover spades may be dropped.
+spades may be paid for with workers (priests for the Darklings) on the first
+transformed tile only, except for the Halflings' stronghold spades. The first
+transformed tile may be built on; leftover spades may go to one second tile,
+which cannot be built on, cannot be topped up and may stop short of home terrain.
+The Halflings' three stronghold spades may transform up to three tiles, every
+transformed home tile may be built on (only one dwelling), and leftover spades
+may be dropped.
 Action-phase spades may use tunneling or carpet flight once per action and score
 the spade round tile.
 Halflings score 1 victory point for every spade they receive or buy with workers.
