@@ -119,11 +119,16 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             )
         if state.phase == "cult_spades":
             kind = "spade" if state.spade_return == "action" else "cult-bonus spade"
+            prompt = (
+                "Build a dwelling on a tile your spades transformed, or skip."
+                if state.cult_spades[state.active_player] <= 0
+                else f"Spend a {kind} on a reachable tile, or skip."
+            )
             return (
                 Decision(
                     state.active_player,
                     "cult_spade",
-                    f"Spend a {kind} on a reachable tile, or skip.",
+                    prompt,
                 ),
             )
         if state.phase == "stronghold_convert":

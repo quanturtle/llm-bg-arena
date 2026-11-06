@@ -185,6 +185,39 @@ def test_spade_build_is_not_listed_without_a_dwelling() -> None:
     assert SkipCultSpade() in listing(state)
 
 
+def test_empty_action_spade_phase_advances_without_a_prompt() -> None:
+    state, player, _start, first, _second = _action_spade_state(FactionType.WITCHES, 1)
+    tile = state.board.tile(first)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.LAKE)),
+    )
+    state = with_resources(state, player, coins=0, workers=3, priests=0)
+    transition = GAME.apply(state, player, UseCultSpade(first))
+    after = transition.state
+    assert after.phase == "action"
+    assert after.active_player != player
+    assert not any(event.kind == "cult_spade_skipped" for event in transition.events)
+
+
+def test_alchemist_empty_action_spade_phase_stays_open_for_trade() -> None:
+    state, player, _start, first, _second = _action_spade_state(
+        FactionType.ALCHEMISTS, 1
+    )
+    tile = state.board.tile(first)
+    assert tile is not None
+    state = replace(
+        state,
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.LAKE)),
+    )
+    state = with_resources(state, player, coins=0, workers=3, priests=0)
+    after = GAME.apply(state, player, UseCultSpade(first)).state
+    assert after.phase == "cult_spades"
+    assert after.active_player == player
+    assert TradeVpForCoin() in listing(after)
+
+
 def _adjacent_empty_pair(
     state: TerraMysticaState,
 ) -> tuple[Hex, Hex, Hex]:

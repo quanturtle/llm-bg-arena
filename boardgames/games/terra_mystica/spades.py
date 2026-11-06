@@ -240,6 +240,14 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
     return actions
 
 
+def _has_cult_spade_choice(state: TerraMysticaState, player: PlayerId) -> bool:
+    """Whether the spade phase offers anything beyond skipping."""
+    return any(
+        not isinstance(action, SkipCultSpade)
+        for action in cult_spade_actions(state, player)
+    )
+
+
 def _build_on_spade_tile(
     state: TerraMysticaState, player: PlayerId, action: BuildDwelling
 ) -> Transition[TerraMysticaState]:
@@ -267,7 +275,9 @@ def _advance_cult_spades(
     if state.spade_return == "action":
         actor = state.spade_actor
         assert actor is not None
-        if state.cult_spades[actor] > 0 or state.power_spade_tiles:
+        if state.cult_spades[actor] > 0:
+            return Transition(state, events)
+        if state.power_spade_tiles and _has_cult_spade_choice(state, actor):
             return Transition(state, events)
         state = replace(
             state,
@@ -439,9 +449,14 @@ def skip_cult_spade(
         spade_intermediate=False,
         spade_reach_used=False,
     )
+    text = (
+        f"{seat_label(player)} skipped {remaining} {kind}(s)."
+        if remaining
+        else f"{seat_label(player)} declined to build on the transformed tile."
+    )
     event = Event(
         "cult_spade_skipped",
-        f"{seat_label(player)} skipped {remaining} {kind}(s).",
+        text,
         {"player": player, "spades": remaining},
     )
     return _advance_cult_spades(state, (event,))
