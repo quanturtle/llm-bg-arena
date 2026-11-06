@@ -10,8 +10,14 @@ from boardgames.core import (
 )
 from boardgames.games.terra_mystica.constants import (
     CULT_ORDER,
+    FACTION_BY_TYPE,
     POWER_ACTION_COSTS,
     POWER_ACTION_TEXT,
+    BuildingType,
+    Cost,
+    FactionProfile,
+    FactionType,
+    Terrain,
 )
 from boardgames.games.terra_mystica.model import (
     Action,
@@ -20,6 +26,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceShipping,
     BuildDwelling,
     ChooseStrongholdPriests,
+    Hex,
     Pass,
     PowerAction,
     SendPriest,
@@ -31,8 +38,12 @@ from boardgames.games.terra_mystica.model import (
     TransformTerrain,
     UpgradeBuilding,
     UseCultSpade,
+    building_cost,
     cult_bonus_json,
     power_shortfall,
+    spade_cost,
+    spades_for,
+    transform_distance,
 )
 from boardgames.games.terra_mystica.scoring import final_scores
 
@@ -247,6 +258,11 @@ def player_lines(data: JsonObject) -> list[str]:
     for player in _objects(data, "players"):
         seat = PlayerId(_int(player, "seat"))
         power = _ints(player, "power")
+        bowls = (
+            f"I:{power[0]} II:{power[1]} III:{power[2]}"
+            if len(power) >= 3
+            else "/".join(str(value) for value in power)
+        )
         cults = _object(player, "cults")
         cult_text = " ".join(
             f"{cult.value[0].upper()}{_int(cults, cult.value)}" for cult in CULT_ORDER
@@ -260,7 +276,7 @@ def player_lines(data: JsonObject) -> list[str]:
             f"{_int(player, 'victory_points')} VP, "
             f"{_int(player, 'coins')}c {_int(player, 'workers')}w "
             f"{_int(player, 'priests')}p, "
-            f"power {'/'.join(str(value) for value in power)}, "
+            f"power bowls {bowls}, "
             f"cults {cult_text}, shipping {_int(player, 'shipping')}, "
             f"digging {_int(player, 'digging')}, keys {_int(player, 'keys')}, "
             f"home {_str(player, 'home_terrain')}. "
@@ -317,15 +333,18 @@ def describe_action(observation: Observation, action: Action) -> str:
             if observation.data.get("phase") == "setup":
                 return f"Place a starting dwelling at {position.notation()}."
             suffix = "" if river is None else f" across river {river.notation()}"
-            return f"Build a dwelling at {position.notation()}{suffix}."
+            detail = _build_detail(observation.data, position)
+            return f"Build a dwelling at {position.notation()}{suffix}{detail}."
         case TransformTerrain(position=position, to=terrain):
             target = "your home terrain" if terrain is None else terrain.value
-            return f"Transform {position.notation()} into {target}."
+            detail = _transform_detail(observation.data, position, terrain)
+            return f"Transform {position.notation()} into {target}{detail}."
         case UpgradeBuilding(position=position, to=building, river=river):
             suffix = "" if river is None else f" across river {river.notation()}"
+            detail = _upgrade_detail(observation.data, position, building)
             return (
                 f"Upgrade the building at {position.notation()} to "
-                f"{building.value}{suffix}."
+                f"{building.value}{suffix}{detail}."
             )
         case AdvanceShipping():
             return "Advance one step on the shipping track."
@@ -360,7 +379,8 @@ def describe_action(observation: Observation, action: Action) -> str:
                 if observation.data.get("spade_return") == "action"
                 else "cult-bonus spade"
             )
-            return f"Use {spade_kind}s at {position.notation()} {target}."
+            detail = _spade_detail(observation.data, position, terrain)
+            return f"Use {spade_kind}s at {position.notation()} {target}{detail}."
         case SkipCultSpade():
             spade_kind = (
                 "spade"
@@ -425,6 +445,163 @@ def _active_player(data: JsonObject) -> JsonObject:
         ),
         {},
     )
+
+
+def _count(value: int, singular: str, plural: str | None = None) -> str:
+    noun = singular if value == 1 else (plural or f"{singular}s")
+    return f"{value} {noun}"
+
+
+def _cost_text(cost: Cost) -> str:
+    parts: list[str] = []
+    if cost.coins:
+        parts.append(_count(cost.coins, "coin"))
+    if cost.workers:
+        parts.append(_count(cost.workers, "worker"))
+    if cost.priests:
+        parts.append(_count(cost.priests, "priest"))
+    if cost.power:
+        parts.append(f"{cost.power} power")
+    return " + ".join(parts) if parts else "free"
+
+
+def _terrain(value: str) -> Terrain | None:
+    try:
+        return Terrain(value)
+    except ValueError:
+        return None
+
+
+def _profile(player: JsonObject) -> FactionProfile | None:
+    try:
+        return FACTION_BY_TYPE[FactionType(_str(player, "faction"))]
+    except ValueError:
+        return None
+
+
+def _tile_at(data: JsonObject, position: Hex) -> JsonObject:
+    for tile in _objects(data, "board"):
+        if _int(tile, "q") == position.q and _int(tile, "r") == position.r:
+            return tile
+    return {}
+
+
+def _building_at(tile: JsonObject) -> JsonObject | None:
+    building = tile.get("building")
+    return building if isinstance(building, dict) else None
+
+
+def _adjacent_owner(
+    data: JsonObject, position: Hex, seat: int, *, opponent: bool
+) -> bool:
+    for neighbour in position.neighbours():
+        building = _building_at(_tile_at(data, neighbour))
+        if building is None:
+            continue
+        if (opponent and _int(building, "owner") != seat) or (
+            not opponent and _int(building, "owner") == seat
+        ):
+            return True
+    return False
+
+
+def _reach_cost(player: JsonObject, profile: FactionProfile) -> Cost:
+    has_stronghold = any(
+        _str(building, "type") == BuildingType.STRONGHOLD.value
+        for building in _objects(player, "buildings")
+    )
+    if has_stronghold and profile.reach_cost_with_stronghold is not None:
+        return profile.reach_cost_with_stronghold
+    return profile.reach_cost
+
+
+def _spade_text(profile: FactionProfile, digging: int, spades: int) -> str:
+    return (
+        f"{_count(spades, 'spade')} = "
+        f"{_cost_text(spade_cost(profile, digging, spades))}"
+    )
+
+
+def _terrain_cost_text(
+    player: JsonObject, profile: FactionProfile, source: Terrain, target: Terrain
+) -> str:
+    spades = (
+        spades_for(profile, source)
+        if target is profile.home_terrain
+        else transform_distance(source, target, profile.home_terrain)
+    )
+    if spades <= 0:
+        return ""
+    return (
+        f"{source.value} -> {target.value}: "
+        f"{_spade_text(profile, _int(player, 'digging'), spades)}"
+    )
+
+
+def _build_detail(data: JsonObject, position: Hex) -> str:
+    player = _active_player(data)
+    profile = _profile(player)
+    tile = _tile_at(data, position)
+    source = _terrain(_str(tile, "terrain"))
+    if profile is None or source is None:
+        return ""
+    parts: list[str] = []
+    if source is profile.home_terrain:
+        parts.append(f"{source.value} (home)")
+    else:
+        parts.append(_terrain_cost_text(player, profile, source, profile.home_terrain))
+    build_cost = building_cost(
+        profile,
+        BuildingType.DWELLING,
+        _adjacent_owner(data, position, _int(player, "seat"), opponent=True),
+    )
+    parts.append(f"building {_cost_text(build_cost)}")
+    if profile.reach > 0 and not _adjacent_owner(
+        data, position, _int(player, "seat"), opponent=False
+    ):
+        parts.append(f"tunnel {_cost_text(_reach_cost(player, profile))}")
+    return " (" + "; ".join(part for part in parts if part) + ")"
+
+
+def _transform_detail(data: JsonObject, position: Hex, target: Terrain | None) -> str:
+    player = _active_player(data)
+    profile = _profile(player)
+    tile = _tile_at(data, position)
+    source = _terrain(_str(tile, "terrain"))
+    if profile is None or source is None:
+        return ""
+    destination = target or profile.home_terrain
+    parts = [_terrain_cost_text(player, profile, source, destination)]
+    if profile.reach > 0 and not _adjacent_owner(
+        data, position, _int(player, "seat"), opponent=False
+    ):
+        parts.append(f"tunnel {_cost_text(_reach_cost(player, profile))}")
+    return " (" + "; ".join(part for part in parts if part) + ")"
+
+
+def _upgrade_detail(data: JsonObject, position: Hex, target: BuildingType) -> str:
+    player = _active_player(data)
+    profile = _profile(player)
+    if profile is None:
+        return ""
+    cost = building_cost(
+        profile,
+        target,
+        _adjacent_owner(data, position, _int(player, "seat"), opponent=True),
+    )
+    return f" (cost {_cost_text(cost)})"
+
+
+def _spade_detail(data: JsonObject, position: Hex, target: Terrain | None) -> str:
+    player = _active_player(data)
+    profile = _profile(player)
+    tile = _tile_at(data, position)
+    source = _terrain(_str(tile, "terrain"))
+    if profile is None or source is None:
+        return ""
+    destination = target or profile.home_terrain
+    detail = _terrain_cost_text(player, profile, source, destination)
+    return f" ({detail})" if detail else ""
 
 
 __all__ = ["describe_action", "observe", "render_text"]

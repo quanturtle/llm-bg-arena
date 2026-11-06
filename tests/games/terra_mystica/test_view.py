@@ -4,12 +4,14 @@ from dataclasses import replace
 
 from boardgames.core import Event, PlayerId, seat_label
 from boardgames.games.terra_mystica import (
+    BuildDwelling,
     Hex,
     PowerAction,
     SkipCultSpade,
     UseCultSpade,
 )
-from boardgames.games.terra_mystica.model import replace_at
+from boardgames.games.terra_mystica.constants import FactionType, Terrain
+from boardgames.games.terra_mystica.model import replace_at, replace_player
 from tests.games.terra_mystica.support import (
     GAME,
     P1,
@@ -74,6 +76,7 @@ def test_observation_and_text_show_passes_power_actions_and_cult_spades() -> Non
     text = GAME.render_text(observation)
     assert "Passed in order:" in text
     assert "Power actions used this round: coins." in text
+    assert "power bowls I:" in text
     assert "home " in text
     assert "cult-bonus spade" not in text
     spade_state = replace(
@@ -118,3 +121,23 @@ def test_power_action_description_reports_burned_tokens() -> None:
     description = GAME.describe_action(observation, PowerAction("priest"))
     assert "Spend 3 power for a priest" in description
     assert "burn 3 from Bowl II" in description
+
+
+def test_build_description_names_terrain_and_transform_cost() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = replace_player(
+        state,
+        player,
+        replace(state.players[player], faction=FactionType.SWARMLINGS),
+    )
+    tile = next(
+        tile
+        for tile in state.board.tiles
+        if tile.is_land and tile.building is None and tile.terrain is Terrain.DESERT
+    )
+    observation = GAME.observe(state, player)
+    description = GAME.describe_action(observation, BuildDwelling(tile.position))
+    assert "desert -> lake" in description
+    assert "3 spades = 9 workers" in description
+    assert "building 3 coins + 2 workers" in description
