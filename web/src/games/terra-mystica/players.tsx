@@ -1,5 +1,5 @@
 // One compact card per Terra Mystica player: points, faction, resources, power, cults and keys.
-import { Castle, Church, Coins, KeyRound, Ship, Shovel, Users, Zap } from "lucide-react";
+import { Castle, Church, Coins, KeyRound, Route, Ship, Shovel, Sparkles, Users, Zap } from "lucide-react";
 
 import { BorderPill, BorderPills, Stat } from "@/components/board-parts";
 import { SeatChip } from "@/components/seat";
@@ -79,6 +79,7 @@ function PlayerCard({
   const faction = factionMeta(player.faction);
   const buildingCount = player.buildings.length;
   const towns = player.buildings.filter((building) => building.in_town).length;
+  const bridgeCount = observation.bridges.filter((bridge) => bridge.owner === seat).length;
   return (
     <section
       aria-label={`Player ${seat + 1}`}
@@ -126,6 +127,25 @@ function PlayerCard({
           <KeyRound className="size-3" aria-hidden="true" />
           {player.keys} {player.keys === 1 ? "key" : "keys"}
         </TaskPill>
+        {player.favors.length ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TaskPill>
+                <Sparkles className="size-3" aria-hidden="true" />
+                {player.favors.length} {player.favors.length === 1 ? "favor" : "favors"}
+              </TaskPill>
+            </TooltipTrigger>
+            <TooltipContent>
+              {player.favors.map((favor) => `${favor.index}: ${favor.label}`).join("; ")}
+            </TooltipContent>
+          </Tooltip>
+        ) : null}
+        {bridgeCount > 0 ? (
+          <TaskPill>
+            <Route className="size-3" aria-hidden="true" />
+            {bridgeCount} {bridgeCount === 1 ? "bridge" : "bridges"}
+          </TaskPill>
+        ) : null}
         <TaskPill>
           <Castle className="size-3" aria-hidden="true" />
           {buildingCount} {buildingCount === 1 ? "building" : "buildings"}

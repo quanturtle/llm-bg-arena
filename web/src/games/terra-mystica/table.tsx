@@ -128,7 +128,7 @@ export function TerraMysticaPowerActions({ observation }: { observation: TerraMy
         </h3>
         <p className="text-[10px] text-muted-foreground">once per round</p>
       </header>
-      <ul className="grid grid-cols-2 gap-1 @lg:grid-cols-3 @3xl:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-1 @lg:grid-cols-3 @3xl:grid-cols-3 @5xl:grid-cols-6">
         {POWER_ACTIONS.map((action) => {
           const isUsed = used.has(action.kind);
           const affordable = active ? canAffordPower(active.power, action.cost) : false;
@@ -160,7 +160,7 @@ export function TerraMysticaPowerActions({ observation }: { observation: TerraMy
       </ul>
       <p className="text-[10px] leading-snug text-muted-foreground">
         {active
-          ? `${active.name} has ${charged} power in Bowl III; Bowl II tokens can be burned to pay. Any player may use each action once per round.`
+          ? `${active.name} has ${charged} power in Bowl III; Bowl II tokens can be burned to pay. Any player may use each action once per round. Engineers may pay 2 workers for a bridge.`
           : "The game is over."}
       </p>
     </section>

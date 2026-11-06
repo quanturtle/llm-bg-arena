@@ -41,6 +41,7 @@ const playerSchema = z.object({
   shipping: z.number(),
   digging: z.number(),
   keys: z.number(),
+  favors: z.array(z.object({ index: z.number(), label: z.string() })),
   buildings: z.array(
     z.object({
       position: z.string(),
@@ -50,6 +51,13 @@ const playerSchema = z.object({
   ),
 });
 export type TerraMysticaPlayer = z.infer<typeof playerSchema>;
+
+export const bridgeSchema = z.object({
+  owner: z.number(),
+  first: z.string(),
+  second: z.string(),
+});
+export type TerraMysticaBridge = z.infer<typeof bridgeSchema>;
 
 const cultBonusSchema = z.object({
   cult,
@@ -69,6 +77,10 @@ export const observationSchema = z.object({
   cult_spades: z.array(z.number()),
   spade_return: z.string(),
   town_tiles: z.array(z.number()),
+  bridges: z.array(bridgeSchema),
+  pending_favors: z.number(),
+  pending_town: z.boolean(),
+  pending_towns: z.number(),
   used_orders: z.array(z.object({ cult, order: z.number(), player: z.number() })),
   passed: z.array(z.number()),
   pass_order: z.array(z.number()),

@@ -13,6 +13,7 @@ import {
   House,
   Mountain,
   Pickaxe,
+  Route,
   Shovel,
   Sparkles,
   Target,
@@ -111,7 +112,7 @@ export const SCORING_META: Record<string, ScoringMeta> = {
 export const UNKNOWN_SCORING: ScoringMeta = { label: "Unknown action", short: "Unknown", points: 0, icon: Target };
 
 // The shared power actions: any player may use each kind once per round.
-export type PowerActionKind = "priest" | "workers" | "coins" | "spade" | "double_spade";
+export type PowerActionKind = "priest" | "workers" | "coins" | "spade" | "double_spade" | "bridge";
 
 export type PowerActionMeta = {
   kind: PowerActionKind;
@@ -127,6 +128,7 @@ export const POWER_ACTIONS: readonly PowerActionMeta[] = [
   { kind: "coins", label: "Seven coins", cost: 4, reward: "7 coins", icon: Coins },
   { kind: "spade", label: "One spade", cost: 4, reward: "1 spade", icon: Shovel },
   { kind: "double_spade", label: "Two spades", cost: 6, reward: "2 spades", icon: Pickaxe },
+  { kind: "bridge", label: "Bridge", cost: 3, reward: "1 bridge", icon: Route },
 ];
 
 // The five town tiles, each with two copies; founding a town lets its owner take one.

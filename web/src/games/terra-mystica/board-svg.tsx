@@ -14,7 +14,11 @@ import {
   type Terrain,
   type TerrainSymbol as TerrainSymbolName,
 } from "@/games/terra-mystica/meta";
-import type { TerraMysticaPlayer, TerraMysticaTile } from "@/games/terra-mystica/observation";
+import type {
+  TerraMysticaBridge,
+  TerraMysticaPlayer,
+  TerraMysticaTile,
+} from "@/games/terra-mystica/observation";
 import type { EventRecord } from "@/lib/api";
 
 // Pixels per hex radius and the margin around the outermost corners, in hex radii.
@@ -32,6 +36,11 @@ function centre(q: number, r: number): Point {
 
 function toSvg(point: Point): Point {
   return { x: point.x * SCALE, y: point.y * SCALE };
+}
+
+function positionPoint(value: string): Point {
+  const [q, r] = value.split(",").map(Number);
+  return centre(q, r);
 }
 
 function cornersAround(point: Point): Point[] {
@@ -252,7 +261,11 @@ export function TerraMysticaBoardSvg({
   observation,
   events,
 }: {
-  observation: { board: TerraMysticaTile[]; players: TerraMysticaPlayer[] };
+  observation: {
+    board: TerraMysticaTile[];
+    players: TerraMysticaPlayer[];
+    bridges: TerraMysticaBridge[];
+  };
   events: EventRecord[];
 }) {
   const uid = useId().replace(/:/g, "");
@@ -271,6 +284,19 @@ export function TerraMysticaBoardSvg({
       <title>Terra Mystica board</title>
       <BoardDefs uid={uid} />
       <Tiles uid={uid} tiles={observation.board} touched={touched} />
+      {observation.bridges.map((bridge) => {
+        const first = toSvg(positionPoint(bridge.first));
+        const second = toSvg(positionPoint(bridge.second));
+        const style = factionMeta(factionBySeat.get(bridge.owner) ?? "");
+        return (
+          <g key={`${bridge.owner}-${bridge.first}-${bridge.second}`}>
+            <title>{`${seatLabel(bridge.owner)} bridge between ${bridge.first} and ${bridge.second}`}</title>
+            <line x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke="#2b241a" strokeWidth={7} strokeLinecap="round" />
+            <line x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke={style.color} strokeWidth={4} strokeLinecap="round" />
+            <line x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke={style.border} strokeWidth={1.2} strokeDasharray="3 3" strokeLinecap="round" />
+          </g>
+        );
+      })}
       {observation.board.map((tile) =>
         tile.building ? (
           <BuildingToken
