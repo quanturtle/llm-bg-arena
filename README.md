@@ -37,8 +37,9 @@ This opens the browser on a full Catan game to 10 points between Claude Haiku 5.
 
 ## Credits
 
+- Puerto Rico cards, tiles, barrels and boards: [Middlederg/puerto-rico](https://github.com/Middlederg/puerto-rico). That repo doesn't declare a licence.
 - Catan terrain and sea art: [baige007/Catan-web-game-](https://github.com/baige007/Catan-web-game-) (MIT), which builds on [Erodenn/Simple-Catan](https://github.com/Erodenn/Simple-Catan).
 - Catan port and robber icons: [game-icons.net](https://game-icons.net/), by Delapouite and Lorc (CC BY 3.0).
 - Model provider logos: [lobehub/lobe-icons](https://github.com/lobehub/lobe-icons) (MIT).
 
-`web/public/catan/SOURCE.md` says where each Catan file came from.
+`web/public/puerto_rico/SOURCE.md` and `web/public/catan/SOURCE.md` say where each file came from.
