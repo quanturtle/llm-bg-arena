@@ -117,6 +117,7 @@ function CatanBoard({ observation, context }: { observation: CatanObservation; c
 
 export const catan = defineGame({
   schema: observationSchema,
+  usesLayout: true,
   tabs: [{ id: "board", label: "Board", render: (observation, context) => <CatanBoard observation={observation} context={context} /> }],
   eventIcons: {
     started: Flag,

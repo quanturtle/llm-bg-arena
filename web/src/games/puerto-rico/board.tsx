@@ -56,6 +56,7 @@ function MarketTab({ observation, context }: { observation: PuertoRicoObservatio
 
 export const puertoRico = defineGame({
   schema: observationSchema,
+  usesLayout: true,
   tabs: [
     { id: "board", label: "Board", render: (observation, context) => <PuertoRicoBoard observation={observation} context={context} /> },
     { id: "market", label: "Building market", render: (observation, context) => <MarketTab observation={observation} context={context} /> },

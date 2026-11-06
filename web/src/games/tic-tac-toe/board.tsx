@@ -76,6 +76,7 @@ function TicTacToeBoard({ observation, context }: { observation: Observation; co
 
 export const ticTacToe = defineGame({
   schema: observationSchema,
+  usesLayout: false,
   tabs: [{ id: "board", label: "Board", render: (observation, context) => <TicTacToeBoard observation={observation} context={context} /> }],
   eventIcons: { started: Flag, marked: PenLine, won: Trophy, drawn: Handshake },
 });

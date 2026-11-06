@@ -37,7 +37,7 @@ function MatchReplay({ matchId, outline }: { matchId: string; outline: Outline }
   const [boardTab, setBoardTab] = useState("board");
   const match = outline.match;
   const launch = useLaunch(matchId, state.running).data ?? null;
-  const layout = useLayout(match.game_id).data ?? null;
+  const layout = useLayout(match.game_id, GAMES[match.game_id]?.usesLayout ?? false).data ?? null;
   const frame = useFrame(matchId, state.step, state.last);
   const live = liveState(state, launch?.status ?? null);
   const now = useNow(state.running);

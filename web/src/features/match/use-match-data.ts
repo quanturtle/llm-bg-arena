@@ -26,8 +26,9 @@ export function useLaunch(matchId: string, running: boolean) {
   });
 }
 
-export function useLayout(gameId: string) {
-  return useQuery({ queryKey: ["layout", gameId], queryFn: () => api.layout(gameId), staleTime: Infinity });
+/** The static geometry of a drawn board, read only for a game whose board uses it. */
+export function useLayout(gameId: string, usesLayout: boolean) {
+  return useQuery({ queryKey: ["layout", gameId], queryFn: () => api.layout(gameId), enabled: usesLayout, staleTime: Infinity });
 }
 
 /** One step's frame. A step never changes once logged, and the previous frame stays shown while the next loads. */

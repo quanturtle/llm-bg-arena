@@ -17,6 +17,8 @@ export type DrawnBoard = { ok: true; tabs: { id: string; label: string; node: Re
 
 export type GameEntry = {
   eventIcons: Record<string, LucideIcon>;
+  /** Whether its board reads the static geometry at /api/games/{id}/layout. */
+  usesLayout: boolean;
   /** Parses the observation once and draws every tab, or says why the observation did not parse. */
   draw: (observation: unknown, context: BoardContext) => DrawnBoard;
 };
@@ -25,9 +27,11 @@ export function defineGame<Observation>(definition: {
   schema: z.ZodType<Observation>;
   tabs: BoardTab<Observation>[];
   eventIcons: Record<string, LucideIcon>;
+  usesLayout: boolean;
 }): GameEntry {
   return {
     eventIcons: definition.eventIcons,
+    usesLayout: definition.usesLayout,
     draw(observation, context) {
       const parsed = definition.schema.safeParse(observation);
       if (!parsed.success) return { ok: false, error: z.prettifyError(parsed.error) };

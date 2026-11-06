@@ -78,29 +78,16 @@ function search(params: Record<string, string | undefined>): string {
 
 const segment = encodeURIComponent;
 
-async function orNullWhenMissing<T>(pending: Promise<T>): Promise<T | null> {
-  try {
-    return await pending;
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) return null;
-    throw error;
-  }
-}
-
 /** One started match's status; null for a match this server did not start. */
-function launchOrNull(matchId: string): Promise<Launch | null> {
-  return orNullWhenMissing(request<Launch>(`/api/launches/${segment(matchId)}`));
-}
-
-/** The static geometry of a drawn board; null for a game drawn from its observation alone. */
-function layoutOrNull(gameId: string): Promise<JsonObject | null> {
-  return orNullWhenMissing(request<JsonObject>(`/api/games/${segment(gameId)}/layout`));
+async function launchOrNull(matchId: string): Promise<Launch | null> {
+  const launches = await request<Launch[]>("/api/launches");
+  return launches.find((launch) => launch.match_id === matchId) ?? null;
 }
 
 export const api = {
   games: () => request<GameInfo[]>("/api/games"),
   game: (gameId: string) => request<GameDetail>(`/api/games/${segment(gameId)}`),
-  layout: layoutOrNull,
+  layout: (gameId: string) => request<JsonObject>(`/api/games/${segment(gameId)}/layout`),
   matches: (filters: { game?: string; agent?: string }) => request<Catalog>(`/api/matches${search(filters)}`),
   timeline: (matchId: string) => request<Outline>(`/api/matches/${segment(matchId)}/timeline`),
   frame: (matchId: string, step: number) => request<Frame>(`/api/matches/${segment(matchId)}/frames/${step}`),

@@ -300,12 +300,6 @@ def list_launches(request: Request) -> list[Launch]:
     return launcher_of(request).launches()
 
 
-@api.get("/launches/{match_id}")
-def launch_status(request: Request, match_id: str) -> Launch:
-    """One started match's status; 404 for matches not started from this server."""
-    return launcher_of(request).launch(match_id)
-
-
 @api.post("/launches/{match_id}/pause")
 async def pause_match(request: Request, match_id: str) -> Launch:
     """Hold the match before its next round; runs on the loop that owns the gate."""
