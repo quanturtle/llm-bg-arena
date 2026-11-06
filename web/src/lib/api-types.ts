@@ -700,6 +700,8 @@ export interface components {
         GameDetail: {
             /** Id */
             id: string;
+            /** Player Counts */
+            player_counts: number[];
             /** Default Config */
             default_config: {
                 [key: string]: components["schemas"]["JsonValue"];
@@ -713,6 +715,8 @@ export interface components {
         GameInfo: {
             /** Id */
             id: string;
+            /** Player Counts */
+            player_counts: number[];
             /** Default Config */
             default_config: {
                 [key: string]: components["schemas"]["JsonValue"];

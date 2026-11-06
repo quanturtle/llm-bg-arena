@@ -44,6 +44,9 @@ def test_agent_pages_open_for_model_ids_with_a_slash(tmp_path: Path) -> None:
 def test_games_matches_and_frames(client: TestClient) -> None:
     games = {g["id"]: g for g in client.get("/api/games").json()}
     assert games["tic_tac_toe"]["matches"] == 1
+    assert games["catan"]["player_counts"] == [3, 4]
+    assert games["puerto_rico"]["player_counts"] == [3, 4, 5]
+    assert games["terra_mystica"]["player_counts"] == [2, 3, 4, 5]
     assert client.get("/api/games/catan").json()["rules"].startswith("#")
     assert len(client.get("/api/games/catan/layout").json()["hexes"]) == 19
     puerto_rico = client.get("/api/games/puerto_rico/layout").json()

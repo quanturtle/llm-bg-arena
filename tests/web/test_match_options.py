@@ -34,6 +34,8 @@ def test_match_options_list_seat_counts_settings_and_models(tmp_path: Path) -> N
     body = options_client(tmp_path).get("/api/match-options").json()
     games = {game["id"]: game for game in body["games"]}
     assert games["catan"]["player_counts"] == [3, 4]
+    assert games["puerto_rico"]["player_counts"] == [3, 4, 5]
+    assert games["terra_mystica"]["player_counts"] == [2, 3, 4, 5]
     assert (games["catan"]["name"], games["catan"]["summary"][:8]) == (
         "Catan",
         "Be first",

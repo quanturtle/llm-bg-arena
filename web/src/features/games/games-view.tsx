@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { ErrorAlert, LoadingRows, PageTitle } from "@/components/page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { playerRange } from "@/features/new-match/form-model";
 import { api } from "@/lib/api";
 
 export function ConfigList({ config }: { config: { [key: string]: unknown } }) {
@@ -34,7 +35,8 @@ export function GamesView() {
               <CardHeader>
                 <CardTitle>{game.id}</CardTitle>
                 <CardDescription>
-                  {game.matches} {game.matches === 1 ? "match" : "matches"}
+                  {playerRange(game.player_counts)} · {game.matches}{" "}
+                  {game.matches === 1 ? "match" : "matches"}
                 </CardDescription>
               </CardHeader>
               <CardContent>

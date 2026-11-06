@@ -80,6 +80,7 @@ class GameInfo(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
+    player_counts: list[int]
     default_config: dict[str, PlainJson]
     matches: int
 
@@ -169,6 +170,11 @@ def launcher_of(request: Request) -> MatchLauncher:
     return launcher
 
 
+def player_counts(game_id: str) -> list[int]:
+    """The seat counts a game's config parser accepts."""
+    return [n for n in PROBED_PLAYER_COUNTS if accepts_players(game_id, n)]
+
+
 def game_option(game_id: str) -> GameOption:
     """A game's valid seat counts, found by asking its config parser, and settings."""
     game = create_game(game_id)
@@ -179,7 +185,7 @@ def game_option(game_id: str) -> GameOption:
         id=game_id,
         name=rules_title(rules) or game_id,
         summary=rules_summary(rules),
-        player_counts=[n for n in PROBED_PLAYER_COUNTS if accepts_players(game_id, n)],
+        player_counts=player_counts(game_id),
         settings=settings,
     )
 
@@ -217,6 +223,7 @@ def game_info(game_id: str, catalog: Catalog) -> GameInfo:
     game = create_game(game_id)
     return GameInfo(
         id=game_id,
+        player_counts=player_counts(game_id),
         default_config=plain_object(game.config_json(game.parse_config({}))),
         matches=sum(1 for m in catalog.matches if m.game_id == game_id),
     )

@@ -8,11 +8,12 @@ import { ErrorAlert, LoadingRows, PageTitle } from "@/components/page";
 import { ProviderLogo } from "@/components/provider-logo";
 import { agentHref } from "@/components/seat";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConfigList } from "@/features/games/games-view";
 import { RulesMarkdown } from "@/features/games/rules-markdown";
 import { listMatches, MatchTable } from "@/features/matches/match-table";
+import { playerRange } from "@/features/new-match/form-model";
 import { useNow } from "@/hooks/use-now";
 import { api, type Leaderboard } from "@/lib/api";
 import { formatPercent } from "@/lib/format";
@@ -81,6 +82,9 @@ export function GameView() {
           <Card>
             <CardHeader>
               <CardTitle>Default config</CardTitle>
+              {game.data ? (
+                <CardDescription>{playerRange(game.data.player_counts)}</CardDescription>
+              ) : null}
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {game.data ? <ConfigList config={game.data.default_config} /> : null}
