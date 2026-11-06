@@ -23,6 +23,7 @@ from boardgames.games.terra_mystica.model import (
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    TakeFavorTile,
     TakeTownTile,
     TradeCoinsForVp,
     TradeVpForCoin,
@@ -39,6 +40,7 @@ PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
 ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
 STRONGHOLD_PATTERN = re.compile(r"stronghold ([0-3])")
 TOWN_PATTERN = re.compile(r"town ([0-4])")
+FAVOR_PATTERN = re.compile(r"favor (0|1[01]|[0-9])")
 POWER_PATTERN = re.compile(rf"power ({'|'.join(POWER_ACTION_KINDS)})")
 CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}(?: to ([a-z]+))?")
 
@@ -72,6 +74,8 @@ def format_action(action: Action) -> str:
             return f"stronghold {workers}"
         case TakeTownTile(index=index):
             return f"town {index}"
+        case TakeFavorTile(index=index):
+            return f"favor {index}"
         case PowerAction(kind=kind):
             return f"power {kind}"
         case UseCultSpade(position=position, to=terrain):
@@ -132,6 +136,8 @@ def parse_action(text: str) -> Action:
         return ChooseStrongholdPriests(int(match.group(1)))
     if match := TOWN_PATTERN.fullmatch(text):
         return TakeTownTile(int(match.group(1)))
+    if match := FAVOR_PATTERN.fullmatch(text):
+        return TakeFavorTile(int(match.group(1)))
     if match := POWER_PATTERN.fullmatch(text):
         return PowerAction(cast(PowerActionKind, match.group(1)))
     if match := CULT_SPADE_PATTERN.fullmatch(text):

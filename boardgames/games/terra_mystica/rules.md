@@ -15,9 +15,9 @@ This implementation uses the standard 113-tile base map, all fourteen base-game
 factions and their starting resources, building costs and cost/track exceptions.
 Dwarves may tunnel two spaces and Fakirs may fly two spaces (three with a
 stronghold), so both can build and score across rivers. Not yet implemented:
-bonus cards, favor tiles, leeching power from opponents, bridges, power
-conversions, the faction special actions, and the Alchemists' 2 power per spade
-after their stronghold. The core economy, terraforming, cults, towns, the
+bonus cards, leeching power from opponents, bridges, power conversions, the
+faction special actions, and the Alchemists' 2 power per spade after their
+stronghold. The core economy, terraforming, cults, towns, the
 stronghold rewards and scoring are playable.
 
 Known limitations:
@@ -88,6 +88,27 @@ or 8 VP and one step on each cult track. There are at most 10 towns. A key lets
 one cult marker enter space 10. Structures already in a town are marked and
 cannot found another town; building next to a town expands it.
 
+## Temples and favor tiles
+Upgrading a trading house to a temple grants one favor tile (two for the Chaos
+Magicians); upgrading a temple to a sanctuary grants the same. Take the tiles
+immediately, one at a time, from the remaining tiles; each tile is unique. A
+tile gives its cult steps at once, and its income or victory-point effect lasts
+for the rest of the game. The twelve tiles are:
+- 3 Fire cult steps
+- 3 Water cult steps
+- 3 Earth cult steps
+- 3 Air cult steps
+- 2 Fire cult steps; your towns need 1 less power
+- 2 Water cult steps
+- 2 Earth cult steps; 1 worker and 1 power each income phase
+- 2 Air cult steps; 4 power each income phase
+- 1 Fire cult step; 3 coins each income phase
+- 1 Water cult step; 3 victory points for each trading house you build
+- 1 Earth cult step; 2 victory points for each dwelling you build
+- 1 Air cult step; victory points when you pass: 0/2/3/3/4 for 0-4 trading houses
+If an upgrade also founds a town, take the favor tiles before choosing the town
+tile.
+
 ## Scoring tiles
 Each round tile scores one action: dwellings (2 points), trading houses (3),
 strongholds or sanctuaries (5), spades (2) or towns (5). The spade tile is never
@@ -139,5 +160,6 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `spade 0,0 to forest` — aim cult-bonus spades at a chosen terrain.
 - `skip spade` — forfeit the rest of your spades.
 - `town 0` — take town tile 0.
+- `favor 0` — take favor tile 0.
 - `alchemist vp` / `alchemist coins` — the Alchemists' 1 VP for 1 coin or 2 coins for 1 VP.
 - `pass` — stop acting this round.

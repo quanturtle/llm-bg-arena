@@ -11,6 +11,7 @@ from boardgames.core import (
 from boardgames.games.terra_mystica.constants import (
     CULT_ORDER,
     FACTION_BY_TYPE,
+    FAVOR_TILES,
     POWER_ACTION_COSTS,
     POWER_ACTION_TEXT,
     BuildingType,
@@ -31,6 +32,7 @@ from boardgames.games.terra_mystica.model import (
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    TakeFavorTile,
     TakeTownTile,
     TerraMysticaState,
     TradeCoinsForVp,
@@ -73,6 +75,8 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "cult_spades": list(state.cult_spades),
         "spade_return": state.spade_return,
         "town_tiles": list(state.town_tiles),
+        "pending_favors": state.pending_favors,
+        "pending_town": state.pending_town,
         "used_orders": [
             {"cult": cult.value, "order": order, "player": player}
             for (cult, order), player in sorted(
@@ -141,6 +145,10 @@ def player_data(state: TerraMysticaState, seat: PlayerId) -> JsonObject:
         "shipping": player.shipping,
         "digging": player.digging,
         "keys": player.keys,
+        "favors": [
+            {"index": index, "label": FAVOR_TILES[index].label}
+            for index in sorted(player.favors)
+        ],
         "buildings": [
             {
                 "position": position.notation(),
@@ -177,7 +185,7 @@ def render_text(observation: Observation) -> str:
         "shipping; digging; priest fire|water|earth|air 0-3; "
         "advance fire|water|earth|air; "
         "power priest|workers|coins|spade|double_spade; town 0-4; "
-        "stronghold 0-3; spade q,r [to T]; skip spade; "
+        "favor 0-11; stronghold 0-3; spade q,r [to T]; skip spade; "
         "alchemist vp|coins; pass."
     )
     return "\n".join(lines)
@@ -271,6 +279,10 @@ def player_lines(data: JsonObject) -> list[str]:
             f"{_str(building, 'type')}@{_str(building, 'position')}"
             for building in _objects(player, "buildings")
         ]
+        favors = [
+            f"{_int(favor, 'index')} {_str(favor, 'label')}"
+            for favor in _objects(player, "favors")
+        ]
         lines.append(
             f"{seat_label(seat)} {_str(player, 'name')}: "
             f"{_int(player, 'victory_points')} VP, "
@@ -279,7 +291,8 @@ def player_lines(data: JsonObject) -> list[str]:
             f"power bowls {bowls}, "
             f"cults {cult_text}, shipping {_int(player, 'shipping')}, "
             f"digging {_int(player, 'digging')}, keys {_int(player, 'keys')}, "
-            f"home {_str(player, 'home_terrain')}. "
+            f"home {_str(player, 'home_terrain')}, "
+            f"favors [{', '.join(favors) or 'none'}]. "
             f"Buildings: {', '.join(buildings) or 'none'}."
         )
     return lines
@@ -361,6 +374,13 @@ def describe_action(observation: Observation, action: Action) -> str:
             )
         case TakeTownTile(index=index):
             return f"Take town tile {index}."
+        case TakeFavorTile(index=index):
+            label = (
+                FAVOR_TILES[index].label
+                if 0 <= index < len(FAVOR_TILES)
+                else "unknown"
+            )
+            return f"Take favor tile {index} ({label})."
         case PowerAction(kind=kind):
             cost = POWER_ACTION_COSTS[kind]
             power = _ints(_active_player(observation.data), "power")

@@ -157,6 +157,8 @@ class FactionProfile:
     spade_vp_bonus: int = 0
     town_vp_bonus: int = 0
     town_workers_bonus: int = 0
+    temple_favors: int = 1
+    sanctuary_favors: int = 1
     final_coin_divisor: int = 3
     base_income: Income = Income(workers=1)
     dwelling_income: tuple[Income, ...] = ()
@@ -216,6 +218,78 @@ TOWN_TILES: tuple[TownTile, ...] = (
     TownTile(9, priests=1),
     TownTile(6, power=8),
     TownTile(8, cult_steps=True),
+)
+
+
+@dataclass(frozen=True)
+class FavorTile:
+    """One of the twelve temple favor tiles."""
+
+    index: int
+    label: str
+    cult: Cult | None = None
+    steps: int = 0
+    income: Income = Income()
+    town_power: int = 0
+    build_vp: tuple[tuple[BuildingType, int], ...] = ()
+    pass_vp: tuple[int, ...] = ()
+
+
+FAVOR_TILES: tuple[FavorTile, ...] = (
+    FavorTile(0, "3 Fire cult steps", Cult.FIRE, 3),
+    FavorTile(1, "3 Water cult steps", Cult.WATER, 3),
+    FavorTile(2, "3 Earth cult steps", Cult.EARTH, 3),
+    FavorTile(3, "3 Air cult steps", Cult.AIR, 3),
+    FavorTile(
+        4,
+        "2 Fire cult steps; towns need 1 less power",
+        Cult.FIRE,
+        2,
+        town_power=-1,
+    ),
+    FavorTile(5, "2 Water cult steps", Cult.WATER, 2),
+    FavorTile(
+        6,
+        "2 Earth cult steps; 1 worker and 1 power each round",
+        Cult.EARTH,
+        2,
+        Income(workers=1, power=1),
+    ),
+    FavorTile(
+        7,
+        "2 Air cult steps; 4 power each round",
+        Cult.AIR,
+        2,
+        Income(power=4),
+    ),
+    FavorTile(
+        8,
+        "1 Fire cult step; 3 coins each round",
+        Cult.FIRE,
+        1,
+        Income(coins=3),
+    ),
+    FavorTile(
+        9,
+        "1 Water cult step; 3 VP per trading house built",
+        Cult.WATER,
+        1,
+        build_vp=((BuildingType.TRADING_HOUSE, 3),),
+    ),
+    FavorTile(
+        10,
+        "1 Earth cult step; 2 VP per dwelling built",
+        Cult.EARTH,
+        1,
+        build_vp=((BuildingType.DWELLING, 2),),
+    ),
+    FavorTile(
+        11,
+        "1 Air cult step; pass VP for trading houses",
+        Cult.AIR,
+        1,
+        pass_vp=(0, 2, 3, 3, 4),
+    ),
 )
 
 CULT_ORDER_STEPS: tuple[int, ...] = (3, 2, 2, 2)
@@ -418,6 +492,8 @@ FACTION_PROFILES: tuple[FactionProfile, ...] = (
             sanctuary=Cost(coins=8, workers=4),
         ),
         stronghold_income=Income(workers=2),
+        temple_favors=2,
+        sanctuary_favors=2,
     ),
     FactionProfile(
         type=FactionType.CULTISTS,

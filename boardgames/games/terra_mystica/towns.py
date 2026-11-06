@@ -35,6 +35,7 @@ from boardgames.games.terra_mystica.model import (
     income_with_power,
     replace_player,
     settle_town,
+    town_power,
 )
 from boardgames.games.terra_mystica.rounds import advance_turn, round_scoring
 from boardgames.games.terra_mystica.strongholds import stronghold_reward
@@ -59,6 +60,7 @@ def town_rewards(
         player,
         river=river if owner.profile.type is FactionType.MERMAIDS else None,
         towns_left=TOWN_SUPPLY - state.towns,
+        power=town_power(owner),
     )
     if not founded:
         return board, resources, victory_points, keys, False
@@ -133,6 +135,7 @@ def _town_outcome(
     player: PlayerId,
     river: Hex | None,
     towns_left: int,
+    power: int,
 ) -> tuple[Board, bool]:
     return settle_town(
         board,
@@ -140,6 +143,7 @@ def _town_outcome(
         player,
         river=river,
         towns_left=towns_left,
+        power=power,
     )
 
 
@@ -148,9 +152,10 @@ def _changing_rivers(
     position: Hex,
     player: PlayerId,
     towns_left: int,
+    power: int,
 ) -> list[Hex]:
     """River spaces that let this component found a new town."""
-    direct = _town_outcome(board, position, player, None, towns_left)[1]
+    direct = _town_outcome(board, position, player, None, towns_left, power)[1]
     if direct:
         return []
     rivers = {
@@ -162,7 +167,7 @@ def _changing_rivers(
     return [
         river
         for river in sorted(rivers)
-        if _town_outcome(board, position, player, river, towns_left)[1]
+        if _town_outcome(board, position, player, river, towns_left, power)[1]
     ]
 
 
@@ -172,12 +177,13 @@ def build_river_choices(
     profile: FactionProfile,
     position: Hex,
     towns_left: int,
+    power: int = 7,
 ) -> list[Hex]:
     """River skips that would change a Mermaid build's town."""
     if profile.type is not FactionType.MERMAIDS:
         return []
     built = board.place(position, Building(BuildingType.DWELLING, player))
-    return _changing_rivers(built, position, player, towns_left)
+    return _changing_rivers(built, position, player, towns_left, power)
 
 
 def upgrade_river_choices(
@@ -187,6 +193,7 @@ def upgrade_river_choices(
     position: Hex,
     target: BuildingType,
     towns_left: int,
+    power: int = 7,
 ) -> list[Hex]:
     """River skips that would change a Mermaid upgrade's town."""
     if profile.type is not FactionType.MERMAIDS:
@@ -197,7 +204,7 @@ def upgrade_river_choices(
     upgraded = board.replace_tile(
         position, replace(tile, building=replace(tile.building, type=target))
     )
-    return _changing_rivers(upgraded, position, player, towns_left)
+    return _changing_rivers(upgraded, position, player, towns_left, power)
 
 
 def town_tile_actions(state: TerraMysticaState) -> list[Action]:

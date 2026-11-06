@@ -38,6 +38,7 @@ from boardgames.games.terra_mystica.decisions import (
     explain_illegal,
     legal_action_list,
 )
+from boardgames.games.terra_mystica.favor import take_favor_tile
 from boardgames.games.terra_mystica.model import (
     Action,
     AdvanceCult,
@@ -49,6 +50,7 @@ from boardgames.games.terra_mystica.model import (
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    TakeFavorTile,
     TakeTownTile,
     TerraMysticaConfig,
     TerraMysticaState,
@@ -85,7 +87,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 9
+    rules_version: ClassVar[int] = 10
 
     # Config ---------------------------------------------------------------
 
@@ -147,6 +149,14 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     "Choose one of the remaining town tiles.",
                 ),
             )
+        if state.phase == "favor_choice":
+            return (
+                Decision(
+                    state.active_player,
+                    "favor_choice",
+                    "Choose one of the remaining favor tiles.",
+                ),
+            )
         return (
             Decision(
                 state.active_player,
@@ -205,6 +215,10 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             if not isinstance(action, TakeTownTile):
                 raise IllegalActionError("choose a town tile now")
             return take_town_tile(state, player, action.index)
+        if state.phase == "favor_choice":
+            if not isinstance(action, TakeFavorTile):
+                raise IllegalActionError("choose a favor tile now")
+            return take_favor_tile(state, player, action.index)
         if state.phase != "action":
             raise IllegalActionError("the game is over")
         if player != state.active_player:

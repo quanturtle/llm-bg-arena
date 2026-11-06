@@ -22,6 +22,8 @@ from boardgames.games.terra_mystica.model import (
     building_counts,
     cap_priests,
     cult_bonus_json,
+    favor_income,
+    favor_pass_vp,
     gain_power,
     income_with_power,
     replace_player,
@@ -69,6 +71,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
     )
     sanctuary_income = profile.sanctuary_income if sanctuaries else Income()
     stronghold_income = profile.stronghold_income if strongholds else Income()
+    favor = favor_income(player)
     return Income(
         coins=(
             profile.base_income.coins
@@ -77,6 +80,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + temple_income.coins
             + sanctuary_income.coins
             + stronghold_income.coins
+            + favor.coins
         ),
         workers=(
             profile.base_income.workers
@@ -85,6 +89,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + temple_income.workers
             + sanctuary_income.workers
             + stronghold_income.workers
+            + favor.workers
         ),
         priests=(
             profile.base_income.priests
@@ -93,6 +98,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + temple_income.priests
             + sanctuary_income.priests
             + stronghold_income.priests
+            + favor.priests
         ),
         power=(
             profile.base_income.power
@@ -101,6 +107,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + temple_income.power
             + sanctuary_income.power
             + stronghold_income.power
+            + favor.power
         ),
         victory_points=profile.base_income.victory_points,
     )
@@ -129,6 +136,10 @@ def start_round(
         spade_reach_used=False,
         spade_topup=True,
         spade_require_all=False,
+        pending_favors=0,
+        pending_town=False,
+        pending_town_position=None,
+        pending_town_river=None,
     )
     events: list[Event] = [
         Event(
@@ -198,6 +209,10 @@ def start_next_round(
         spade_reach_used=False,
         spade_topup=True,
         spade_require_all=False,
+        pending_favors=0,
+        pending_town=False,
+        pending_town_position=None,
+        pending_town_river=None,
     )
     state, round_events = start_round(state)
     return Transition(state, (*events, *round_events))
@@ -344,12 +359,21 @@ def _next_unpassed(state: TerraMysticaState, player: PlayerId) -> PlayerId:
 def pass_turn(
     state: TerraMysticaState, player: PlayerId
 ) -> Transition[TerraMysticaState]:
+    owner = state.players[player]
+    trading = state.board.count(player, BuildingType.TRADING_HOUSE)
+    favor_vp = favor_pass_vp(owner, trading)
+    if favor_vp:
+        owner = replace(owner, victory_points=owner.victory_points + favor_vp)
+        state = replace_player(state, player, owner)
     passed = state.passed | {player}
     pass_order = (*state.pass_order, player)
+    text = f"{seat_label(player)} passed"
+    if favor_vp:
+        text += f" and gained {favor_vp} VP from a favor tile"
     event = Event(
         "passed",
-        f"{seat_label(player)} passed.",
-        {"player": player},
+        text + ".",
+        {"player": player, "favor_vp": favor_vp},
     )
     if len(passed) >= len(state.players):
         state = replace(state, passed=passed, pass_order=pass_order)

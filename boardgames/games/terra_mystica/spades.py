@@ -46,6 +46,7 @@ from boardgames.games.terra_mystica.model import (
     spade_cost,
     spades_for,
     terrain_distance,
+    town_power,
 )
 from boardgames.games.terra_mystica.power import (
     alchemist_trades,
@@ -226,6 +227,7 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
                     profile,
                     position,
                     TOWN_SUPPLY - state.towns,
+                    town_power(owner),
                 ):
                     actions.append(BuildDwelling(position, river=river))
 
@@ -528,6 +530,7 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
             profile,
             action.position,
             TOWN_SUPPLY - state.towns,
+            town_power(owner),
         ):
             return "That river does not change the town here."
         return "That dwelling cannot be built there now."

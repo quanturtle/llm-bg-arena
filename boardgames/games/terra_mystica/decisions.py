@@ -18,6 +18,10 @@ from boardgames.games.terra_mystica.cults import (
     explain_send_priest,
     priest_actions,
 )
+from boardgames.games.terra_mystica.favor import (
+    explain_favor,
+    favor_actions,
+)
 from boardgames.games.terra_mystica.model import (
     Action,
     AdvanceCult,
@@ -70,6 +74,8 @@ def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action
         return convert_actions(state, player)
     if state.phase == "town_choice":
         return town_tile_actions(state)
+    if state.phase == "favor_choice":
+        return favor_actions(state)
     if state.phase != "action":
         return []
     if player != state.active_player:
@@ -112,6 +118,8 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
         return explain_convert(state, player, action)
     if state.phase == "town_choice":
         return explain_town_choice(state, action)
+    if state.phase == "favor_choice":
+        return explain_favor(state, action)
     if state.phase != "action":
         return "The game is over."
     if player != state.active_player:

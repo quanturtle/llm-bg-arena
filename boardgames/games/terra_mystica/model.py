@@ -10,6 +10,7 @@ from boardgames.games.terra_mystica.constants import (
     CULT_ORDER,
     CULT_POWER_THRESHOLDS,
     FACTION_BY_TYPE,
+    FAVOR_TILES,
     MAX_BUILDINGS,
     POWER_VALUES,
     PRIEST_SUPPLY,
@@ -21,6 +22,7 @@ from boardgames.games.terra_mystica.constants import (
     CultPositions,
     FactionProfile,
     FactionType,
+    FavorTile,
     Income,
     PowerActionKind,
     Resources,
@@ -29,7 +31,13 @@ from boardgames.games.terra_mystica.constants import (
 )
 
 type Phase = Literal[
-    "setup", "action", "cult_spades", "stronghold_convert", "town_choice", "game_over"
+    "setup",
+    "action",
+    "cult_spades",
+    "stronghold_convert",
+    "town_choice",
+    "favor_choice",
+    "game_over",
 ]
 
 
@@ -260,6 +268,7 @@ class PlayerState:
     shipping: int = 0
     digging: int = 0
     keys: int = 0
+    favors: frozenset[int] = frozenset()
 
     @property
     def profile(self) -> FactionProfile:
@@ -309,6 +318,10 @@ class TerraMysticaState:
     towns: int = 0
     town_tiles: tuple[int, ...] = (2, 2, 2, 2, 2)
     pending_stronghold: bool = False
+    pending_favors: int = 0
+    pending_town: bool = False
+    pending_town_position: Hex | None = None
+    pending_town_river: Hex | None = None
     spade_return: Literal["round", "action"] = "round"
     spade_actor: PlayerId | None = None
     power_spade_tiles: tuple[Hex, ...] = ()
@@ -395,6 +408,13 @@ class TakeTownTile:
 
 
 @dataclass(frozen=True)
+class TakeFavorTile:
+    """Choose one of the remaining temple favor tiles."""
+
+    index: int
+
+
+@dataclass(frozen=True)
 class PowerAction:
     """Spend charged power for a resource from the shared power actions."""
 
@@ -439,6 +459,7 @@ type Action = (
     | AdvanceCult
     | ChooseStrongholdPriests
     | TakeTownTile
+    | TakeFavorTile
     | PowerAction
     | UseCultSpade
     | SkipCultSpade
@@ -459,6 +480,52 @@ def replace_player(
     state: TerraMysticaState, player: PlayerId, new_player: PlayerState
 ) -> TerraMysticaState:
     return replace(state, players=replace_at(state.players, player, new_player))
+
+
+def favor_tiles(player: PlayerState) -> tuple[FavorTile, ...]:
+    """The player's favor tiles in index order."""
+    return tuple(FAVOR_TILES[index] for index in sorted(player.favors))
+
+
+def available_favors(state: TerraMysticaState) -> tuple[int, ...]:
+    """The favor tiles no player has taken."""
+    taken = set().union(*(player.favors for player in state.players))
+    return tuple(index for index in range(len(FAVOR_TILES)) if index not in taken)
+
+
+def favor_income(player: PlayerState) -> Income:
+    """The extra income from the player's favor tiles."""
+    return Income(
+        coins=sum(FAVOR_TILES[index].income.coins for index in player.favors),
+        workers=sum(FAVOR_TILES[index].income.workers for index in player.favors),
+        priests=sum(FAVOR_TILES[index].income.priests for index in player.favors),
+        power=sum(FAVOR_TILES[index].income.power for index in player.favors),
+    )
+
+
+def favor_build_vp(player: PlayerState, building: BuildingType) -> int:
+    """Victory points a favor tile pays when `building` is built."""
+    return sum(
+        vp
+        for index in player.favors
+        for kind, vp in FAVOR_TILES[index].build_vp
+        if kind is building
+    )
+
+
+def favor_pass_vp(player: PlayerState, trading_houses: int) -> int:
+    """Victory points a favor tile pays when the player passes."""
+    total = 0
+    for index in player.favors:
+        values = FAVOR_TILES[index].pass_vp
+        if values:
+            total += values[min(trading_houses, len(values) - 1)]
+    return total
+
+
+def town_power(player: PlayerState) -> int:
+    """The power a town needs for this player, after favor tile 4."""
+    return 7 + sum(FAVOR_TILES[index].town_power for index in player.favors)
 
 
 def income_with_power(resources: Resources, income: Income) -> Resources:
@@ -741,9 +808,9 @@ def component_has_sanctuary(board: Board, positions: tuple[Hex, ...]) -> bool:
     return False
 
 
-def town_ready(board: Board, positions: tuple[Hex, ...]) -> bool:
+def town_ready(board: Board, positions: tuple[Hex, ...], power: int = 7) -> bool:
     minimum = 3 if component_has_sanctuary(board, positions) else 4
-    return len(positions) >= minimum and component_power(board, positions) >= 7
+    return len(positions) >= minimum and component_power(board, positions) >= power
 
 
 def mark_town(board: Board, positions: tuple[Hex, ...]) -> Board:
@@ -791,6 +858,7 @@ def settle_town(
     player: PlayerId,
     *,
     towns_left: int,
+    power: int = 7,
     river: Hex | None = None,
 ) -> tuple[Board, bool]:
     """Mark a new or expanded town; True when a new town was founded.
@@ -808,7 +876,7 @@ def settle_town(
         return mark_town(board, component), False
     if towns_left <= 0:
         return board, False
-    if town_ready(board, component):
+    if town_ready(board, component, power):
         return mark_town(board, component), True
     return board, False
 
