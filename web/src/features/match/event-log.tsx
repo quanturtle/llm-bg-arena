@@ -15,7 +15,8 @@ function isVisible(event: EventRecord, step: number, viewer: number | null, omni
   return viewer !== null && event.audience.includes(viewer);
 }
 
-// One row: the step in a column wide enough for five digits, the kind's icon, then the message.
+// One row: the step in a column wide enough for five digits, the kind's icon centered on the
+// message's first line, then the message.
 const EventRow = memo(function EventRow({
   event,
   isCurrent,
@@ -39,7 +40,7 @@ const EventRow = memo(function EventRow({
       )}
     >
       <span className="text-right text-xs text-muted-foreground tabular-nums">{event.step}</span>
-      <Icon className="size-3.5 self-center text-muted-foreground" aria-hidden="true" />
+      <Icon className="mt-[3px] size-3.5 self-start text-muted-foreground" aria-hidden="true" />
       <span>
         <SeatText text={event.text + seenBy} players={players} />
       </span>
@@ -66,7 +67,7 @@ function ResultRow({ outline, step }: { outline: Outline; step: number }) {
       className="grid grid-cols-[5ch_1rem_minmax(0,1fr)] items-baseline gap-x-2 border-l-2 border-emerald-500 bg-emerald-500/10 px-2 py-1 text-sm font-semibold"
     >
       <span className="text-right text-xs tabular-nums">{final}</span>
-      <Icon className="size-3.5 self-center text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+      <Icon className="mt-[3px] size-3.5 self-start text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
       <span>
         <SeatText text={text} players={match.seats.length} />
       </span>
