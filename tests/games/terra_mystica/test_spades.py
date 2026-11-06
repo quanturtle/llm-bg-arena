@@ -423,14 +423,14 @@ def test_darklings_can_top_up_the_first_non_home_spade_and_score() -> None:
     assert tile is not None
     state = replace(
         state,
-        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.PLAINS)),
+        board=state.board.replace_tile(first, replace(tile, terrain=Terrain.LAKE)),
     )
-    action = UseCultSpade(first, Terrain.LAKE)
+    action = UseCultSpade(first, Terrain.MOUNTAIN)
     assert action in listing(state)
     before = state.players[player]
     after = GAME.apply(state, player, action).state
     tile = after.board.tile(first)
-    assert tile is not None and tile.terrain is Terrain.LAKE
+    assert tile is not None and tile.terrain is Terrain.MOUNTAIN
     assert after.players[player].resources.priests == before.resources.priests - 1
     assert after.players[player].victory_points == before.victory_points + 2
     assert after.phase == "action"

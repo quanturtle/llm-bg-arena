@@ -60,6 +60,40 @@ def test_build_dwelling_uses_an_adjacent_home_tile() -> None:
     assert tile.building.owner == player
 
 
+def test_transform_around_home_terrain_costs_the_long_way() -> None:
+    state = play_setup(start(num_players=2, seed=1))
+    player = state.order[0]
+    mountain = next(
+        tile
+        for tile in state.board.tiles
+        if tile.terrain is Terrain.MOUNTAIN and tile.building is None
+    )
+    neighbour = next(
+        position
+        for position in mountain.position.neighbours()
+        if (tile := state.board.tile(position)) is not None
+        and tile.is_land
+        and tile.building is None
+    )
+    state = action_state(state, player, (neighbour, BuildingType.DWELLING))
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.CHAOS_MAGICIANS,
+            resources=Resources(coins=50, workers=50),
+        ),
+    )
+    action = TransformTerrain(mountain.position, Terrain.DESERT)
+    assert action in listing(state)
+    before = state.players[player].resources.workers
+    after = GAME.apply(state, player, action).state
+    assert after.players[player].resources.workers == before - 15
+    tile = after.board.tile(mountain.position)
+    assert tile is not None and tile.terrain is Terrain.DESERT
+
+
 def test_build_dwelling_requires_adjacency() -> None:
     state = play_setup(start(num_players=2, seed=2))
     player = state.active_player

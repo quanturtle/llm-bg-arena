@@ -11,6 +11,7 @@ from boardgames.games.terra_mystica.constants import (
     FactionType,
     Income,
     Resources,
+    Terrain,
 )
 from boardgames.games.terra_mystica.model import (
     PlayerState,
@@ -21,6 +22,7 @@ from boardgames.games.terra_mystica.model import (
     spade_cost,
     spades_for,
     spend_power,
+    transform_distance,
 )
 
 
@@ -106,3 +108,11 @@ def test_trading_house_costs_less_next_to_an_opponent() -> None:
     swarmlings = FACTION_BY_TYPE[FactionType.SWARMLINGS]
     assert building_cost(swarmlings, BuildingType.TRADING_HOUSE, False).coins == 8
     assert building_cost(swarmlings, BuildingType.TRADING_HOUSE, True).coins == 4
+
+
+def test_transform_distance_goes_around_home_terrain() -> None:
+    assert transform_distance(Terrain.MOUNTAIN, Terrain.DESERT, Terrain.WASTELAND) == 5
+    assert (
+        transform_distance(Terrain.MOUNTAIN, Terrain.WASTELAND, Terrain.WASTELAND) == 1
+    )
+    assert transform_distance(Terrain.WASTELAND, Terrain.DESERT, Terrain.WASTELAND) == 1

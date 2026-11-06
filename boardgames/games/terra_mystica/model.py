@@ -612,6 +612,36 @@ def terrain_toward(source: Terrain, target: Terrain, steps: int) -> Terrain:
     return TERRAIN_WHEEL[(start + step * steps) % len(TERRAIN_WHEEL)]
 
 
+def transform_distance(source: Terrain, target: Terrain, home: Terrain) -> int:
+    """Spades to transform `source` into `target`, going around home terrain."""
+    if source is Terrain.RIVER or target is Terrain.RIVER or home is Terrain.RIVER:
+        raise ValueError("rivers are not part of the terrain wheel")
+    distance = terrain_distance(source, target)
+    if source is home or target is home:
+        return distance
+    if terrain_distance(source, home) + terrain_distance(home, target) == distance:
+        return len(TERRAIN_WHEEL) - distance
+    return distance
+
+
+def transform_toward(
+    source: Terrain, target: Terrain, home: Terrain, steps: int
+) -> Terrain:
+    """Move `steps` along the allowed wheel path from `source` toward `target`."""
+    if source is Terrain.RIVER or target is Terrain.RIVER or home is Terrain.RIVER:
+        raise ValueError("rivers are not part of the terrain wheel")
+    distance = transform_distance(source, target, home)
+    if steps >= distance:
+        return target
+    start = TERRAIN_WHEEL.index(source)
+    end = TERRAIN_WHEEL.index(target)
+    clockwise = (end - start) % len(TERRAIN_WHEEL) <= len(TERRAIN_WHEEL) // 2
+    if distance != terrain_distance(source, target):
+        clockwise = not clockwise
+    step = 1 if clockwise else -1
+    return TERRAIN_WHEEL[(start + step * steps) % len(TERRAIN_WHEEL)]
+
+
 def spades_for(profile: FactionProfile, terrain: Terrain) -> int:
     """Spades needed to turn `terrain` into the faction's home terrain."""
     if terrain is profile.home_terrain:

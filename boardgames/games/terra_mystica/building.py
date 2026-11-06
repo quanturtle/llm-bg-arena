@@ -44,7 +44,7 @@ from boardgames.games.terra_mystica.model import (
     shipping_points,
     spade_cost,
     spades_for,
-    terrain_distance,
+    transform_distance,
 )
 from boardgames.games.terra_mystica.rounds import advance_turn, round_scoring
 from boardgames.games.terra_mystica.strongholds import stronghold_reward
@@ -203,7 +203,7 @@ def transform_terrain(
     tunneling = reach > 0 and not adjacent_to_own(state.board, player, position)
     spades = spades_for(profile, tile.terrain)
     if target is not profile.home_terrain:
-        spades = terrain_distance(tile.terrain, target)
+        spades = transform_distance(tile.terrain, target, profile.home_terrain)
     cost = spade_cost(profile, owner.digging, spades)
     if tunneling:
         cost = add_costs(cost, effective_reach_cost(state.board, player, profile))
@@ -464,7 +464,7 @@ def _transform_actions(
             cost = spade_cost(
                 profile,
                 owner.digging,
-                terrain_distance(tile.terrain, target),
+                transform_distance(tile.terrain, target, profile.home_terrain),
             )
             if profile.reach > 0 and not adjacent_to_own(
                 state.board, player, tile.position
@@ -687,7 +687,7 @@ def explain_transform(
         )
     spades = spades_for(profile, tile.terrain)
     if target is not profile.home_terrain:
-        spades = terrain_distance(tile.terrain, target)
+        spades = transform_distance(tile.terrain, target, profile.home_terrain)
     transform_cost = spade_cost(profile, owner.digging, spades)
     if reach > 0 and not adjacent_to_own(state.board, player, action.position):
         transform_cost = add_costs(
