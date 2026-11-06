@@ -10,6 +10,7 @@ from boardgames.games.terra_mystica import (
     Hex,
     Pass,
     TakeFavorTile,
+    TakeTownTile,
     TerraMysticaState,
     UpgradeBuilding,
 )
@@ -43,9 +44,7 @@ def _temple_state(
     state = start(num_players=2, seed=1)
     player = state.order[0]
     tile = next(
-        tile
-        for tile in state.board.tiles
-        if tile.is_land and tile.building is None
+        tile for tile in state.board.tiles if tile.is_land and tile.building is None
     )
     state = action_state(state, player, (tile.position, BuildingType.TRADING_HOUSE))
     state = replace_player(
@@ -95,9 +94,7 @@ def test_sanctuary_grants_a_favor_tile() -> None:
     state = start(num_players=2, seed=1)
     player = state.order[0]
     tile = next(
-        tile
-        for tile in state.board.tiles
-        if tile.is_land and tile.building is None
+        tile for tile in state.board.tiles if tile.is_land and tile.building is None
     )
     state = action_state(state, player, (tile.position, BuildingType.TEMPLE))
     state = GAME.apply(
@@ -119,8 +116,7 @@ def test_favor_choice_comes_before_the_town_tile() -> None:
             [
                 neighbour
                 for neighbour in tile.position.neighbours()
-                if (other := state.board.tile(neighbour)) is not None
-                and other.is_land
+                if (other := state.board.tile(neighbour)) is not None and other.is_land
             ]
         )
         >= 3
@@ -161,8 +157,7 @@ def test_favor_five_can_complete_the_current_town() -> None:
             [
                 neighbour
                 for neighbour in tile.position.neighbours()
-                if (other := state.board.tile(neighbour)) is not None
-                and other.is_land
+                if (other := state.board.tile(neighbour)) is not None and other.is_land
             ]
         )
         >= 3
@@ -186,6 +181,71 @@ def test_favor_five_can_complete_the_current_town() -> None:
     assert state.phase == "favor_choice"
     state = GAME.apply(state, player, TakeFavorTile(4)).state
     assert state.phase == "town_choice"
+
+
+def _two_power_six_groups(
+    state: TerraMysticaState,
+) -> list[tuple[Hex, list[Hex]]]:
+    groups: list[tuple[Hex, list[Hex]]] = []
+    blocked: set[Hex] = set()
+    for tile in state.board.tiles:
+        if not tile.is_land or tile.building is not None or tile.position in blocked:
+            continue
+        neighbours = [
+            neighbour
+            for neighbour in tile.position.neighbours()
+            if (other := state.board.tile(neighbour)) is not None
+            and other.is_land
+            and other.building is None
+            and neighbour not in blocked
+        ]
+        if len(neighbours) < 3:
+            continue
+        groups.append((tile.position, neighbours[:3]))
+        for position in (tile.position, *neighbours[:3]):
+            blocked.add(position)
+            blocked.update(position.neighbours())
+        if len(groups) == 2:
+            return groups
+    raise AssertionError("not enough separate groups")
+
+
+def test_favor_four_founds_every_ready_group() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    groups = _two_power_six_groups(state)
+    placements = [
+        (position, kind)
+        for center, neighbours in groups
+        for position, kind in zip(
+            (center, *neighbours),
+            (
+                BuildingType.TRADING_HOUSE,
+                BuildingType.TRADING_HOUSE,
+                BuildingType.DWELLING,
+                BuildingType.DWELLING,
+            ),
+            strict=True,
+        )
+    ]
+    state = action_state(state, player, *placements)
+    state = replace(
+        state,
+        phase="favor_choice",
+        active_player=player,
+        pending_favors=1,
+        pending_town=True,
+        pending_town_position=groups[0][0],
+    )
+    state = GAME.apply(state, player, TakeFavorTile(4)).state
+    assert state.phase == "town_choice"
+    assert state.pending_towns == 2
+    assert state.towns == 2
+    state = GAME.apply(state, player, TakeTownTile(0)).state
+    assert state.phase == "town_choice"
+    state = GAME.apply(state, player, TakeTownTile(1)).state
+    assert state.pending_towns == 0
+    assert state.phase == "action"
 
 
 def test_favor_tiles_add_income() -> None:
@@ -232,9 +292,7 @@ def test_favor_tiles_pay_vp_for_buildings() -> None:
     state = start(num_players=2, seed=1)
     player = state.order[0]
     tile = next(
-        tile
-        for tile in state.board.tiles
-        if tile.is_land and tile.building is None
+        tile for tile in state.board.tiles if tile.is_land and tile.building is None
     )
     state = action_state(state, player, (tile.position, BuildingType.DWELLING))
     state = replace_player(

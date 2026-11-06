@@ -25,6 +25,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BuildBridge,
     BuildDwelling,
     ChooseStrongholdPriests,
     Hex,
@@ -75,8 +76,17 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "cult_spades": list(state.cult_spades),
         "spade_return": state.spade_return,
         "town_tiles": list(state.town_tiles),
+        "bridges": [
+            {
+                "owner": bridge.owner,
+                "first": bridge.first.notation(),
+                "second": bridge.second.notation(),
+            }
+            for bridge in state.bridges
+        ],
         "pending_favors": state.pending_favors,
         "pending_town": state.pending_town,
+        "pending_towns": state.pending_towns,
         "used_orders": [
             {"cult": cult.value, "order": order, "player": player}
             for (cult, order), player in sorted(
@@ -168,6 +178,7 @@ def render_text(observation: Observation) -> str:
     lines.append(orders_line(data))
     lines.append(passed_line(data))
     lines.append(power_actions_line(data))
+    lines.append(bridges_line(data))
     spades = cult_spades_line(data)
     if spades:
         lines.append(spades)
@@ -185,7 +196,8 @@ def render_text(observation: Observation) -> str:
         "shipping; digging; priest fire|water|earth|air 0-3; "
         "advance fire|water|earth|air; "
         "power priest|workers|coins|spade|double_spade; town 0-4; "
-        "favor 0-11; stronghold 0-3; spade q,r [to T]; skip spade; "
+        "favor 0-11; bridge q,r q,r [workers]; stronghold 0-3; "
+        "spade q,r [to T]; skip spade; "
         "alchemist vp|coins; pass."
     )
     return "\n".join(lines)
@@ -250,6 +262,18 @@ def passed_line(data: JsonObject) -> str:
 def power_actions_line(data: JsonObject) -> str:
     actions = _strings(data, "used_power_actions")
     return "Power actions used this round: " + (", ".join(actions) or "none") + "."
+
+
+def bridges_line(data: JsonObject) -> str:
+    bridges = _objects(data, "bridges")
+    if not bridges:
+        return "Bridges: none."
+    parts = [
+        f"{seat_label(PlayerId(_int(bridge, 'owner')))} "
+        f"{_str(bridge, 'first')}-{_str(bridge, 'second')}"
+        for bridge in bridges
+    ]
+    return "Bridges: " + ", ".join(parts) + "."
 
 
 def cult_spades_line(data: JsonObject) -> str:
@@ -348,6 +372,12 @@ def describe_action(observation: Observation, action: Action) -> str:
             suffix = "" if river is None else f" across river {river.notation()}"
             detail = _build_detail(observation.data, position)
             return f"Build a dwelling at {position.notation()}{suffix}{detail}."
+        case BuildBridge(first=first, second=second, payment=payment):
+            bridge_cost = "3 power" if payment == "power" else "2 workers"
+            return (
+                f"Build a bridge between {first.notation()} and "
+                f"{second.notation()} for {bridge_cost}."
+            )
         case TransformTerrain(position=position, to=terrain):
             target = "your home terrain" if terrain is None else terrain.value
             detail = _transform_detail(observation.data, position, terrain)
@@ -376,9 +406,7 @@ def describe_action(observation: Observation, action: Action) -> str:
             return f"Take town tile {index}."
         case TakeFavorTile(index=index):
             label = (
-                FAVOR_TILES[index].label
-                if 0 <= index < len(FAVOR_TILES)
-                else "unknown"
+                FAVOR_TILES[index].label if 0 <= index < len(FAVOR_TILES) else "unknown"
             )
             return f"Take favor tile {index} ({label})."
         case PowerAction(kind=kind):

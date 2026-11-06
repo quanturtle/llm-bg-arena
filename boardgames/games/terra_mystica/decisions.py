@@ -5,6 +5,10 @@ picks the one that applies to the current phase and action.
 """
 
 from boardgames.core import PlayerId, seat_label
+from boardgames.games.terra_mystica.bridges import (
+    bridge_actions,
+    explain_bridge,
+)
 from boardgames.games.terra_mystica.building import (
     building_actions,
     explain_build,
@@ -27,6 +31,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BuildBridge,
     BuildDwelling,
     Pass,
     PowerAction,
@@ -58,6 +63,7 @@ from boardgames.games.terra_mystica.towns import (
 
 def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     actions = building_actions(state, player)
+    actions.extend(bridge_actions(state, player))
     actions.extend(priest_actions(state, player))
     actions.extend(power_actions(state, player))
     actions.extend(alchemist_trades(state, player))
@@ -86,6 +92,8 @@ def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action
 def _explain_action(state: TerraMysticaState, player: PlayerId, action: Action) -> str:
     if isinstance(action, BuildDwelling):
         return explain_build(state, player, action)
+    if isinstance(action, BuildBridge):
+        return explain_bridge(state, player, action)
     if isinstance(action, TransformTerrain):
         return explain_transform(state, player, action)
     if isinstance(action, UpgradeBuilding):

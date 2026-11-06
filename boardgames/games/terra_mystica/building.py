@@ -26,6 +26,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceDigging,
     AdvanceShipping,
     Board,
+    Bridge,
     BuildDwelling,
     Building,
     Hex,
@@ -54,6 +55,7 @@ from boardgames.games.terra_mystica.strongholds import stronghold_reward
 from boardgames.games.terra_mystica.towns import (
     build_river_choices,
     town_rewards,
+    town_tile_actions,
     upgrade_river_choices,
 )
 
@@ -129,7 +131,7 @@ def build_dwelling(
         victory_points += SCORING_VALUES[ScoringAction.DWELLING]
     favor_vp = favor_build_vp(owner, BuildingType.DWELLING)
     victory_points += favor_vp
-    board, resources, victory_points, keys, founded = town_rewards(
+    board, resources, victory_points, keys, founded, town_events = town_rewards(
         state,
         player,
         board,
@@ -148,7 +150,7 @@ def build_dwelling(
     state = replace_player(state, player, owner)
     state = replace(state, board=board)
     if founded:
-        state = replace(state, towns=state.towns + 1)
+        state = replace(state, towns=state.towns + founded)
     route = ""
     if tunneling:
         route = " by tunneling" if profile.reach_cost.workers else " by carpet flight"
@@ -169,15 +171,14 @@ def build_dwelling(
             },
         )
     ]
-    if founded:
-        events.append(
-            Event(
-                "town_founded",
-                f"{seat_label(player)} founded a town at {position.notation()}.",
-                {"player": player, "position": position.notation()},
-            )
+    events.extend(town_events)
+    if founded and town_tile_actions(state):
+        state = replace(
+            state,
+            phase="town_choice",
+            active_player=player,
+            pending_towns=founded,
         )
-        state = replace(state, phase="town_choice", active_player=player)
         return Transition(state, tuple(events))
     return advance_turn(state, player, tuple(events))
 
@@ -342,7 +343,7 @@ def upgrade_building(
             pending_town_river=river,
         )
         return Transition(state, (upgraded_event,))
-    board, resources, victory_points, keys, founded = town_rewards(
+    board, resources, victory_points, keys, founded, town_events = town_rewards(
         state,
         player,
         board,
@@ -361,30 +362,28 @@ def upgrade_building(
     state = replace_player(state, player, owner)
     state = replace(state, board=board)
     if founded:
-        state = replace(state, towns=state.towns + 1)
-    events = [upgraded_event]
-    if founded:
-        events.append(
-            Event(
-                "town_founded",
-                f"{seat_label(player)} founded a town at {position.notation()}.",
-                {"player": player, "position": position.notation()},
-            )
-        )
+        state = replace(state, towns=state.towns + founded)
+    events = [upgraded_event, *town_events]
     if target is BuildingType.STRONGHOLD:
-        if founded:
+        if founded and town_tile_actions(state):
             state = replace(
                 state,
                 phase="town_choice",
                 active_player=player,
+                pending_towns=founded,
                 pending_stronghold=True,
             )
             return Transition(state, tuple(events))
         state, events = stronghold_reward(state, player, events)
         if state.phase in ("cult_spades", "stronghold_convert"):
             return Transition(state, tuple(events))
-    if founded:
-        state = replace(state, phase="town_choice", active_player=player)
+    if founded and town_tile_actions(state):
+        state = replace(
+            state,
+            phase="town_choice",
+            active_player=player,
+            pending_towns=founded,
+        )
         return Transition(state, tuple(events))
     return advance_turn(state, player, tuple(events))
 
@@ -467,6 +466,7 @@ def _dwelling_actions(
                 tile.position,
                 TOWN_SUPPLY - state.towns,
                 town_power(owner),
+                state.bridges,
             ):
                 actions.append(BuildDwelling(tile.position, river=river))
     return actions
@@ -526,11 +526,12 @@ def _append_upgrade(
     target: BuildingType,
     towns_left: int,
     power: int,
+    bridges: tuple[Bridge, ...],
 ) -> None:
     """List an upgrade and each Mermaid river skip that changes its town."""
     actions.append(UpgradeBuilding(position, target))
     for river in upgrade_river_choices(
-        board, player, profile, position, target, towns_left, power
+        board, player, profile, position, target, towns_left, power, bridges
     ):
         actions.append(UpgradeBuilding(position, target, river=river))
 
@@ -559,6 +560,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                     BuildingType.TRADING_HOUSE,
                     TOWN_SUPPLY - state.towns,
                     town_power(owner),
+                    state.bridges,
                 )
         if (
             building.type is BuildingType.TRADING_HOUSE
@@ -574,6 +576,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                 BuildingType.TEMPLE,
                 TOWN_SUPPLY - state.towns,
                 town_power(owner),
+                state.bridges,
             )
         if (
             building.type is BuildingType.TRADING_HOUSE
@@ -589,6 +592,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                 BuildingType.STRONGHOLD,
                 TOWN_SUPPLY - state.towns,
                 town_power(owner),
+                state.bridges,
             )
         if (
             building.type is BuildingType.TEMPLE
@@ -604,6 +608,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                 BuildingType.SANCTUARY,
                 TOWN_SUPPLY - state.towns,
                 town_power(owner),
+                state.bridges,
             )
     return actions
 
@@ -677,6 +682,7 @@ def explain_build(
             action.position,
             TOWN_SUPPLY - state.towns,
             town_power(owner),
+            state.bridges,
         ):
             return "That river does not change the town here."
     if (
@@ -768,6 +774,7 @@ def explain_upgrade(
             action.to,
             TOWN_SUPPLY - state.towns,
             town_power(owner),
+            state.bridges,
         ):
             return "That river does not change the town here."
     upgrade_cost = building_cost(

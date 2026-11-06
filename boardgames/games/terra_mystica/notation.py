@@ -1,7 +1,7 @@
 """Text notation for Terra Mystica actions: one canonical form, strict parsing."""
 
 import re
-from typing import cast
+from typing import Literal, cast
 
 from boardgames.core import NotationError
 from boardgames.games.terra_mystica.constants import (
@@ -16,6 +16,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BuildBridge,
     BuildDwelling,
     ChooseStrongholdPriests,
     Hex,
@@ -43,6 +44,7 @@ TOWN_PATTERN = re.compile(r"town ([0-4])")
 FAVOR_PATTERN = re.compile(r"favor (0|1[01]|[0-9])")
 POWER_PATTERN = re.compile(rf"power ({'|'.join(POWER_ACTION_KINDS)})")
 CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}(?: to ([a-z]+))?")
+BRIDGE_PATTERN = re.compile(rf"bridge {HEX_TEXT} {HEX_TEXT}(?: (workers))?")
 
 BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingType)
 TERRAINS: frozenset[str] = frozenset(
@@ -56,6 +58,9 @@ def format_action(action: Action) -> str:
         case BuildDwelling(position=position, river=river):
             suffix = "" if river is None else f" river {river.notation()}"
             return f"build {position.notation()}{suffix}"
+        case BuildBridge(first=first, second=second, payment=payment):
+            suffix = " workers" if payment == "workers" else ""
+            return f"bridge {first.notation()} {second.notation()}{suffix}"
         case TransformTerrain(position=position, to=terrain):
             suffix = "" if terrain is None else f" to {terrain.value}"
             return f"transform {position.notation()}{suffix}"
@@ -110,6 +115,13 @@ def parse_action(text: str) -> Action:
             else parse_hex(match.group(3), match.group(4))
         )
         return BuildDwelling(parse_hex(match.group(1), match.group(2)), river=river)
+    if match := BRIDGE_PATTERN.fullmatch(text):
+        payment: Literal["power", "workers"] = "workers" if match.group(5) else "power"
+        return BuildBridge(
+            parse_hex(match.group(1), match.group(2)),
+            parse_hex(match.group(3), match.group(4)),
+            payment,
+        )
     if match := TRANSFORM_PATTERN.fullmatch(text):
         terrain = parse_terrain(match.group(3))
         return TransformTerrain(parse_hex(match.group(1), match.group(2)), terrain)

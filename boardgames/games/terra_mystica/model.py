@@ -83,6 +83,15 @@ class Building:
 
 
 @dataclass(frozen=True)
+class Bridge:
+    """A player's bridge between two land spaces across a river."""
+
+    owner: PlayerId
+    first: Hex
+    second: Hex
+
+
+@dataclass(frozen=True)
 class Tile:
     """One map hex."""
 
@@ -227,7 +236,22 @@ class Board:
                     seen.add(neighbour)
                     queue.append((neighbour, depth + 1))
 
-    def connected(self, start: Hex, player: PlayerId) -> tuple[Hex, ...]:
+    def bridge_neighbours(
+        self, position: Hex, bridges: tuple[Bridge, ...] = ()
+    ) -> tuple[Hex, ...]:
+        """Spaces joined to `position` by a bridge."""
+        return tuple(
+            bridge.second if bridge.first == position else bridge.first
+            for bridge in bridges
+            if position in (bridge.first, bridge.second)
+        )
+
+    def connected(
+        self,
+        start: Hex,
+        player: PlayerId,
+        bridges: tuple[Bridge, ...] = (),
+    ) -> tuple[Hex, ...]:
         """The player's connected structures through the start hex."""
         found: list[Hex] = []
         queue: list[Hex] = [start]
@@ -235,7 +259,11 @@ class Board:
         while queue:
             position = queue.pop(0)
             found.append(position)
-            for neighbour in position.neighbours():
+            neighbours = (
+                *position.neighbours(),
+                *self.bridge_neighbours(position, bridges),
+            )
+            for neighbour in neighbours:
                 tile = self.tile(neighbour)
                 if (
                     tile is not None
@@ -317,6 +345,8 @@ class TerraMysticaState:
     used_orders: Mapping[tuple[Cult, int], PlayerId]
     towns: int = 0
     town_tiles: tuple[int, ...] = (2, 2, 2, 2, 2)
+    bridges: tuple[Bridge, ...] = ()
+    pending_towns: int = 0
     pending_stronghold: bool = False
     pending_favors: int = 0
     pending_town: bool = False
@@ -415,6 +445,15 @@ class TakeFavorTile:
 
 
 @dataclass(frozen=True)
+class BuildBridge:
+    """Build a bridge between two land spaces across a river."""
+
+    first: Hex
+    second: Hex
+    payment: Literal["power", "workers"] = "power"
+
+
+@dataclass(frozen=True)
 class PowerAction:
     """Spend charged power for a resource from the shared power actions."""
 
@@ -460,6 +499,7 @@ type Action = (
     | ChooseStrongholdPriests
     | TakeTownTile
     | TakeFavorTile
+    | BuildBridge
     | PowerAction
     | UseCultSpade
     | SkipCultSpade
@@ -829,9 +869,10 @@ def town_component(
     position: Hex,
     player: PlayerId,
     river: Hex | None = None,
+    bridges: tuple[Bridge, ...] = (),
 ) -> tuple[Hex, ...]:
     """The structures in a town component, optionally crossing one river."""
-    direct = set(board.connected(position, player))
+    direct = set(board.connected(position, player, bridges))
     if river is None:
         return tuple(direct)
     river_tile = board.tile(river)
@@ -848,7 +889,7 @@ def town_component(
         return tuple(direct)
     component = set(direct)
     for start in across:
-        component |= set(board.connected(start, player))
+        component |= set(board.connected(start, player, bridges))
     return tuple(component)
 
 
@@ -860,12 +901,13 @@ def settle_town(
     towns_left: int,
     power: int = 7,
     river: Hex | None = None,
+    bridges: tuple[Bridge, ...] = (),
 ) -> tuple[Board, bool]:
     """Mark a new or expanded town; True when a new town was founded.
 
     Towns need direct adjacency; Mermaids may ignore the one river space `river`.
     """
-    component = town_component(board, position, player, river)
+    component = town_component(board, position, player, river, bridges)
     already = any(
         (tile := board.tile(hex_position)) is not None
         and tile.building is not None
@@ -879,6 +921,44 @@ def settle_town(
     if town_ready(board, component, power):
         return mark_town(board, component), True
     return board, False
+
+
+def found_ready_towns(
+    board: Board,
+    player: PlayerId,
+    power: int,
+    towns_left: int,
+    bridges: tuple[Bridge, ...] = (),
+) -> tuple[Board, tuple[Hex, ...]]:
+    """Mark every ready group and return the new town positions."""
+    founded: list[Hex] = []
+    occupied = sorted(
+        tile.position
+        for tile in board.tiles
+        if tile.building is not None and tile.building.owner == player
+    )
+    visited: set[Hex] = set()
+    for start in occupied:
+        if start in visited:
+            continue
+        component = board.connected(start, player, bridges)
+        visited.update(component)
+        already = any(
+            (tile := board.tile(position)) is not None
+            and tile.building is not None
+            and tile.building.in_town
+            for position in component
+        )
+        if already:
+            board = mark_town(board, component)
+            continue
+        if towns_left <= 0:
+            break
+        if town_ready(board, component, power):
+            board = mark_town(board, component)
+            founded.append(start)
+            towns_left -= 1
+    return board, tuple(founded)
 
 
 def building_counts(board: Board, player: PlayerId) -> dict[BuildingType, int]:

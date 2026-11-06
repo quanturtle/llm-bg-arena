@@ -14,7 +14,7 @@ from boardgames.games.terra_mystica.model import (
     replace_player,
 )
 from boardgames.games.terra_mystica.rounds import advance_turn
-from boardgames.games.terra_mystica.towns import town_rewards
+from boardgames.games.terra_mystica.towns import town_rewards, town_tile_actions
 
 
 def favor_actions(state: TerraMysticaState) -> list[Action]:
@@ -72,7 +72,7 @@ def take_favor_tile(
     town_position = state.pending_town_position
     if state.pending_town and town_position is not None:
         owner = state.players[player]
-        board, resources, victory_points, keys, founded = town_rewards(
+        board, resources, victory_points, keys, founded, town_events = town_rewards(
             state,
             player,
             state.board,
@@ -96,18 +96,16 @@ def take_favor_tile(
             pending_town_position=None,
             pending_town_river=None,
         )
-        events = [event]
         if founded:
-            state = replace(state, towns=state.towns + 1)
-            events.append(
-                Event(
-                    "town_founded",
-                    f"{seat_label(player)} founded a town at "
-                    f"{town_position.notation()}.",
-                    {"player": player, "position": town_position.notation()},
-                )
+            state = replace(state, towns=state.towns + founded)
+        events = [event, *town_events]
+        if founded and town_tile_actions(state):
+            state = replace(
+                state,
+                phase="town_choice",
+                active_player=player,
+                pending_towns=founded,
             )
-            state = replace(state, phase="town_choice", active_player=player)
             return Transition(state, tuple(events))
         state = replace(state, phase="action", active_player=player)
         return advance_turn(state, player, tuple(events))

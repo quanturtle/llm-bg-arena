@@ -228,6 +228,7 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
                     position,
                     TOWN_SUPPLY - state.towns,
                     town_power(owner),
+                    state.bridges,
                 ):
                     actions.append(BuildDwelling(position, river=river))
 
@@ -531,6 +532,7 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
             action.position,
             TOWN_SUPPLY - state.towns,
             town_power(owner),
+            state.bridges,
         ):
             return "That river does not change the town here."
         return "That dwelling cannot be built there now."

@@ -367,7 +367,9 @@ STANDARD_TEMPLE_INCOME: tuple[Income, ...] = (
     Income(priests=3),
 )
 
-type PowerActionKind = Literal["priest", "workers", "coins", "spade", "double_spade"]
+type PowerActionKind = Literal[
+    "priest", "workers", "coins", "spade", "double_spade", "bridge"
+]
 
 POWER_ACTION_KINDS: tuple[PowerActionKind, ...] = (
     "priest",
@@ -383,6 +385,7 @@ POWER_ACTION_COSTS: dict[PowerActionKind, int] = {
     "coins": 4,
     "spade": 4,
     "double_spade": 6,
+    "bridge": 3,
 }
 
 POWER_ACTION_INCOME: dict[PowerActionKind, Income] = {
@@ -391,6 +394,7 @@ POWER_ACTION_INCOME: dict[PowerActionKind, Income] = {
     "coins": Income(coins=7),
     "spade": Income(),
     "double_spade": Income(),
+    "bridge": Income(),
 }
 
 POWER_ACTION_TEXT: dict[PowerActionKind, str] = {
@@ -399,6 +403,7 @@ POWER_ACTION_TEXT: dict[PowerActionKind, str] = {
     "coins": "seven coins",
     "spade": "one spade",
     "double_spade": "two spades",
+    "bridge": "a bridge",
 }
 
 # Cumulative incomes for factions whose trading houses or temples differ.

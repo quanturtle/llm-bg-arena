@@ -140,6 +140,7 @@ def start_round(
         pending_town=False,
         pending_town_position=None,
         pending_town_river=None,
+        pending_towns=0,
     )
     events: list[Event] = [
         Event(
@@ -213,6 +214,7 @@ def start_next_round(
         pending_town=False,
         pending_town_position=None,
         pending_town_river=None,
+        pending_towns=0,
     )
     state, round_events = start_round(state)
     return Transition(state, (*events, *round_events))

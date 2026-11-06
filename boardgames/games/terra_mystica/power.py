@@ -52,6 +52,8 @@ def take_power_action(
     state: TerraMysticaState, player: PlayerId, kind: PowerActionKind
 ) -> Transition[TerraMysticaState]:
     owner = state.players[player]
+    if kind == "bridge":
+        raise IllegalActionError("build a bridge with the bridge action")
     cost = POWER_ACTION_COSTS[kind]
     if kind in state.used_power_actions:
         raise IllegalActionError("that power action was already used this round")

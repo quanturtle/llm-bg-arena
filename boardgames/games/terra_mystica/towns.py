@@ -25,6 +25,7 @@ from boardgames.games.terra_mystica.cults import cult_top_occupied
 from boardgames.games.terra_mystica.model import (
     Action,
     Board,
+    Bridge,
     Building,
     Hex,
     TakeTownTile,
@@ -32,6 +33,7 @@ from boardgames.games.terra_mystica.model import (
     add_income,
     advance_cult,
     cap_priests,
+    found_ready_towns,
     income_with_power,
     replace_player,
     settle_town,
@@ -51,26 +53,50 @@ def town_rewards(
     keys: int,
     *,
     river: Hex | None = None,
-) -> tuple[Board, Resources, int, int, bool]:
-    """Mark a new town and award its points, key and faction bonus."""
+) -> tuple[Board, Resources, int, int, int, tuple[Event, ...]]:
+    """Mark every ready town and award its points, keys and faction bonuses."""
     owner = state.players[player]
-    board, founded = settle_town(
+    power = town_power(owner)
+    founded: list[Hex] = []
+    if river is not None and owner.profile.type is FactionType.MERMAIDS:
+        board, ok = settle_town(
+            board,
+            position,
+            player,
+            river=river,
+            towns_left=TOWN_SUPPLY - state.towns,
+            power=power,
+            bridges=state.bridges,
+        )
+        if ok:
+            founded.append(position)
+    board, more = found_ready_towns(
         board,
-        position,
         player,
-        river=river if owner.profile.type is FactionType.MERMAIDS else None,
-        towns_left=TOWN_SUPPLY - state.towns,
-        power=town_power(owner),
+        power,
+        TOWN_SUPPLY - state.towns - len(founded),
+        state.bridges,
     )
-    if not founded:
-        return board, resources, victory_points, keys, False
-    profile = owner.profile
-    victory_points += profile.town_vp_bonus
-    keys += 1
-    resources = add_income(resources, Income(workers=profile.town_workers_bonus))
-    if round_scoring(state) is ScoringAction.TOWN:
-        victory_points += SCORING_VALUES[ScoringAction.TOWN]
-    return board, resources, victory_points, keys, True
+    founded.extend(more)
+    count = len(founded)
+    if count:
+        profile = owner.profile
+        victory_points += count * profile.town_vp_bonus
+        keys += count
+        resources = add_income(
+            resources, Income(workers=count * profile.town_workers_bonus)
+        )
+        if round_scoring(state) is ScoringAction.TOWN:
+            victory_points += count * SCORING_VALUES[ScoringAction.TOWN]
+    events = tuple(
+        Event(
+            "town_founded",
+            f"{seat_label(player)} founded a town at {position.notation()}.",
+            {"player": player, "position": position.notation()},
+        )
+        for position in founded
+    )
+    return board, resources, victory_points, keys, count, events
 
 
 def take_town_tile(
@@ -106,7 +132,12 @@ def take_town_tile(
     state = replace_player(state, player, owner)
     town_tiles = list(state.town_tiles)
     town_tiles[index] -= 1
-    state = replace(state, town_tiles=tuple(town_tiles))
+    remaining = max(0, state.pending_towns - 1)
+    state = replace(
+        state,
+        town_tiles=tuple(town_tiles),
+        pending_towns=remaining,
+    )
     events = [
         Event(
             "town_tile",
@@ -120,6 +151,9 @@ def take_town_tile(
             },
         )
     ]
+    if remaining > 0 and town_tile_actions(state):
+        return Transition(state, tuple(events))
+    state = replace(state, pending_towns=0)
     if state.pending_stronghold:
         state = replace(state, pending_stronghold=False)
         state, events = stronghold_reward(state, player, events)
@@ -136,6 +170,7 @@ def _town_outcome(
     river: Hex | None,
     towns_left: int,
     power: int,
+    bridges: tuple[Bridge, ...] = (),
 ) -> tuple[Board, bool]:
     return settle_town(
         board,
@@ -144,6 +179,7 @@ def _town_outcome(
         river=river,
         towns_left=towns_left,
         power=power,
+        bridges=bridges,
     )
 
 
@@ -153,21 +189,22 @@ def _changing_rivers(
     player: PlayerId,
     towns_left: int,
     power: int,
+    bridges: tuple[Bridge, ...] = (),
 ) -> list[Hex]:
     """River spaces that let this component found a new town."""
-    direct = _town_outcome(board, position, player, None, towns_left, power)[1]
+    direct = _town_outcome(board, position, player, None, towns_left, power, bridges)[1]
     if direct:
         return []
     rivers = {
         neighbour
-        for member in board.connected(position, player)
+        for member in board.connected(position, player, bridges)
         for neighbour in member.neighbours()
         if (tile := board.tile(neighbour)) is not None and not tile.is_land
     }
     return [
         river
         for river in sorted(rivers)
-        if _town_outcome(board, position, player, river, towns_left, power)[1]
+        if _town_outcome(board, position, player, river, towns_left, power, bridges)[1]
     ]
 
 
@@ -178,12 +215,13 @@ def build_river_choices(
     position: Hex,
     towns_left: int,
     power: int = 7,
+    bridges: tuple[Bridge, ...] = (),
 ) -> list[Hex]:
     """River skips that would change a Mermaid build's town."""
     if profile.type is not FactionType.MERMAIDS:
         return []
     built = board.place(position, Building(BuildingType.DWELLING, player))
-    return _changing_rivers(built, position, player, towns_left, power)
+    return _changing_rivers(built, position, player, towns_left, power, bridges)
 
 
 def upgrade_river_choices(
@@ -194,6 +232,7 @@ def upgrade_river_choices(
     target: BuildingType,
     towns_left: int,
     power: int = 7,
+    bridges: tuple[Bridge, ...] = (),
 ) -> list[Hex]:
     """River skips that would change a Mermaid upgrade's town."""
     if profile.type is not FactionType.MERMAIDS:
@@ -204,7 +243,7 @@ def upgrade_river_choices(
     upgraded = board.replace_tile(
         position, replace(tile, building=replace(tile.building, type=target))
     )
-    return _changing_rivers(upgraded, position, player, towns_left, power)
+    return _changing_rivers(upgraded, position, player, towns_left, power, bridges)
 
 
 def town_tile_actions(state: TerraMysticaState) -> list[Action]:

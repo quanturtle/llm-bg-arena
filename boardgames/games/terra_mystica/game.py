@@ -26,6 +26,7 @@ from boardgames.core.records import (
     tagged_json_object,
     to_json_object,
 )
+from boardgames.games.terra_mystica.bridges import build_bridge
 from boardgames.games.terra_mystica.building import (
     advance_digging,
     advance_shipping,
@@ -44,6 +45,7 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BuildBridge,
     BuildDwelling,
     ChooseStrongholdPriests,
     Pass,
@@ -225,6 +227,10 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             raise IllegalActionError(f"it is {seat_label(state.active_player)}'s turn")
         if isinstance(action, BuildDwelling):
             return build_dwelling(state, player, action.position, action.river)
+        if isinstance(action, BuildBridge):
+            return build_bridge(
+                state, player, action.first, action.second, action.payment
+            )
         if isinstance(action, TransformTerrain):
             return transform_terrain(state, player, action.position, action.to)
         if isinstance(action, UpgradeBuilding):

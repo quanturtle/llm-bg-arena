@@ -15,9 +15,8 @@ This implementation uses the standard 113-tile base map, all fourteen base-game
 factions and their starting resources, building costs and cost/track exceptions.
 Dwarves may tunnel two spaces and Fakirs may fly two spaces (three with a
 stronghold), so both can build and score across rivers. Not yet implemented:
-bonus cards, leeching power from opponents, bridges, power conversions, the
-faction special actions, and the Alchemists' 2 power per spade after their
-stronghold. The core economy, terraforming, cults, towns, the
+bonus cards, leeching power from opponents, power conversions, the faction
+special actions, and the Alchemists' 2 power per spade after their stronghold. The core economy, terraforming, cults, towns, the
 stronghold rewards and scoring are playable.
 
 Known limitations:
@@ -77,6 +76,14 @@ Each round has an income phase, an action phase and cleanup.
   from your power cycle.
 - **Pass** to stop acting for the round.
 
+## Bridges
+A bridge connects two land spaces two steps apart with a river between them.
+Building one costs 3 power, paid like a power action; the Engineers may pay 2
+workers instead. You need a building on at least one of the two spaces and may
+have at most three bridges. Bridged spaces count as directly adjacent, including
+for towns. The 3-power bridge is a shared power action and can be used once per
+round; the Engineers' worker bridge does not use that shared action.
+
 ## Towns and keys
 Four directly adjacent structures with total power 7 form a town (three with a
 sanctuary). Indirect adjacency, including across rivers or by tunneling, does
@@ -84,7 +91,8 @@ not join a town. The Mermaids may choose one river space to ignore; a normal
 build or upgrade does not join across a river. Building or upgrading into a town
 awards a key, the faction's town bonus and a choice of one of the remaining town
 tiles: 5 VP and 6 coins; 7 VP and 2 workers; 9 VP and 1 priest; 6 VP and 8 power;
-or 8 VP and one step on each cult track. There are at most 10 towns. A key lets
+or 8 VP and one step on each cult track. A town is founded automatically; you
+only choose the town tile. There are at most 10 towns. A key lets
 one cult marker enter space 10. Structures already in a town are marked and
 cannot found another town; building next to a town expands it.
 
@@ -161,5 +169,7 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `skip spade` — forfeit the rest of your spades.
 - `town 0` — take town tile 0.
 - `favor 0` — take favor tile 0.
+- `bridge 0,0 2,0` — build a bridge for 3 power.
+- `bridge 0,0 2,0 workers` — the Engineers' bridge for 2 workers.
 - `alchemist vp` / `alchemist coins` — the Alchemists' 1 VP for 1 coin or 2 coins for 1 VP.
 - `pass` — stop acting this round.
