@@ -225,10 +225,7 @@ class CompleteSteps:
 def replay_complete_steps(records: Sequence[LogRecord]) -> CompleteSteps:
     """Replay a log, dropping decisions from the end until the rest replays.
 
-    Dropping one decision from a running log is normal: it is still being
-    written. Anything more means the log no longer matches the game's rules.
-    A log whose setup does not replay raises ReplayMismatchError, and one from
-    other rules raises RulesVersionError at once.
+    Dropping one is normal for a running log; more means it no longer fits the rules.
     """
     remaining = list(records)
     first_error: str | None = None
@@ -237,10 +234,12 @@ def replay_complete_steps(records: Sequence[LogRecord]) -> CompleteSteps:
         try:
             replayed = replay_states(remaining)
         except RulesVersionError:
+            # a log from other rules fails at any length, so dropping can't help
             raise
         except ReplayMismatchError as error:
             first_error = first_error or str(error)
             remaining = without_last_decision(remaining)
+            # the setup itself does not replay
             if not remaining:
                 raise
             dropped += 1

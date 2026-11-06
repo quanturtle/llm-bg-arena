@@ -94,8 +94,7 @@ class MatchLauncher:
     ) -> None:
         """`model` serves every seat; with None (no API key) each start raises.
 
-        The clock, match ids, reply cache and log files are injectable, so tests
-        can replace every filesystem and time dependency.
+        The clock, match ids, reply cache and log files are injectable for tests.
         """
         self._runs_dir = runs_dir
         self._model = model

@@ -80,23 +80,23 @@ def reasoning_conflict(
 class ModelSettings:
     """Per-model call settings; `model` is an OpenRouter id ("openai/gpt-5-mini").
 
-    `reasoning` turns thinking on or off (None keeps the model's default); how much
-    it thinks is an effort or a token budget, not both, and neither when it is off.
-    `verbosity` sets answer length, a separate request field. `extra` is merged
-    into the request body as is, for provider routing and other options.
-    `max_tokens` also covers a thinking model's reasoning.
+    Thinking takes an effort or a token budget, not both, and neither when it is off.
     """
 
     model: str
     temperature: float | None = None
     top_p: float | None = None
+    # also covers a thinking model's reasoning
     max_tokens: int = 4096
     timeout_seconds: float = 120.0
+    # turns thinking on or off; None keeps the model's default
     reasoning: bool | None = None
     reasoning_effort: ReasoningEffort | None = None
     thinking_budget_tokens: int | None = None
+    # answer length, a separate request field
     verbosity: Verbosity | None = None
     seed: int | None = None
+    # merged into the request body as is, for provider routing and other options
     extra: JsonObject = field(default_factory=dict)
 
     def __post_init__(self) -> None:

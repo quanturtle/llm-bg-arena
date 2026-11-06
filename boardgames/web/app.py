@@ -105,14 +105,14 @@ class GameOption(BaseModel):
 class MatchOptions(BaseModel):
     """Choices the new-match form offers, and what an untouched seat plays with.
 
-    `capabilities` has what each suggested model accepts; it is empty, with the
-    reason in `catalog_error`, when OpenRouter's model list could not be read.
+    `capabilities` is empty and `catalog_error` says why if OpenRouter can't be read.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     default_model: str
     models: list[str]
+    # what each suggested model accepts
     capabilities: dict[str, ModelCapabilities]
     catalog_error: str | None
     seat_defaults: dict[str, PlainJson]
@@ -464,8 +464,7 @@ def create_app(
 ) -> FastAPI:
     """The viewer application over `store`; `launcher` starts matches from it.
 
-    `catalog` tells the new-match form what each model accepts; None shows them all.
-    `viewer_dir` is the built Next.js viewer (web/out); None serves the API alone.
+    None for `catalog` shows every model; None for `viewer_dir` serves the API alone.
     """
     app = FastAPI(
         title="Boardgames", docs_url="/api/docs", openapi_url="/api/openapi.json"

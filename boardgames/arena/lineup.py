@@ -135,10 +135,7 @@ def prepare_match(
 ) -> PreparedMatch:
     """Agents and log paths for a config; the keyword arguments override defaults.
 
-    `model` serves every seat; None (no API key) is a ConfigError. With
-    `use_config_log` false the file's `log` is ignored, so a server always writes
-    into `runs_dir`. Tests may supply the ids, both file paths, the reply cache
-    and the clock, which the prepared match keeps for its run.
+    `model` serves every seat; None (no API key) is a ConfigError.
     """
     game = create_game(config.game)
     game_config = game.parse_config(config.config)
@@ -156,6 +153,7 @@ def prepare_match(
     ]
     match_id = id_factory()
     default_log = runs_dir / f"{game.id}-{match_seed}-{match_id}.jsonl"
+    # a server turns `use_config_log` off so it always writes into `runs_dir`
     file_log = config.log if use_config_log else None
     log_path = log or file_log or default_log
     return PreparedMatch(

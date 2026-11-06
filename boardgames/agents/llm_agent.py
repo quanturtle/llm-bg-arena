@@ -67,12 +67,12 @@ class LlmAgentSettings:
     """After `max_illegal_retries` rejected re-prompts, `fallback` picks the action.
 
     The "default" fallback plays the decision's default (such as pass), else random.
-    `max_tool_calls` caps one decision's tool calls in "tools" mode.
     """
 
     model: ModelSettings
     prompt: PromptSettings = field(default_factory=PromptSettings)
     max_illegal_retries: int = 3
+    # caps one decision's tool calls in "tools" mode
     max_tool_calls: int = 12
     fallback: FallbackPolicy = "random"
     label: str | None = None
@@ -83,14 +83,14 @@ class Attempt[A]:
     """One model call: how its reply resolved, plus its log record and completions.
 
     `resolution` is None for a tools-mode round that only looked things up.
-    `rejections` counts the rejected answers in the call: at most one in a
-    single-shot mode, one per rejected take_action in tools mode.
     """
 
     resolution: Resolved[A] | Rejected | None
     reply: ParsedReply | None
     record: AttemptRecord
     completions: tuple[Completion, ...]
+    # rejected answers in the call: at most one in a single-shot mode,
+    # one per rejected take_action in tools mode
     rejections: int
 
 

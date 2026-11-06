@@ -225,9 +225,7 @@ async def play_rounds[S, A, C: GameConfig](
 ) -> tuple[Progress[S], tuple[PlayerId, ...]]:
     """Rounds until the end or a forfeit, waiting while paused.
 
-    A cancellation or a failure, such as a model that stays unavailable, logs the
-    paid calls of decisions it cut short and match_stopped at the last logged
-    step, then propagates.
+    A cancellation or failure logs cut-short paid calls and match_stopped, then raises.
     """
     forfeited: tuple[PlayerId, ...] = ()
     ledger: RoundLedger[S, A] = RoundLedger(

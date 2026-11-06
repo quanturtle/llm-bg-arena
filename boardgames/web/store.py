@@ -373,12 +373,11 @@ class MatchStore:
         """Remove a match's log and thoughts file; unknown ids raise UnknownMatchError.
 
         Only files found in the store's directory are removed; read-only logs raise.
-        A duplicate copy of the same match in the directory is removed too, so the
-        match does not reappear after its deletion.
         """
         path = self._path_of(match_id)
         if path.resolve() in {log.resolve() for log in self._read_only}:
             raise ReadOnlyLogError(f"match {match_id!r} was opened read-only")
+        # a duplicate copy left in the directory would bring the match back
         copies = [path]
         if self._directory.is_dir():
             copies.extend(

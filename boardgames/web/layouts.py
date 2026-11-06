@@ -9,8 +9,7 @@ from boardgames.games.puerto_rico.constants import BUILDINGS, GOODS
 def catan_layout() -> dict[str, PlainJson]:
     """Hex centres, intersection points and paths of the standard board.
 
-    Coordinates are the geometry module's: unit hexes with corners at distance 1
-    from the centre and y growing upward.
+    Coordinates are the geometry module's: corners 1 from the centre, y growing upward.
     """
     return {
         "hexes": [

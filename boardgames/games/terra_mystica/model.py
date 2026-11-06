@@ -159,8 +159,7 @@ class Board:
     def reachable_from(self, start: Hex, shipping: int, reach: int = 0) -> set[Hex]:
         """Land hexes reachable from one structure, crossing rivers up to `shipping`.
 
-        `reach` is a faction's tunneling or carpet range: every land hex within
-        that many steps, regardless of rivers.
+        `reach` is a faction's tunneling or carpet range in steps; it ignores rivers.
         """
         reachable: set[Hex] = set()
         for neighbour in start.neighbours():
@@ -793,8 +792,7 @@ def settle_town(
 ) -> tuple[Board, bool]:
     """Mark a new or expanded town; True when a new town was founded.
 
-    Towns need direct adjacency. Mermaids are the exception: they may ignore one
-    river space, named by `river`.
+    Towns need direct adjacency; Mermaids may ignore the one river space `river`.
     """
     component = town_component(board, position, player, river)
     already = any(

@@ -797,8 +797,7 @@ export interface components {
          * MatchOptions
          * @description Choices the new-match form offers, and what an untouched seat plays with.
          *
-         *     `capabilities` has what each suggested model accepts; it is empty, with the
-         *     reason in `catalog_error`, when OpenRouter's model list could not be read.
+         *     `capabilities` is empty and `catalog_error` says why if OpenRouter can't be read.
          */
         MatchOptions: {
             /** Default Model */

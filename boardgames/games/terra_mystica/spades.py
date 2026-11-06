@@ -73,8 +73,7 @@ def _action_spade_offer(
 ) -> tuple[str | None, int, Cost, bool]:
     """Check one action-phase spade placement.
 
-    Returns the rejection reason (or None), the spade cost, the resources to
-    pay, and whether the placement uses tunneling or carpet flight.
+    Returns rejection (or None), spade cost, payment, and whether it tunnels or flies.
     """
     owner = state.players[player]
     profile = owner.profile
