@@ -269,7 +269,12 @@ export function NewMatchView() {
     <>
       <PageTitle title="New match" description="Choose a game, then who plays it. Every player is a language model through OpenRouter." />
       {options.error ? <ErrorAlert error={options.error} /> : null}
-      {options.data ? <NewMatchForm options={options.data} launches={launches.data ?? []} /> : options.isPending ? <LoadingRows /> : null}
+      {/* the key restarts the form when the options change, such as after a model config is saved */}
+      {options.data ? (
+        <NewMatchForm key={options.dataUpdatedAt} options={options.data} launches={launches.data ?? []} />
+      ) : options.isPending ? (
+        <LoadingRows />
+      ) : null}
     </>
   );
 }

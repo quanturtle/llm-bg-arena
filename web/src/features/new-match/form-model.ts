@@ -113,6 +113,8 @@ export type SettingValue = string | number | boolean;
 export type Seat = {
   /** Stable React key; the index changes when a player is removed. */
   id: number;
+  /** The saved model config the seat plays; null when it carries its own model and settings. */
+  config: string | null;
   model: string;
   /** Whether the seat types a model id instead of picking a listed one. */
   custom: boolean;
@@ -138,6 +140,7 @@ export type FormAction =
   | { type: "setGameSetting"; key: string; value: SettingValue | undefined }
   | { type: "addSeat" }
   | { type: "removeSeat"; index: number }
+  | { type: "chooseConfig"; index: number; config: string | null }
   | { type: "chooseModel"; index: number; model: string | null }
   | { type: "typeModel"; index: number; model: string }
   | { type: "modelLookedUp"; model: string; capabilities: ModelCapabilities | null; error: string | null }
@@ -161,6 +164,11 @@ export function playerRange(counts: number[]): string {
 
 export function capsOf(state: FormState, seat: Seat): ModelCapabilities | null {
   return state.capabilities[seat.model.trim()] ?? null;
+}
+
+/** The saved config a seat plays, or null for a seat with its own settings. */
+export function savedConfig(state: FormState, seat: Seat): ModelConfig | null {
+  return state.options.configs.find((saved) => saved.name === seat.config)?.config ?? null;
 }
 
 export function effortChoices(caps: ModelCapabilities | null): ReasoningEffort[] {
@@ -198,7 +206,7 @@ function withModelDefaults(seat: Seat, caps: ModelCapabilities | null): Seat {
 }
 
 function newSeat(state: FormState): Seat {
-  const seat: Seat = { id: state.nextSeatId, model: state.options.default_model, custom: false, reasoning: false, settings: {} };
+  const seat: Seat = { id: state.nextSeatId, config: null, model: state.options.default_model, custom: false, reasoning: false, settings: {} };
   return withModelDefaults(seat, state.capabilities[seat.model] ?? null);
 }
 
@@ -234,7 +242,8 @@ function updateSeat(state: FormState, index: number, change: (seat: Seat) => Sea
 
 function chooseModel(state: FormState, index: number, model: string | null): FormState {
   return updateSeat(state, index, (seat) => {
-    const chosen = model === null ? { ...seat, custom: true, model: "" } : { ...seat, custom: false, model };
+    const own = { ...seat, config: null };
+    const chosen = model === null ? { ...own, custom: true, model: "" } : { ...own, custom: false, model };
     return withModelDefaults(chosen, state.capabilities[chosen.model] ?? null);
   });
 }
@@ -263,6 +272,8 @@ export function formReducer(state: FormState, action: FormAction): FormState {
       return addSeat(state);
     case "removeSeat":
       return { ...state, seats: state.seats.filter((_, at) => at !== action.index) };
+    case "chooseConfig":
+      return updateSeat(state, action.index, (seat) => ({ ...seat, config: action.config }));
     case "chooseModel":
       return chooseModel(state, action.index, action.model);
     case "typeModel":
@@ -283,8 +294,9 @@ export function formReducer(state: FormState, action: FormAction): FormState {
   }
 }
 
-/** A seat's model and settings as the server takes them: only what the user filled in. */
+/** A seat as the server takes it: its saved config, or its model and the settings the user filled in. */
 export function seatEntry(state: FormState, seat: Seat): Record<string, SettingValue> {
+  if (seat.config !== null) return { config: seat.config };
   const entry: Record<string, SettingValue> = { model: seat.model.trim() || state.options.default_model, ...seat.settings };
   // reasoning and its effort are separate settings; an effort only goes with reasoning on
   const caps = capsOf(state, seat);
@@ -339,7 +351,7 @@ export function modelBrief(state: FormState, seat: Seat): string {
 }
 
 export function summaryText(state: FormState): string {
-  const models = [...new Set(state.seats.map((seat) => seat.model.trim() || state.options.default_model))];
+  const models = [...new Set(state.seats.map((seat) => savedConfig(state, seat)?.model ?? (seat.model.trim() || state.options.default_model)))];
   const who = models.length === 1 ? `all playing ${modelName(models[0])}` : `${models.length} different models`;
   return `${currentGame(state).name} with ${state.seats.length} players, ${who}.`;
 }

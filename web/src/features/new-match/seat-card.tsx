@@ -2,6 +2,7 @@
 
 import { ChevronDown, X } from "lucide-react";
 
+import { ProviderLogo } from "@/components/provider-logo";
 import { SeatDot } from "@/components/seat";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +14,14 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   capsOf,
+  configBrief,
   currentGame,
   defaultText,
   EFFORT_LABELS,
   effortChoices,
   fieldShows,
   modelBrief,
+  savedConfig,
   SEAT_FIELDS,
   type FormAction,
   type FormState,
@@ -30,6 +33,8 @@ import type { ModelCapabilities, ReasoningEffort } from "@/lib/api";
 
 // Radix selects take no empty value, so this stands for "keep the default".
 const KEEP_DEFAULT = "__default";
+// and this for a seat without a saved config; "/" keeps it apart from every config name
+const OWN_SETTINGS = "/own";
 
 type FieldProps = {
   state: FormState;
@@ -167,7 +172,37 @@ export function SeatSettings({ state, seat, index, dispatch, omit = [] }: SeatPr
   );
 }
 
-/** One player: its model, a line on what it sends, and the model's settings folded away. */
+/** Picks a saved model config for the seat, or its own model and settings. */
+function SeatConfig({ state, seat, index, dispatch }: SeatProps) {
+  const saved = savedConfig(state, seat);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>Model config</Label>
+      <Select
+        value={seat.config ?? OWN_SETTINGS}
+        onValueChange={(value) => dispatch({ type: "chooseConfig", index, config: value === OWN_SETTINGS ? null : value })}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {state.options.configs.map(({ name, config }) => (
+            <SelectItem key={name} value={name}>
+              <ProviderLogo model={config.model} />
+              {name}
+            </SelectItem>
+          ))}
+          <SelectItem value={OWN_SETTINGS}>Not saved: choose a model and settings</SelectItem>
+        </SelectContent>
+      </Select>
+      <p className="text-xs text-muted-foreground">
+        {saved ? configBrief(saved) : "Without a saved config, the leaderboard ranks this player by its model or name alone."}
+      </p>
+    </div>
+  );
+}
+
+/** One player: a saved model config, or its model, a line on what it sends, and the model's settings folded away. */
 export function SeatCard({ state, seat, index, dispatch, onTyped }: SeatProps & { onTyped: (model: string) => void }) {
   const removable = state.seats.length > currentGame(state).player_counts[0];
   return (
@@ -186,18 +221,23 @@ export function SeatCard({ state, seat, index, dispatch, onTyped }: SeatProps & 
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <SeatModel state={state} seat={seat} index={index} dispatch={dispatch} onTyped={onTyped} />
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="group -ml-2 text-muted-foreground">
-              <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
-              Model settings
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 flex flex-col gap-3">
-            <SeatSettings state={state} seat={seat} index={index} dispatch={dispatch} />
-          </CollapsibleContent>
-        </Collapsible>
+        {state.options.configs.length ? <SeatConfig state={state} seat={seat} index={index} dispatch={dispatch} /> : null}
+        {seat.config === null ? (
+          <>
+            <SeatModel state={state} seat={seat} index={index} dispatch={dispatch} onTyped={onTyped} />
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="group -ml-2 text-muted-foreground">
+                  <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
+                  Model settings
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 flex flex-col gap-3">
+                <SeatSettings state={state} seat={seat} index={index} dispatch={dispatch} />
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        ) : null}
       </CardContent>
     </Card>
   );
