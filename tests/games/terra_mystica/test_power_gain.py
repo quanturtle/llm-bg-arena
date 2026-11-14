@@ -8,6 +8,7 @@ from boardgames.core import PlayerId
 from boardgames.games.terra_mystica import (
     Building,
     ChoosePowerGain,
+    TakeFavorTile,
     TerraMysticaState,
     UpgradeBuilding,
 )
@@ -143,6 +144,36 @@ def test_power_gain_uses_all_bowl_one_tokens(
         builder,
     )
     assert power_gain_amount(state, gain) == (expected_power, expected_cost)
+
+
+def test_temple_upgrade_offers_power_before_the_favor() -> None:
+    state = start(num_players=2, seed=1)
+    builder, opponent = state.order
+    for tile in state.board.tiles:
+        if not tile.is_land:
+            continue
+        neighbours = _neighbours(state, tile.position)
+        if not neighbours:
+            continue
+        state = action_state(
+            state, builder, (tile.position, BuildingType.TRADING_HOUSE)
+        )
+        state = replace(
+            state,
+            board=state.board.place(
+                neighbours[0], Building(BuildingType.DWELLING, opponent)
+            ),
+        )
+        state = GAME.apply(
+            state, builder, UpgradeBuilding(tile.position, BuildingType.TEMPLE)
+        ).state
+        assert state.phase == "favor_choice"
+        assert state.pending_power
+        assert state.pending_power[0].player == opponent
+        state = GAME.apply(state, builder, TakeFavorTile(0)).state
+        assert state.phase == "power_gain"
+        return
+    raise AssertionError("no suitable temple position")
 
 
 def test_upgrading_next_to_an_opponent_offers_power() -> None:

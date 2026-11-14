@@ -5,6 +5,7 @@ from typing import Literal
 
 from boardgames.core import PlayerId
 from boardgames.games.terra_mystica import (
+    BonusSpade,
     Bridge,
     ChaosDoubleTurn,
     ChooseFaction,
@@ -22,11 +23,14 @@ from boardgames.games.terra_mystica.bonus import (
     bonus_pass_vp,
     effective_shipping,
 )
-from boardgames.games.terra_mystica.building import build_dwelling
+from boardgames.games.terra_mystica.building import build_dwelling, transform_terrain
 from boardgames.games.terra_mystica.constants import (
     BuildingType,
     Cult,
+    CultBonus,
     FactionType,
+    ScoringAction,
+    ScoringTile,
     Terrain,
 )
 from boardgames.games.terra_mystica.model import (
@@ -37,8 +41,9 @@ from boardgames.games.terra_mystica.model import (
     replace_player,
 )
 from boardgames.games.terra_mystica.power_gain import take_power_gain
-from boardgames.games.terra_mystica.rounds import pass_turn
+from boardgames.games.terra_mystica.rounds import advance_turn, pass_turn
 from boardgames.games.terra_mystica.spade_gain import gain_spade_power
+from boardgames.games.terra_mystica.spades import cult_spade_actions
 from boardgames.games.terra_mystica.special import special_actions
 from tests.games.terra_mystica.support import (
     GAME,
@@ -130,6 +135,7 @@ def test_faction_choice_and_fixed_setup() -> None:
     assert ChooseFaction(FactionType.WITCHES) in listing(state)
     state = GAME.apply(state, first, ChooseFaction(FactionType.WITCHES)).state
     assert state.players[first].faction is FactionType.WITCHES
+    assert ChooseFaction(FactionType.AUREN) not in listing(state)
 
     fixed = GAME.setup(
         TerraMysticaConfig(
@@ -198,6 +204,23 @@ def test_bonus_special_actions_are_listed() -> None:
     assert any(
         isinstance(action, SpecialCult) and action.source == "bonus"
         for action in special_actions(state, player)
+    )
+
+
+def test_water_favor_special_action_is_per_holder() -> None:
+    state = start(num_players=2, seed=1)
+    first, second = state.order
+    for player in (first, second):
+        state = replace_player(
+            state,
+            player,
+            replace(state.players[player], favors=frozenset({5})),
+        )
+    state = action_state(state, first)
+    state = GAME.apply(state, first, SpecialCult("water_favor", Cult.FIRE)).state
+    assert any(
+        isinstance(action, SpecialCult) and action.source == "water_favor"
+        for action in special_actions(state, second)
     )
 
 
@@ -280,6 +303,12 @@ def test_swarmlings_upgrade_and_chaos_double_turn() -> None:
     assert ChaosDoubleTurn() in special_actions(chaos, chaos_player)
     chaos = GAME.apply(chaos, chaos_player, ChaosDoubleTurn()).state
     assert chaos.extra_actions == 2
+    chaos = advance_turn(chaos, chaos_player, ()).state
+    assert chaos.active_player == chaos_player
+    assert chaos.extra_actions == 1
+    chaos = advance_turn(chaos, chaos_player, ()).state
+    assert chaos.active_player != chaos_player
+    assert chaos.extra_actions == 0
 
 
 def test_giants_and_nomads_transform_specials() -> None:
@@ -292,11 +321,17 @@ def test_giants_and_nomads_transform_specials() -> None:
         and tile.terrain is not giants.players[giants_player].home_terrain
         and tile.position in giants.board.reachable_land(giants_player, 0, 0, ())
     )
+    giants = replace(
+        giants,
+        scoring=(ScoringTile(ScoringAction.SPADE, CultBonus(Cult.FIRE, 4, "power")),),
+    )
     assert GiantsSpades(target) in special_actions(giants, giants_player)
+    before = giants.players[giants_player].victory_points
     giants = GAME.apply(giants, giants_player, GiantsSpades(target)).state
     tile = giants.board.tile(target)
     assert tile is not None
     assert tile.terrain is giants.players[giants_player].home_terrain
+    assert giants.players[giants_player].victory_points == before + 4
 
     nomads, nomads_player, stronghold = _special_state(FactionType.NOMADS)
     target = next(
@@ -321,6 +356,88 @@ def test_alchemist_spade_power() -> None:
     resources = state.players[player].resources
     assert resources.power1 == 1
     assert resources.power2 == 4
+
+    state, player, stronghold = _special_state(FactionType.ALCHEMISTS)
+    target = next(
+        neighbour
+        for neighbour in stronghold.neighbours()
+        if (tile := state.board.tile(neighbour)) is not None
+        and tile.is_land
+        and tile.building is None
+        and tile.terrain is not state.players[player].home_terrain
+    )
+    state = with_resources(state, player, power1=10, power2=0, power3=0)
+    state = transform_terrain(state, player, target).state
+    assert state.players[player].resources.power1 < 10
+    assert state.players[player].resources.power2 > 0
+
+
+def test_halfling_bonus_spade_scores() -> None:
+    state = _playing(rounds=2, bonus_cards=True)
+    player = state.order[0]
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.HALFLINGS,
+            bonus_card=4,
+        ),
+    )
+    before = state.players[player].victory_points
+    state = GAME.apply(state, player, BonusSpade()).state
+    assert state.players[player].victory_points == before + 1
+
+
+def test_shipping_bonus_does_not_apply_to_cult_spades() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    start_position = None
+    target = None
+    for tile in state.board.tiles:
+        if not tile.is_land:
+            continue
+        for river in tile.position.neighbours():
+            river_tile = state.board.tile(river)
+            if river_tile is None or river_tile.is_land:
+                continue
+            for neighbour in river.neighbours():
+                other = state.board.tile(neighbour)
+                if (
+                    other is not None
+                    and other.is_land
+                    and other.building is None
+                    and tile.position.distance(other.position) == 2
+                    and other.terrain is not state.players[player].home_terrain
+                ):
+                    start_position, target = tile.position, neighbour
+                    break
+            if target is not None:
+                break
+        if target is not None:
+            break
+    assert start_position is not None and target is not None
+    state = action_state(state, player, (start_position, BuildingType.DWELLING))
+    state = replace_player(state, player, replace(state.players[player], bonus_card=3))
+    state = replace(
+        state,
+        phase="cult_spades",
+        spade_return="round",
+        spade_actor=player,
+        cult_spades=tuple(1 if seat == player else 0 for seat in range(2)),
+        active_player=player,
+    )
+    assert target not in {
+        action.position
+        for action in cult_spade_actions(state, player)
+        if hasattr(action, "position")
+    }
+    action_state_round = replace(state, spade_return="action")
+    assert target in {
+        action.position
+        for action in cult_spade_actions(action_state_round, player)
+        if hasattr(action, "position")
+    }
 
 
 def test_engineers_pass_scores_bridges() -> None:
@@ -353,10 +470,13 @@ def test_promo_town_tiles() -> None:
     assert len(state.town_tiles) == 8
     player = state.order[0]
     state = replace(state, phase="town_choice", pending_towns=1)
+    owner = replace(state.players[player], keys=1)
+    state = replace_player(state, player, owner)
     before = state.players[player]
     state = GAME.apply(state, player, TakeTownTile(5)).state
     after = state.players[player]
-    assert after.keys == before.keys + 2
+    assert after.keys == before.keys + 1
+    assert after.keys == 2
     assert all(after.cult(cult) == before.cult(cult) + 2 for cult in Cult)
 
 

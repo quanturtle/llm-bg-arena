@@ -6,9 +6,11 @@ from boardgames.core import Event, IllegalActionError, PlayerId, Transition, sea
 from boardgames.games.terra_mystica.bonus import effective_shipping
 from boardgames.games.terra_mystica.building import build_dwelling, upgrade_building
 from boardgames.games.terra_mystica.constants import (
+    SCORING_VALUES,
     BuildingType,
     Cult,
     FactionType,
+    ScoringAction,
 )
 from boardgames.games.terra_mystica.cults import cult_top_occupied
 from boardgames.games.terra_mystica.model import (
@@ -26,7 +28,7 @@ from boardgames.games.terra_mystica.model import (
     replace_at,
     replace_player,
 )
-from boardgames.games.terra_mystica.rounds import advance_turn
+from boardgames.games.terra_mystica.rounds import advance_turn, round_scoring
 from boardgames.games.terra_mystica.spade_gain import gain_spade_power
 
 SPECIAL_AUREN = "auren"
@@ -47,6 +49,11 @@ def _unused(state: TerraMysticaState, kind: str) -> bool:
     return kind not in state.used_special_actions
 
 
+def _water_key(player: PlayerId) -> str:
+    """The Water favor action is per holder, not once for the whole table."""
+    return f"{SPECIAL_WATER_FAVOR}:{player}"
+
+
 def special_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     """Every faction special action the player can take now."""
     owner = state.players[player]
@@ -58,7 +65,7 @@ def special_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
         and _unused(state, SPECIAL_AUREN)
     ):
         actions.extend(SpecialCult("auren", cult) for cult in Cult)
-    if 5 in owner.favors and _unused(state, SPECIAL_WATER_FAVOR):
+    if 5 in owner.favors and _unused(state, _water_key(player)):
         actions.extend(SpecialCult("water_favor", cult) for cult in Cult)
     if owner.bonus_card == 5 and _unused(state, SPECIAL_BONUS_CULT):
         actions.extend(SpecialCult("bonus", cult) for cult in Cult)
@@ -129,7 +136,7 @@ def take_special_action(
         kind = (
             SPECIAL_AUREN
             if action.source == "auren"
-            else SPECIAL_WATER_FAVOR
+            else _water_key(player)
             if action.source == "water_favor"
             else SPECIAL_BONUS_CULT
         )
@@ -172,6 +179,12 @@ def take_special_action(
             raise IllegalActionError("you do not have that bonus card")
         if kind in state.used_special_actions:
             raise IllegalActionError("that special action was already used this round")
+        if profile.spade_vp_bonus:
+            owner = replace(
+                owner,
+                victory_points=owner.victory_points + profile.spade_vp_bonus,
+            )
+            state = replace_player(state, player, owner)
         state = gain_spade_power(state, player, 1)
         state = replace(
             state,
@@ -277,6 +290,13 @@ def _transform_for_free(
         raise IllegalActionError("choose an empty land tile")
     if tile.terrain is profile.home_terrain:
         raise IllegalActionError("that tile is already your home terrain")
+    if isinstance(action, GiantsSpades) and round_scoring(state) is ScoringAction.SPADE:
+        owner = replace(
+            owner,
+            victory_points=owner.victory_points
+            + 2 * SCORING_VALUES[ScoringAction.SPADE],
+        )
+        state = replace_player(state, player, owner)
     state = replace(
         state,
         board=state.board.replace_tile(

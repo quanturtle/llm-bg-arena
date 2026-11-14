@@ -576,7 +576,10 @@ def advance_turn(
             replace(state, phase="power_gain", active_player=gain.player), events
         )
     if state.extra_actions > 0 and player not in state.passed:
-        return Transition(replace(state, extra_actions=state.extra_actions - 1), events)
+        remaining = state.extra_actions - 1
+        if remaining > 0:
+            return Transition(replace(state, extra_actions=remaining), events)
+        state = replace(state, extra_actions=0)
     unpassed = [seat for seat in state.order if seat not in state.passed]
     if unpassed == [player]:
         return Transition(state, events)

@@ -52,6 +52,7 @@ from boardgames.games.terra_mystica.model import (
 )
 from boardgames.games.terra_mystica.power_gain import queue_power_gains
 from boardgames.games.terra_mystica.rounds import advance_turn, round_scoring
+from boardgames.games.terra_mystica.spade_gain import gain_spade_power
 from boardgames.games.terra_mystica.strongholds import stronghold_reward
 from boardgames.games.terra_mystica.towns import (
     build_river_choices,
@@ -166,6 +167,7 @@ def build_dwelling(
     )
     state = replace_player(state, player, owner)
     state = replace(state, board=board)
+    state = gain_spade_power(state, player, spades)
     state = queue_power_gains(state, player, position, BuildingType.DWELLING)
     if founded:
         state = replace(state, towns=state.towns + founded)
@@ -249,6 +251,7 @@ def transform_terrain(
     owner = replace(owner, resources=resources, victory_points=victory_points)
     state = replace_player(state, player, owner)
     state = replace(state, board=board)
+    state = gain_spade_power(state, player, spades)
     route = ""
     if tunneling:
         route = " by tunneling" if profile.reach_cost.workers else " by carpet flight"
@@ -366,6 +369,7 @@ def upgrade_building(
             pending_town_position=position,
             pending_town_river=river,
         )
+        state = queue_power_gains(state, player, position, target)
         return Transition(state, (upgraded_event,))
     board, resources, victory_points, keys, founded, town_events = town_rewards(
         state,

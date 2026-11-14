@@ -67,6 +67,7 @@ from boardgames.games.terra_mystica.rounds import (
     round_tile,
     start_next_round,
 )
+from boardgames.games.terra_mystica.spade_gain import gain_spade_power
 from boardgames.games.terra_mystica.towns import (
     build_river_choices,
     town_supply,
@@ -164,11 +165,8 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
         if action_phase
         else 0
     )
-    reachable = set(
-        state.board.reachable_land(
-            player, effective_shipping(state, player), reach, state.bridges
-        )
-    )
+    shipping = effective_shipping(state, player) if action_phase else owner.shipping
+    reachable = set(state.board.reachable_land(player, shipping, reach, state.bridges))
     actions: list[Action] = []
 
     transformed = state.spade_transformed
@@ -340,8 +338,9 @@ def use_cult_spade(
         if action_phase
         else 0
     )
+    shipping = effective_shipping(state, player) if action_phase else owner.shipping
     if position not in state.board.reachable_land(
-        player, effective_shipping(state, player), reach, state.bridges
+        player, shipping, reach, state.bridges
     ):
         raise IllegalActionError("that tile is not reachable")
     if profile.terraform_spades is not None and target is not profile.home_terrain:
@@ -395,6 +394,7 @@ def use_cult_spade(
             player,
             owner,
         )
+        state = gain_spade_power(state, player, topped_up)
         event = Event(
             "cult_spade_used",
             f"{seat_label(player)} used {spent} spade(s) at "
@@ -530,8 +530,9 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
             if action_phase
             else 0
         )
+        shipping = effective_shipping(state, player) if action_phase else owner.shipping
         if action.position not in state.board.reachable_land(
-            player, effective_shipping(state, player), reach, state.bridges
+            player, shipping, reach, state.bridges
         ):
             return "That tile is not reachable."
         if budget <= 0:

@@ -123,10 +123,12 @@ def take_town_tile(
         raise IllegalActionError("that town tile is already taken")
     tile = town_tile(index)
     owner = state.players[player]
+    # Founding the town already awarded its normal key.
+    extra_keys = max(0, tile.keys - 1)
     owner = replace(
         owner,
         victory_points=owner.victory_points + tile.victory_points,
-        keys=owner.keys + tile.keys,
+        keys=owner.keys + extra_keys,
     )
     resources = income_with_power(
         owner.resources,

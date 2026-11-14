@@ -109,7 +109,8 @@ Each special action may be used once per Action phase. They are regular actions.
 - The Nomads stronghold grants a special action to transform a tile directly
   adjacent to one of your structures into desert, without using a spade or
   crossing a river or bridge; you may then build a dwelling there.
-- The 2 Water favor tile grants a special action to advance 1 cult space.
+- The 2 Water favor tile grants each holder a special action, once per round,
+  to advance 1 cult space.
 - Bonus card 4 grants a special action to take one free spade; bonus card 5
   grants a special action to advance 1 cult space.
 
@@ -170,7 +171,7 @@ build or upgrade does not join across a river. Building or upgrading into a town
 awards a key, the faction's town bonus and a choice of one of the remaining town
 tiles: 5 VP and 6 coins; 7 VP and 2 workers; 9 VP and 1 priest; 6 VP and 8 power;
 or 8 VP and one step on each cult track. With promo town tiles, the additional
-choices are 2 VP with 2 steps on every cult and 2 keys, 4 VP with a shipping
+choices are 2 VP with 2 steps on every cult and 2 keys in total, 4 VP with a shipping
 step (or an extra Fakir flight space), and 11 VP. A town is founded automatically; you
 only choose the town tile. There are at most 10 towns. A key lets
 one cult marker enter space 10. Structures already in a town are marked and

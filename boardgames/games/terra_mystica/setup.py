@@ -225,8 +225,13 @@ def choose_faction(
         for seat in range(len(state.players))
         if seat not in state.faction_queue
     }
-    if faction in chosen:
-        raise IllegalActionError("that faction was already chosen")
+    terrains = {
+        state.players[seat].home_terrain
+        for seat in range(len(state.players))
+        if seat not in state.faction_queue
+    }
+    if faction in chosen or FACTION_BY_TYPE[faction].home_terrain in terrains:
+        raise IllegalActionError("that colour was already chosen")
     state = replace_player(state, player, _player_state(state.config, faction))
     queue = state.faction_queue[1:]
     events = [
@@ -320,15 +325,15 @@ def place_starting_dwelling(
 
 def setup_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
     if state.phase == "faction_choice":
-        chosen = {
-            state.players[seat].faction
+        terrains = {
+            state.players[seat].home_terrain
             for seat in range(len(state.players))
             if seat not in state.faction_queue
         }
         return [
             ChooseFaction(profile.type)
             for profile in FACTION_BY_TYPE.values()
-            if profile.type not in chosen
+            if profile.home_terrain not in terrains
         ]
     owner = state.players[player]
     return [
@@ -342,14 +347,14 @@ def explain_setup(state: TerraMysticaState, player: PlayerId, action: Action) ->
     if state.phase == "faction_choice":
         if not isinstance(action, ChooseFaction):
             return "Choose a faction."
-        chosen = {
-            state.players[seat].faction
+        terrains = {
+            state.players[seat].home_terrain
             for seat in range(len(state.players))
             if seat not in state.faction_queue
         }
-        if action.faction in chosen:
-            return "That faction was already chosen."
-        return "Choose an unused faction."
+        if FACTION_BY_TYPE[action.faction].home_terrain in terrains:
+            return "That colour was already chosen."
+        return "Choose an unused colour."
     if isinstance(action, BuildDwelling):
         tile = state.board.tile(action.position)
         if tile is None:
