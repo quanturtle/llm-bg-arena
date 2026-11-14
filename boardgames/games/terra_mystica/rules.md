@@ -17,8 +17,8 @@ This implementation uses the standard 113-tile base map, all fourteen base-game
 factions and their starting resources, building costs and cost/track exceptions.
 Dwarves may tunnel two spaces and Fakirs may fly two spaces (three with a
 stronghold), so both can build and score across rivers. Not yet implemented:
-bonus cards, leeching power from opponents, power conversions, the faction
-special actions, and the Alchemists' 2 power per spade after their stronghold. The core economy, terraforming, cults, towns, the
+bonus cards, the faction special actions, and the Alchemists' 2 power per spade
+after their stronghold. The core economy, terraforming, cults, towns, the
 stronghold rewards and scoring are playable.
 
 Known limitations:
@@ -76,16 +76,32 @@ Each round has an income phase, an action phase and cleanup.
   home terrain, you may build a dwelling there. If Bowl III is short, you may
   burn Bowl II power to reach it; each step moved this way also removes one token
   from your power cycle.
+- **Conversion**: on your turn, any number of times and without spending your
+  action, spend 5 power for a priest, 3 power for a worker, 1 power for a coin,
+  1 priest for a worker, or 1 worker for a coin. A power conversion may burn
+  Bowl II power to make up a Bowl III shortfall, exactly like a power action.
 - **Pass** to stop acting for the round.
+
+## Power from structures
+When you build or upgrade a structure, each opponent with a structure directly
+adjacent to it may gain power. The amount is the sum of the power values of that
+opponent's structures directly adjacent to the new one. Resolve offers in
+clockwise order starting to your left: each opponent takes all of it or none.
+The cost is one victory point less than the power gained, so 1 power is free,
+and an opponent may take less only to avoid dropping below 0 victory points or
+when the bowls cannot supply the full amount. Bridges count as direct adjacency
+here.
 
 ## Bridges
 A bridge crosses the edge between two river spaces and connects the two land
 spaces two steps apart on either side of that edge.
 Building one costs 3 power, paid like a power action; the Engineers may pay 2
 workers instead. You need a building on at least one of the two spaces and may
-have at most three bridges. Bridged spaces count as directly adjacent, including
-for towns. The 3-power bridge is a shared power action and can be used once per
-round; the Engineers' worker bridge does not use that shared action.
+have at most three bridges. Bridged spaces count as directly adjacent for every
+adjacency check: building and transforming, the cheaper trading house, power from
+structures, area scoring and towns. The 3-power bridge is a shared power action
+and can be used once per round; the Engineers' worker bridge does not use that
+shared action.
 
 ## Towns and keys
 Four directly adjacent structures with total power 7 form a town (three with a
@@ -102,9 +118,11 @@ cannot found another town; building next to a town expands it.
 ## Temples and favor tiles
 Upgrading a trading house to a temple grants one favor tile (two for the Chaos
 Magicians); upgrading a temple to a sanctuary grants the same. Take the tiles
-immediately, one at a time, from the remaining tiles; each tile is unique. A
-tile gives its cult steps at once, and its income or victory-point effect lasts
-for the rest of the game. The twelve tiles are:
+immediately, one at a time, from the remaining tiles. The three-step kinds have
+one copy; the one-step and two-step kinds have three copies each, so different
+players may hold the same kind. You may not take a kind you already hold. A tile
+gives its cult steps at once, and its income or victory-point effect lasts for
+the rest of the game. The twelve kinds are:
 - 3 Fire cult steps
 - 3 Water cult steps
 - 3 Earth cult steps
@@ -148,8 +166,9 @@ spaces still count against that supply.
 ## Final scoring
 - Each cult track: 8/4/2 points for first/second/third, split evenly on ties.
   A player on space 0 scores nothing for that track, and tied points round down.
-- Largest connected area: 18/12/6 points, split evenly on ties. Shipping, Dwarves'
-  tunneling and Fakirs' carpet flight all connect structures for this score.
+- Largest connected area: 18/12/6 points, split evenly on ties. Bridges, shipping,
+  Dwarves' tunneling and Fakirs' carpet flight all connect structures for this
+  score.
 - Leftover resources: 1 point per 3 coins, workers, priests and Bowl III power
   (Alchemists get 1 point per 2). Before counting, every 2 power in Bowl II is
   burned into 1 Bowl III power; any odd token is lost.
@@ -167,12 +186,14 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `advance air` — spend a priest to advance Air by 1.
 - `stronghold 0-3` — trade up to three Darkling workers for one priest each.
 - `power priest|workers|coins|spade|double_spade` — spend power for that action.
+- `convert power priest|power worker|power coin|priest worker|worker coin` — take a free conversion.
+- `gain power` / `decline power` — answer an opponent's power offer.
 - `spade 0,0` — use your spades on a reachable tile.
 - `spade 0,0 to forest` — aim cult-bonus spades at a chosen terrain.
 - `skip spade` — forfeit the rest of your spades.
 - `town 0` — take town tile 0.
 - `favor 0` — take favor tile 0.
-- `bridge 0,0 2,0` — build a bridge for 3 power.
-- `bridge 0,0 2,0 workers` — the Engineers' bridge for 2 workers.
+- `bridge 2,0 1,2` — build a bridge for 3 power.
+- `bridge 2,0 1,2 workers` — the Engineers' bridge for 2 workers.
 - `alchemist vp` / `alchemist coins` — the Alchemists' 1 VP for 1 coin or 2 coins for 1 VP.
 - `pass` — stop acting this round.

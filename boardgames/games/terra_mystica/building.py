@@ -50,6 +50,7 @@ from boardgames.games.terra_mystica.model import (
     terrain_distance,
     town_power,
 )
+from boardgames.games.terra_mystica.power_gain import queue_power_gains
 from boardgames.games.terra_mystica.rounds import advance_turn, round_scoring
 from boardgames.games.terra_mystica.strongholds import stronghold_reward
 from boardgames.games.terra_mystica.towns import (
@@ -60,13 +61,18 @@ from boardgames.games.terra_mystica.towns import (
 )
 
 
-def adjacent_to_own(board: Board, player: PlayerId, position: Hex) -> bool:
-    """Whether one of the player's structures shares an edge with `position`."""
+def adjacent_to_own(
+    board: Board,
+    player: PlayerId,
+    position: Hex,
+    bridges: tuple[Bridge, ...] = (),
+) -> bool:
+    """Whether one of the player's structures is adjacent, including by bridge."""
     return any(
         (tile := board.tile(neighbour)) is not None
         and tile.building is not None
         and tile.building.owner == player
-        for neighbour in position.neighbours()
+        for neighbour in board.adjacent_positions(position, bridges)
     )
 
 
@@ -93,17 +99,21 @@ def build_dwelling(
     ):
         raise IllegalActionError("you have no dwellings left")
     reach = effective_reach(state.board, player, profile)
-    if position not in state.board.reachable_land(player, owner.shipping, reach):
+    if position not in state.board.reachable_land(
+        player, owner.shipping, reach, state.bridges
+    ):
         raise IllegalActionError(
             "the tile must be directly or indirectly adjacent to one of your structures"
         )
-    tunneling = reach > 0 and not adjacent_to_own(state.board, player, position)
+    tunneling = reach > 0 and not adjacent_to_own(
+        state.board, player, position, state.bridges
+    )
     spades = spades_for(profile, tile.terrain)
     terrain_cost = spade_cost(profile, owner.digging, spades)
     build_cost = building_cost(
         profile,
         BuildingType.DWELLING,
-        bool(state.board.adjacent_opponents(position, player)),
+        bool(state.board.adjacent_opponents(position, player, state.bridges)),
     )
     reach_cost = (
         effective_reach_cost(state.board, player, profile)
@@ -149,6 +159,7 @@ def build_dwelling(
     )
     state = replace_player(state, player, owner)
     state = replace(state, board=board)
+    state = queue_power_gains(state, player, position, BuildingType.DWELLING)
     if founded:
         state = replace(state, towns=state.towns + founded)
     route = ""
@@ -199,7 +210,9 @@ def transform_terrain(
     if tile.building is not None:
         raise IllegalActionError("that tile is occupied")
     reach = effective_reach(state.board, player, profile)
-    if position not in state.board.reachable_land(player, owner.shipping, reach):
+    if position not in state.board.reachable_land(
+        player, owner.shipping, reach, state.bridges
+    ):
         raise IllegalActionError(
             "the tile must be directly or indirectly adjacent to one of your structures"
         )
@@ -208,7 +221,9 @@ def transform_terrain(
         raise IllegalActionError("that tile is already that terrain")
     if profile.terraform_spades is not None and target is not profile.home_terrain:
         raise IllegalActionError("the Giants can only transform to home terrain")
-    tunneling = reach > 0 and not adjacent_to_own(state.board, player, position)
+    tunneling = reach > 0 and not adjacent_to_own(
+        state.board, player, position, state.bridges
+    )
     spades = spades_for(profile, tile.terrain)
     if target is not profile.home_terrain:
         spades = terrain_distance(tile.terrain, target)
@@ -292,7 +307,7 @@ def upgrade_building(
     cost = building_cost(
         profile,
         target,
-        bool(state.board.adjacent_opponents(position, player)),
+        bool(state.board.adjacent_opponents(position, player, state.bridges)),
     )
     if not can_pay(owner.resources, cost):
         raise IllegalActionError("you cannot afford that upgrade")
@@ -361,6 +376,7 @@ def upgrade_building(
     )
     state = replace_player(state, player, owner)
     state = replace(state, board=board)
+    state = queue_power_gains(state, player, position, target)
     if founded:
         state = replace(state, towns=state.towns + founded)
     events = [upgraded_event, *town_events]
@@ -449,10 +465,10 @@ def _dwelling_actions(
         build_cost = building_cost(
             profile,
             BuildingType.DWELLING,
-            bool(state.board.adjacent_opponents(tile.position, player)),
+            bool(state.board.adjacent_opponents(tile.position, player, state.bridges)),
         )
         tunneling = profile.reach > 0 and not adjacent_to_own(
-            state.board, player, tile.position
+            state.board, player, tile.position, state.bridges
         )
         total = add_costs(terrain_cost, build_cost)
         if tunneling:
@@ -490,7 +506,7 @@ def _transform_actions(
                 continue
             cost = spade_cost(profile, owner.digging, spades_for(profile, tile.terrain))
             if profile.reach > 0 and not adjacent_to_own(
-                state.board, player, tile.position
+                state.board, player, tile.position, state.bridges
             ):
                 cost = add_costs(cost, reach_cost)
             if can_pay(resources, cost):
@@ -505,7 +521,7 @@ def _transform_actions(
                 terrain_distance(tile.terrain, target),
             )
             if profile.reach > 0 and not adjacent_to_own(
-                state.board, player, tile.position
+                state.board, player, tile.position, state.bridges
             ):
                 cost = add_costs(cost, reach_cost)
             if not can_pay(resources, cost):
@@ -548,7 +564,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
             cost = building_cost(
                 profile,
                 BuildingType.TRADING_HOUSE,
-                bool(state.board.adjacent_opponents(position, player)),
+                bool(state.board.adjacent_opponents(position, player, state.bridges)),
             )
             if can_pay(resources, cost):
                 _append_upgrade(
@@ -649,7 +665,10 @@ def building_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
     owner = state.players[player]
     build_reachable = set(
         state.board.reachable_land(
-            player, owner.shipping, effective_reach(state.board, player, owner.profile)
+            player,
+            owner.shipping,
+            effective_reach(state.board, player, owner.profile),
+            state.bridges,
         )
     )
     return [
@@ -691,7 +710,9 @@ def explain_build(
     ):
         return "You have no dwellings left."
     reach = effective_reach(state.board, player, profile)
-    if action.position not in state.board.reachable_land(player, owner.shipping, reach):
+    if action.position not in state.board.reachable_land(
+        player, owner.shipping, reach, state.bridges
+    ):
         return (
             "The tile must be directly or indirectly adjacent to one of "
             "your structures."
@@ -702,10 +723,14 @@ def explain_build(
         building_cost(
             profile,
             BuildingType.DWELLING,
-            bool(state.board.adjacent_opponents(action.position, player)),
+            bool(
+                state.board.adjacent_opponents(action.position, player, state.bridges)
+            ),
         ),
     )
-    if reach > 0 and not adjacent_to_own(state.board, player, action.position):
+    if reach > 0 and not adjacent_to_own(
+        state.board, player, action.position, state.bridges
+    ):
         total = add_costs(total, effective_reach_cost(state.board, player, profile))
     if not can_pay(owner.resources, total):
         return "You cannot pay for that transform, build and tunnel."
@@ -730,7 +755,9 @@ def explain_transform(
     if profile.terraform_spades is not None and target is not profile.home_terrain:
         return "The Giants can only transform to home terrain."
     reach = effective_reach(state.board, player, profile)
-    if action.position not in state.board.reachable_land(player, owner.shipping, reach):
+    if action.position not in state.board.reachable_land(
+        player, owner.shipping, reach, state.bridges
+    ):
         return (
             "The tile must be directly or indirectly adjacent to one of "
             "your structures."
@@ -739,7 +766,9 @@ def explain_transform(
     if target is not profile.home_terrain:
         spades = terrain_distance(tile.terrain, target)
     transform_cost = spade_cost(profile, owner.digging, spades)
-    if reach > 0 and not adjacent_to_own(state.board, player, action.position):
+    if reach > 0 and not adjacent_to_own(
+        state.board, player, action.position, state.bridges
+    ):
         transform_cost = add_costs(
             transform_cost,
             effective_reach_cost(state.board, player, profile),
@@ -780,7 +809,7 @@ def explain_upgrade(
     upgrade_cost = building_cost(
         profile,
         action.to,
-        bool(state.board.adjacent_opponents(action.position, player)),
+        bool(state.board.adjacent_opponents(action.position, player, state.bridges)),
     )
     if not can_pay(owner.resources, upgrade_cost):
         return "You cannot afford that upgrade."

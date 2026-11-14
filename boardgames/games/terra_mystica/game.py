@@ -47,7 +47,9 @@ from boardgames.games.terra_mystica.model import (
     AdvanceShipping,
     BuildBridge,
     BuildDwelling,
+    ChoosePowerGain,
     ChooseStrongholdPriests,
+    Convert,
     Pass,
     PowerAction,
     SendPriest,
@@ -63,9 +65,14 @@ from boardgames.games.terra_mystica.model import (
 )
 from boardgames.games.terra_mystica.notation import format_action, parse_action
 from boardgames.games.terra_mystica.power import (
+    take_conversion,
     take_power_action,
     trade_coins_for_vp,
     trade_vp_for_coin,
+)
+from boardgames.games.terra_mystica.power_gain import (
+    power_gain_amount,
+    take_power_gain,
 )
 from boardgames.games.terra_mystica.rounds import pass_turn
 from boardgames.games.terra_mystica.scoring import final_scores
@@ -89,7 +96,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 11
+    rules_version: ClassVar[int] = 12
 
     # Config ---------------------------------------------------------------
 
@@ -159,6 +166,15 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
                     "Choose one of the remaining favor tiles.",
                 ),
             )
+        if state.phase == "power_gain":
+            gain = state.pending_power[0]
+            actual, cost = power_gain_amount(state, gain)
+            prompt = (
+                f"{seat_label(gain.builder)} built a {gain.building.value} at "
+                f"{gain.position.notation()}. Gain {actual} power"
+            )
+            prompt += f" for {cost} victory point(s)?" if cost else " for free?"
+            return (Decision(gain.player, "power_gain", prompt + " (gain or decline)"),)
         return (
             Decision(
                 state.active_player,
@@ -176,6 +192,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             if state.phase == "action"
             else SkipCultSpade()
             if state.phase == "cult_spades"
+            else ChoosePowerGain(False)
+            if state.phase == "power_gain"
             else None
         )
         return FlatActionSpace(
@@ -221,6 +239,10 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             if not isinstance(action, TakeFavorTile):
                 raise IllegalActionError("choose a favor tile now")
             return take_favor_tile(state, player, action.index)
+        if state.phase == "power_gain":
+            if not isinstance(action, ChoosePowerGain):
+                raise IllegalActionError("choose whether to gain power")
+            return take_power_gain(state, player, action.accept)
         if state.phase != "action":
             raise IllegalActionError("the game is over")
         if player != state.active_player:
@@ -247,6 +269,8 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             return advance_cult_with_priest(state, player, action.cult)
         if isinstance(action, PowerAction):
             return take_power_action(state, player, action.kind)
+        if isinstance(action, Convert):
+            return take_conversion(state, player, action.kind)
         if isinstance(action, TradeVpForCoin):
             return trade_vp_for_coin(state, player)
         if isinstance(action, TradeCoinsForVp):

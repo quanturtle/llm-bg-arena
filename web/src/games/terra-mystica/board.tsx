@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   ArrowUpRight,
   Castle,
   Church,
@@ -138,6 +139,8 @@ export const terraMystica = defineGame({
     shipping_advanced: Ship,
     digging_advanced: Shovel,
     power_action: Zap,
+    power_gain: Zap,
+    conversion: ArrowLeftRight,
     town_founded: Castle,
     town_tile: Crown,
     favor_taken: Sparkles,

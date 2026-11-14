@@ -131,7 +131,7 @@ def _action_spade_offer(
 
     tunneling = effective_reach(
         state.board, player, profile
-    ) > 0 and not adjacent_to_own(state.board, player, tile.position)
+    ) > 0 and not adjacent_to_own(state.board, player, tile.position, state.bridges)
     if tunneling and state.spade_reach_used:
         return ("You can only tunnel or fly once per spade action.", 0, Cost(), False)
     payment = spade_cost(profile, owner.digging, missing)
@@ -153,7 +153,9 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
     budget = state.cult_spades[player]
     action_phase = state.spade_return == "action"
     reach = effective_reach(state.board, player, profile) if action_phase else 0
-    reachable = set(state.board.reachable_land(player, owner.shipping, reach))
+    reachable = set(
+        state.board.reachable_land(player, owner.shipping, reach, state.bridges)
+    )
     actions: list[Action] = []
 
     transformed = state.spade_transformed
@@ -217,7 +219,7 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
             build_cost = building_cost(
                 profile,
                 BuildingType.DWELLING,
-                bool(state.board.adjacent_opponents(position, player)),
+                bool(state.board.adjacent_opponents(position, player, state.bridges)),
             )
             if can_pay(owner.resources, build_cost):
                 actions.append(BuildDwelling(position))
@@ -320,7 +322,9 @@ def use_cult_spade(
     if tile.terrain is target:
         raise IllegalActionError("that tile is already that terrain")
     reach = effective_reach(state.board, player, profile) if action_phase else 0
-    if position not in state.board.reachable_land(player, owner.shipping, reach):
+    if position not in state.board.reachable_land(
+        player, owner.shipping, reach, state.bridges
+    ):
         raise IllegalActionError("that tile is not reachable")
     if profile.terraform_spades is not None and target is not profile.home_terrain:
         raise IllegalActionError("the Giants can only reach home terrain")
@@ -503,7 +507,7 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
             return "That tile is already that terrain."
         reach = effective_reach(state.board, player, profile) if action_phase else 0
         if action.position not in state.board.reachable_land(
-            player, owner.shipping, reach
+            player, owner.shipping, reach, state.bridges
         ):
             return "That tile is not reachable."
         if budget <= 0:

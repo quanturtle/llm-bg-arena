@@ -223,7 +223,7 @@ TOWN_TILES: tuple[TownTile, ...] = (
 
 @dataclass(frozen=True)
 class FavorTile:
-    """One of the twelve temple favor tiles."""
+    """One kind of temple favor tile and how many physical copies exist."""
 
     index: int
     label: str
@@ -233,6 +233,7 @@ class FavorTile:
     town_power: int = 0
     build_vp: tuple[tuple[BuildingType, int], ...] = ()
     pass_vp: tuple[int, ...] = ()
+    copies: int = 1
 
 
 FAVOR_TILES: tuple[FavorTile, ...] = (
@@ -246,14 +247,16 @@ FAVOR_TILES: tuple[FavorTile, ...] = (
         Cult.FIRE,
         2,
         town_power=-1,
+        copies=3,
     ),
-    FavorTile(5, "2 Water cult steps", Cult.WATER, 2),
+    FavorTile(5, "2 Water cult steps", Cult.WATER, 2, copies=3),
     FavorTile(
         6,
         "2 Earth cult steps; 1 worker and 1 power each round",
         Cult.EARTH,
         2,
         Income(workers=1, power=1),
+        copies=3,
     ),
     FavorTile(
         7,
@@ -261,6 +264,7 @@ FAVOR_TILES: tuple[FavorTile, ...] = (
         Cult.AIR,
         2,
         Income(power=4),
+        copies=3,
     ),
     FavorTile(
         8,
@@ -268,6 +272,7 @@ FAVOR_TILES: tuple[FavorTile, ...] = (
         Cult.FIRE,
         1,
         Income(coins=3),
+        copies=3,
     ),
     FavorTile(
         9,
@@ -275,6 +280,7 @@ FAVOR_TILES: tuple[FavorTile, ...] = (
         Cult.WATER,
         1,
         build_vp=((BuildingType.TRADING_HOUSE, 3),),
+        copies=3,
     ),
     FavorTile(
         10,
@@ -282,6 +288,7 @@ FAVOR_TILES: tuple[FavorTile, ...] = (
         Cult.EARTH,
         1,
         build_vp=((BuildingType.DWELLING, 2),),
+        copies=3,
     ),
     FavorTile(
         11,
@@ -289,6 +296,7 @@ FAVOR_TILES: tuple[FavorTile, ...] = (
         Cult.AIR,
         1,
         pass_vp=(0, 2, 3, 3, 4),
+        copies=3,
     ),
 )
 
@@ -404,6 +412,30 @@ POWER_ACTION_TEXT: dict[PowerActionKind, str] = {
     "spade": "one spade",
     "double_spade": "two spades",
     "bridge": "a bridge",
+}
+
+CONVERSION_KINDS: tuple[str, ...] = (
+    "power_priest",
+    "power_worker",
+    "power_coin",
+    "priest_worker",
+    "worker_coin",
+)
+
+CONVERSION_TEXT: dict[str, str] = {
+    "power_priest": "5 power for a priest",
+    "power_worker": "3 power for a worker",
+    "power_coin": "1 power for a coin",
+    "priest_worker": "a priest for a worker",
+    "worker_coin": "a worker for a coin",
+}
+
+CONVERSION_POWER: dict[str, int] = {
+    "power_priest": 5,
+    "power_worker": 3,
+    "power_coin": 1,
+    "priest_worker": 0,
+    "worker_coin": 0,
 }
 
 # Cumulative incomes for factions whose trading houses or temples differ.

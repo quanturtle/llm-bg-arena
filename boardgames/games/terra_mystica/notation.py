@@ -18,7 +18,10 @@ from boardgames.games.terra_mystica.model import (
     AdvanceShipping,
     BuildBridge,
     BuildDwelling,
+    ChoosePowerGain,
     ChooseStrongholdPriests,
+    ConversionKind,
+    Convert,
     Hex,
     Pass,
     PowerAction,
@@ -45,6 +48,9 @@ FAVOR_PATTERN = re.compile(r"favor (0|1[01]|[0-9])")
 POWER_PATTERN = re.compile(rf"power ({'|'.join(POWER_ACTION_KINDS)})")
 CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}(?: to ([a-z]+))?")
 BRIDGE_PATTERN = re.compile(rf"bridge {HEX_TEXT} {HEX_TEXT}(?: (workers))?")
+CONVERT_PATTERN = re.compile(
+    r"convert (power priest|power worker|power coin|priest worker|worker coin)"
+)
 
 BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingType)
 TERRAINS: frozenset[str] = frozenset(
@@ -83,6 +89,10 @@ def format_action(action: Action) -> str:
             return f"favor {index}"
         case PowerAction(kind=kind):
             return f"power {kind}"
+        case Convert(kind=kind):
+            return "convert " + kind.replace("_", " ")
+        case ChoosePowerGain(accept=accept):
+            return "gain power" if accept else "decline power"
         case UseCultSpade(position=position, to=terrain):
             suffix = "" if terrain is None else f" to {terrain.value}"
             return f"spade {position.notation()}{suffix}"
@@ -107,6 +117,10 @@ def parse_action(text: str) -> Action:
         return Pass()
     if text == "skip spade":
         return SkipCultSpade()
+    if text == "gain power":
+        return ChoosePowerGain(True)
+    if text == "decline power":
+        return ChoosePowerGain(False)
 
     if match := BUILD_PATTERN.fullmatch(text):
         river = (
@@ -152,6 +166,9 @@ def parse_action(text: str) -> Action:
         return TakeFavorTile(int(match.group(1)))
     if match := POWER_PATTERN.fullmatch(text):
         return PowerAction(cast(PowerActionKind, match.group(1)))
+    if match := CONVERT_PATTERN.fullmatch(text):
+        kind = cast(ConversionKind, match.group(1).replace(" ", "_"))
+        return Convert(kind)
     if match := CULT_SPADE_PATTERN.fullmatch(text):
         terrain = parse_terrain(match.group(3))
         return UseCultSpade(parse_hex(match.group(1), match.group(2)), terrain)

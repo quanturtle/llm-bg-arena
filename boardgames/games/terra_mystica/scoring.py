@@ -7,6 +7,7 @@ from boardgames.games.terra_mystica.constants import (
 )
 from boardgames.games.terra_mystica.model import (
     Board,
+    Bridge,
     TerraMysticaState,
     effective_reach,
 )
@@ -30,6 +31,7 @@ def final_scores(
             seat,
             state.players[seat].shipping,
             effective_reach(state.board, seat, state.players[seat].profile),
+            state.bridges,
         )
         for seat in all_seats
     }
@@ -84,11 +86,18 @@ def split_rank_points(
     return awards
 
 
-def largest_area(board: Board, player: PlayerId, shipping: int, reach: int = 0) -> int:
+def largest_area(
+    board: Board,
+    player: PlayerId,
+    shipping: int,
+    reach: int = 0,
+    bridges: tuple[Bridge, ...] = (),
+) -> int:
     """The size of the player's largest connected area."""
     largest = 0
     for position in board.occupied(player):
         largest = max(
-            largest, len(board.connected_area(position, player, shipping, reach))
+            largest,
+            len(board.connected_area(position, player, shipping, reach, bridges)),
         )
     return largest

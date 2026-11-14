@@ -33,6 +33,8 @@ from boardgames.games.terra_mystica.model import (
     AdvanceShipping,
     BuildBridge,
     BuildDwelling,
+    ChoosePowerGain,
+    Convert,
     Pass,
     PowerAction,
     SendPriest,
@@ -44,10 +46,16 @@ from boardgames.games.terra_mystica.model import (
 )
 from boardgames.games.terra_mystica.power import (
     alchemist_trades,
+    conversion_actions,
+    explain_conversion,
     explain_power_action,
     explain_trade_coins_for_vp,
     explain_trade_vp_for_coin,
     power_actions,
+)
+from boardgames.games.terra_mystica.power_gain import (
+    explain_power_gain,
+    power_gain_actions,
 )
 from boardgames.games.terra_mystica.setup import explain_setup, setup_actions
 from boardgames.games.terra_mystica.spades import cult_spade_actions, explain_spade
@@ -66,6 +74,7 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     actions.extend(bridge_actions(state, player))
     actions.extend(priest_actions(state, player))
     actions.extend(power_actions(state, player))
+    actions.extend(conversion_actions(state, player))
     actions.extend(alchemist_trades(state, player))
     actions.append(Pass())
     return actions
@@ -82,6 +91,8 @@ def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action
         return town_tile_actions(state)
     if state.phase == "favor_choice":
         return favor_actions(state)
+    if state.phase == "power_gain":
+        return power_gain_actions(state, player)
     if state.phase != "action":
         return []
     if player != state.active_player:
@@ -108,6 +119,10 @@ def _explain_action(state: TerraMysticaState, player: PlayerId, action: Action) 
         return explain_advance_cult(state, player, action)
     if isinstance(action, PowerAction):
         return explain_power_action(state, player, action)
+    if isinstance(action, Convert):
+        return explain_conversion(state, player, action)
+    if isinstance(action, ChoosePowerGain):
+        return explain_power_gain(state, player, action)
     if isinstance(action, TradeVpForCoin):
         return explain_trade_vp_for_coin(state, player)
     if isinstance(action, TradeCoinsForVp):
@@ -128,6 +143,8 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
         return explain_town_choice(state, action)
     if state.phase == "favor_choice":
         return explain_favor(state, action)
+    if state.phase == "power_gain":
+        return explain_power_gain(state, player, action)
     if state.phase != "action":
         return "The game is over."
     if player != state.active_player:

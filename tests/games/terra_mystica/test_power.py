@@ -2,7 +2,12 @@
 
 from dataclasses import replace
 
-from boardgames.games.terra_mystica import PowerAction, TradeCoinsForVp, TradeVpForCoin
+from boardgames.games.terra_mystica import (
+    Convert,
+    PowerAction,
+    TradeCoinsForVp,
+    TradeVpForCoin,
+)
 from boardgames.games.terra_mystica.constants import FactionType, Resources
 from boardgames.games.terra_mystica.model import replace_player
 from tests.games.terra_mystica.support import (
@@ -24,6 +29,52 @@ def test_power_actions_spend_bowl_three_power() -> None:
     state = GAME.apply(state, player, action).state
     assert state.players[player].resources.power3 < 12
     assert action.kind in state.used_power_actions
+
+
+def test_conversions_do_not_end_the_turn() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = with_resources(
+        state,
+        player,
+        coins=0,
+        workers=0,
+        priests=0,
+        power1=0,
+        power2=0,
+        power3=5,
+    )
+    assert Convert("power_priest") in listing(state)
+    state = GAME.apply(state, player, Convert("power_priest")).state
+    owner = state.players[player]
+    assert owner.resources.priests == 1
+    assert owner.resources.power1 == 5
+    assert owner.resources.power3 == 0
+    assert state.phase == "action" and state.active_player == player
+
+
+def test_power_conversion_can_burn_bowl_two() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = with_resources(state, player, workers=0, power1=0, power2=4, power3=1)
+    transition = GAME.apply(state, player, Convert("power_worker"))
+    assert transition.state.players[player].resources.workers == 1
+    assert transition.state.players[player].resources.power1 == 3
+    assert transition.state.players[player].resources.power3 == 0
+    event = next(event for event in transition.events if event.kind == "conversion")
+    assert event.data["burned"] == 2
+
+
+def test_resource_conversions() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    state = with_resources(state, player, coins=0, workers=1, priests=2)
+    state = GAME.apply(state, player, Convert("priest_worker")).state
+    owner = state.players[player]
+    assert owner.resources.priests == 1 and owner.resources.workers == 2
+    state = GAME.apply(state, player, Convert("worker_coin")).state
+    owner = state.players[player]
+    assert owner.resources.workers == 1 and owner.resources.coins == 1
 
 
 def test_power_action_reports_burned_tokens() -> None:

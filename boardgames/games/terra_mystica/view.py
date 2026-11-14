@@ -27,7 +27,9 @@ from boardgames.games.terra_mystica.model import (
     AdvanceShipping,
     BuildBridge,
     BuildDwelling,
+    ChoosePowerGain,
     ChooseStrongholdPriests,
+    Convert,
     Hex,
     Pass,
     PowerAction,
@@ -87,6 +89,17 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "pending_favors": state.pending_favors,
         "pending_town": state.pending_town,
         "pending_towns": state.pending_towns,
+        "pending_power": [
+            {
+                "player": gain.player,
+                "builder": gain.builder,
+                "amount": gain.amount,
+                "position": gain.position.notation(),
+                "building": gain.building.value,
+            }
+            for gain in state.pending_power
+        ],
+        "power_actor": state.power_actor,
         "used_orders": [
             {"cult": cult.value, "order": order, "player": player}
             for (cult, order), player in sorted(
@@ -178,6 +191,9 @@ def render_text(observation: Observation) -> str:
     lines.append(orders_line(data))
     lines.append(passed_line(data))
     lines.append(power_actions_line(data))
+    power_gain = power_gain_line(data)
+    if power_gain:
+        lines.append(power_gain)
     lines.append(bridges_line(data))
     spades = cult_spades_line(data)
     if spades:
@@ -195,9 +211,10 @@ def render_text(observation: Observation) -> str:
         "upgrade q,r trading_house|temple|stronghold|sanctuary [river q,r]; "
         "shipping; digging; priest fire|water|earth|air 0-3; "
         "advance fire|water|earth|air; "
-        "power priest|workers|coins|spade|double_spade; town 0-4; "
-        "favor 0-11; bridge q,r q,r [workers]; stronghold 0-3; "
-        "spade q,r [to T]; skip spade; "
+        "power priest|workers|coins|spade|double_spade; "
+        "convert power priest|power worker|power coin|priest worker|worker coin; "
+        "town 0-4; favor 0-11; bridge q,r q,r [workers]; stronghold 0-3; "
+        "spade q,r [to T]; skip spade; gain power|decline power; "
         "alchemist vp|coins; pass."
     )
     return "\n".join(lines)
@@ -262,6 +279,19 @@ def passed_line(data: JsonObject) -> str:
 def power_actions_line(data: JsonObject) -> str:
     actions = _strings(data, "used_power_actions")
     return "Power actions used this round: " + (", ".join(actions) or "none") + "."
+
+
+def power_gain_line(data: JsonObject) -> str:
+    gains = _objects(data, "pending_power")
+    if not gains:
+        return ""
+    gain = gains[0]
+    return (
+        f"{seat_label(PlayerId(_int(gain, 'player')))} may gain "
+        f"{_int(gain, 'amount')} power from "
+        f"{seat_label(PlayerId(_int(gain, 'builder')))}'s "
+        f"{_str(gain, 'building')} at {_str(gain, 'position')}."
+    )
 
 
 def bridges_line(data: JsonObject) -> str:
@@ -421,6 +451,12 @@ def describe_action(observation: Observation, action: Action) -> str:
                     f"lose {_count(burned, 'token')})"
                 )
             return text + "."
+        case Convert(kind=kind):
+            return f"Convert {kind.replace('_', ' ')}."
+        case ChoosePowerGain(accept=True):
+            return "Gain the offered power."
+        case ChoosePowerGain(accept=False):
+            return "Decline the offered power."
         case UseCultSpade(position=position, to=terrain):
             target = (
                 "toward your home terrain" if terrain is None else f"to {terrain.value}"
@@ -542,10 +578,35 @@ def _building_at(tile: JsonObject) -> JsonObject | None:
     return building if isinstance(building, dict) else None
 
 
+def _bridge_partners(data: JsonObject, position: Hex) -> tuple[Hex, ...]:
+    partners: list[Hex] = []
+    for bridge in _objects(data, "bridges"):
+        first = _hex_text(_str(bridge, "first"))
+        second = _hex_text(_str(bridge, "second"))
+        if first is None or second is None:
+            continue
+        if first == position:
+            partners.append(second)
+        elif second == position:
+            partners.append(first)
+    return tuple(partners)
+
+
+def _hex_text(text: str) -> Hex | None:
+    parts = text.split(",")
+    if len(parts) != 2:
+        return None
+    try:
+        return Hex(int(parts[0]), int(parts[1]))
+    except ValueError:
+        return None
+
+
 def _adjacent_owner(
     data: JsonObject, position: Hex, seat: int, *, opponent: bool
 ) -> bool:
-    for neighbour in position.neighbours():
+    neighbours = (*position.neighbours(), *_bridge_partners(data, position))
+    for neighbour in neighbours:
         building = _building_at(_tile_at(data, neighbour))
         if building is None:
             continue

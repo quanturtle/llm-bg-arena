@@ -3,7 +3,8 @@
 from dataclasses import replace
 
 from boardgames.core import seats
-from boardgames.games.terra_mystica import Board, Building
+from boardgames.games.terra_mystica import Board, Bridge, Building
+from boardgames.games.terra_mystica.bridges import bridge_pairs
 from boardgames.games.terra_mystica.constants import (
     BuildingType,
     FactionType,
@@ -82,6 +83,17 @@ def test_dwarves_area_scoring_connects_through_their_reach() -> None:
     board = board.place(other, Building(BuildingType.DWELLING, player))
     assert largest_area(board, player, shipping=0, reach=0) == 1
     assert largest_area(board, player, shipping=0, reach=2) == 2
+
+
+def test_area_scoring_joins_structures_by_bridge() -> None:
+    board = Board.base()
+    player = P1
+    first, second = bridge_pairs(board)[0]
+    board = board.place(first, Building(BuildingType.DWELLING, player))
+    board = board.place(second, Building(BuildingType.DWELLING, player))
+    assert largest_area(board, player, shipping=0, reach=0) == 1
+    bridge = Bridge(player, first, second)
+    assert largest_area(board, player, shipping=0, reach=0, bridges=(bridge,)) == 2
 
 
 def test_final_majorities_split_ties_and_convert_resources() -> None:

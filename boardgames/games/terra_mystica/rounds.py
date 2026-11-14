@@ -140,6 +140,8 @@ def start_round(
         pending_town=False,
         pending_town_position=None,
         pending_town_river=None,
+        pending_power=(),
+        power_actor=None,
         pending_towns=0,
     )
     events: list[Event] = [
@@ -214,6 +216,8 @@ def start_next_round(
         pending_town=False,
         pending_town_position=None,
         pending_town_river=None,
+        pending_power=(),
+        power_actor=None,
         pending_towns=0,
     )
     state, round_events = start_round(state)
@@ -397,6 +401,11 @@ def advance_turn(
     player: PlayerId,
     events: tuple[Event, ...],
 ) -> Transition[TerraMysticaState]:
+    if state.pending_power:
+        gain = state.pending_power[0]
+        return Transition(
+            replace(state, phase="power_gain", active_player=gain.player), events
+        )
     unpassed = [seat for seat in state.order if seat not in state.passed]
     if unpassed == [player]:
         return Transition(state, events)

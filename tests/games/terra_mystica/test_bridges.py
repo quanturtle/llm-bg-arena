@@ -6,8 +6,10 @@ from boardgames.games.terra_mystica import (
     Board,
     Bridge,
     BuildBridge,
+    BuildDwelling,
     Building,
     Hex,
+    UpgradeBuilding,
 )
 from boardgames.games.terra_mystica.bridges import bridge_actions, bridge_pairs
 from boardgames.games.terra_mystica.constants import BuildingType, FactionType
@@ -19,6 +21,7 @@ from tests.games.terra_mystica.support import (
     GAME,
     P1,
     action_state,
+    listing,
     start,
     with_resources,
 )
@@ -91,6 +94,50 @@ def test_three_bridges_are_the_limit() -> None:
         ),
     )
     assert bridge_actions(state, player) == []
+
+
+def test_bridge_makes_the_far_end_reachable_without_shipping() -> None:
+    state = start(num_players=2, seed=1)
+    player = state.order[0]
+    first, second = bridge_pairs(state.board)[0]
+    state = action_state(state, player, (first, BuildingType.DWELLING))
+    state = replace_player(
+        state,
+        player,
+        replace(
+            state.players[player],
+            faction=FactionType.WITCHES,
+            shipping=0,
+        ),
+    )
+    assert BuildDwelling(second) not in listing(state)
+    state = replace(state, bridges=(Bridge(player, first, second),))
+    assert BuildDwelling(second) in listing(state)
+    after = GAME.apply(state, player, BuildDwelling(second)).state
+    tile = after.board.tile(second)
+    assert tile is not None and tile.building is not None
+    assert tile.building.owner == player
+
+
+def test_bridge_gives_the_trading_house_discount() -> None:
+    state = start(num_players=2, seed=1)
+    player, opponent = state.order
+    first, second = bridge_pairs(state.board)[0]
+    state = action_state(state, player, (first, BuildingType.DWELLING))
+    state = replace(
+        state,
+        board=state.board.place(second, Building(BuildingType.DWELLING, opponent)),
+        bridges=(Bridge(player, first, second),),
+    )
+    profile = state.players[player].profile
+    before = state.players[player].resources.coins
+    action = UpgradeBuilding(first, BuildingType.TRADING_HOUSE)
+    assert action in listing(state)
+    after = GAME.apply(state, player, action).state
+    assert (
+        after.players[player].resources.coins
+        == before - profile.costs.trading_house.coins // 2
+    )
 
 
 def test_bridge_joins_two_groups_for_a_town() -> None:

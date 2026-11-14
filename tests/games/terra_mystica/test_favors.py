@@ -365,6 +365,28 @@ def test_favor_tile_lowers_the_town_power_needed() -> None:
     assert town_ready(board, component, power=town_power(state.players[player]))
 
 
+def test_one_and_two_step_favors_have_three_copies() -> None:
+    state = start(num_players=4, seed=1)
+    first, second, third, fourth = state.order
+    for player in (first, second, third):
+        state = replace_player(
+            state,
+            player,
+            replace(state.players[player], favors=frozenset({4})),
+        )
+    assert 4 not in available_favors(state, fourth)
+    assert 4 not in available_favors(state, first)
+
+    state = start(num_players=4, seed=1)
+    first, second = state.order[:2]
+    state = replace_player(
+        state,
+        first,
+        replace(state.players[first], favors=frozenset({0})),
+    )
+    assert 0 not in available_favors(state, second)
+
+
 def test_favor_notation() -> None:
     assert GAME.format_action(TakeFavorTile(5)) == "favor 5"
     assert GAME.parse_action("favor 5") == TakeFavorTile(5)

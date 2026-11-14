@@ -37,6 +37,7 @@ type Phase = Literal[
     "stronghold_convert",
     "town_choice",
     "favor_choice",
+    "power_gain",
     "game_over",
 ]
 
@@ -161,9 +162,20 @@ class Board:
             if tile.building is not None and tile.building.owner == player
         )
 
-    def adjacent_opponents(self, position: Hex, player: PlayerId) -> tuple[Hex, ...]:
+    def adjacent_positions(
+        self, position: Hex, bridges: tuple[Bridge, ...] = ()
+    ) -> tuple[Hex, ...]:
+        """Edge neighbours plus any space joined to `position` by a bridge."""
+        return (*position.neighbours(), *self.bridge_neighbours(position, bridges))
+
+    def adjacent_opponents(
+        self,
+        position: Hex,
+        player: PlayerId,
+        bridges: tuple[Bridge, ...] = (),
+    ) -> tuple[Hex, ...]:
         result: list[Hex] = []
-        for neighbour in position.neighbours():
+        for neighbour in self.adjacent_positions(position, bridges):
             tile = self.tile(neighbour)
             if (
                 tile is not None
@@ -173,10 +185,17 @@ class Board:
                 result.append(neighbour)
         return tuple(result)
 
-    def reachable_from(self, start: Hex, shipping: int, reach: int = 0) -> set[Hex]:
+    def reachable_from(
+        self,
+        start: Hex,
+        shipping: int,
+        reach: int = 0,
+        bridges: tuple[Bridge, ...] = (),
+    ) -> set[Hex]:
         """Land hexes reachable from one structure, crossing rivers up to `shipping`.
 
-        `reach` is a faction's tunneling or carpet range in steps; it ignores rivers.
+        A bridge makes its two ends directly adjacent. `reach` is a faction's
+        tunneling or carpet range in steps; it ignores rivers.
         """
         reachable: set[Hex] = set()
         for neighbour in start.neighbours():
@@ -187,6 +206,16 @@ class Board:
                 reachable.add(neighbour)
             elif shipping > 0:
                 self._river_targets(neighbour, shipping, reachable)
+        for partner in self.bridge_neighbours(start, bridges):
+            tile = self.tile(partner)
+            if tile is None or not tile.is_land:
+                continue
+            reachable.add(partner)
+            if shipping > 0:
+                for neighbour in partner.neighbours():
+                    river = self.tile(neighbour)
+                    if river is not None and not river.is_land:
+                        self._river_targets(neighbour, shipping, reachable)
         if reach > 0:
             reachable.update(
                 tile.position
@@ -196,16 +225,25 @@ class Board:
         return reachable
 
     def reachable_land(
-        self, player: PlayerId, shipping: int, reach: int = 0
+        self,
+        player: PlayerId,
+        shipping: int,
+        reach: int = 0,
+        bridges: tuple[Bridge, ...] = (),
     ) -> tuple[Hex, ...]:
         """Empty-or-not land hexes reachable from the player's structures."""
         reachable: set[Hex] = set()
         for start in self.occupied(player):
-            reachable |= self.reachable_from(start, shipping, reach)
+            reachable |= self.reachable_from(start, shipping, reach, bridges)
         return tuple(tile.position for tile in self.tiles if tile.position in reachable)
 
     def connected_area(
-        self, start: Hex, player: PlayerId, shipping: int, reach: int = 0
+        self,
+        start: Hex,
+        player: PlayerId,
+        shipping: int,
+        reach: int = 0,
+        bridges: tuple[Bridge, ...] = (),
     ) -> tuple[Hex, ...]:
         """The player's area through `start`, including shipping and faction reach."""
         found: list[Hex] = []
@@ -214,7 +252,7 @@ class Board:
         while queue:
             position = queue.pop(0)
             found.append(position)
-            reachable = self.reachable_from(position, shipping, reach)
+            reachable = self.reachable_from(position, shipping, reach, bridges)
             for other in self.occupied(player):
                 if other not in seen and other in reachable:
                     seen.add(other)
@@ -317,6 +355,17 @@ class PlayerState:
 
 
 @dataclass(frozen=True)
+class PowerGain:
+    """An opponent's pending power gain from a structure just built next to them."""
+
+    player: PlayerId
+    amount: int
+    position: Hex
+    building: BuildingType
+    builder: PlayerId
+
+
+@dataclass(frozen=True)
 class TerraMysticaConfig:
     """Table size and, for short matches, the number of rounds."""
 
@@ -352,6 +401,8 @@ class TerraMysticaState:
     pending_town: bool = False
     pending_town_position: Hex | None = None
     pending_town_river: Hex | None = None
+    pending_power: tuple[PowerGain, ...] = ()
+    power_actor: PlayerId | None = None
     spade_return: Literal["round", "action"] = "round"
     spade_actor: PlayerId | None = None
     power_spade_tiles: tuple[Hex, ...] = ()
@@ -460,6 +511,29 @@ class PowerAction:
     kind: PowerActionKind
 
 
+type ConversionKind = Literal[
+    "power_priest",
+    "power_worker",
+    "power_coin",
+    "priest_worker",
+    "worker_coin",
+]
+
+
+@dataclass(frozen=True)
+class Convert:
+    """A free conversion during the action phase, without spending the turn."""
+
+    kind: ConversionKind
+
+
+@dataclass(frozen=True)
+class ChoosePowerGain:
+    """Accept or decline the power an opponent's new structure offers."""
+
+    accept: bool
+
+
 @dataclass(frozen=True)
 class UseCultSpade:
     """Spend available spades to transform a reachable tile."""
@@ -501,6 +575,8 @@ type Action = (
     | TakeFavorTile
     | BuildBridge
     | PowerAction
+    | Convert
+    | ChoosePowerGain
     | UseCultSpade
     | SkipCultSpade
     | TradeVpForCoin
@@ -527,10 +603,21 @@ def favor_tiles(player: PlayerState) -> tuple[FavorTile, ...]:
     return tuple(FAVOR_TILES[index] for index in sorted(player.favors))
 
 
-def available_favors(state: TerraMysticaState) -> tuple[int, ...]:
-    """The favor tiles no player has taken."""
-    taken = set().union(*(player.favors for player in state.players))
-    return tuple(index for index in range(len(FAVOR_TILES)) if index not in taken)
+def available_favors(
+    state: TerraMysticaState, player: PlayerId | None = None
+) -> tuple[int, ...]:
+    """Favor tile kinds with a physical copy left that `player` does not hold."""
+    seat = state.active_player if player is None else player
+    held = state.players[seat].favors if seat < len(state.players) else frozenset()
+    counts = [
+        sum(1 for owner in state.players if index in owner.favors)
+        for index in range(len(FAVOR_TILES))
+    ]
+    return tuple(
+        index
+        for index, tile in enumerate(FAVOR_TILES)
+        if index not in held and counts[index] < tile.copies
+    )
 
 
 def favor_income(player: PlayerState) -> Income:

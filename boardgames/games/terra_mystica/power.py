@@ -1,6 +1,7 @@
 """Terra Mystica power actions and the Alchemists' victory point trades."""
 
 from dataclasses import replace
+from typing import cast
 
 from boardgames.core import (
     Event,
@@ -10,6 +11,9 @@ from boardgames.core import (
     seat_label,
 )
 from boardgames.games.terra_mystica.constants import (
+    CONVERSION_KINDS,
+    CONVERSION_POWER,
+    CONVERSION_TEXT,
     POWER_ACTION_COSTS,
     POWER_ACTION_INCOME,
     POWER_ACTION_KINDS,
@@ -19,6 +23,8 @@ from boardgames.games.terra_mystica.constants import (
 )
 from boardgames.games.terra_mystica.model import (
     Action,
+    ConversionKind,
+    Convert,
     PowerAction,
     TerraMysticaState,
     TradeCoinsForVp,
@@ -28,6 +34,7 @@ from boardgames.games.terra_mystica.model import (
     can_spend_power,
     cap_priests,
     power_shortfall,
+    priest_capacity,
     replace_at,
     replace_player,
     spend_power,
@@ -122,6 +129,80 @@ def take_power_action(
     return advance_turn(state, player, (event,))
 
 
+def conversion_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
+    """Every conversion the player can afford; conversions do not spend the turn."""
+    owner = state.players[player]
+    actions: list[Action] = []
+    for kind in CONVERSION_KINDS:
+        cost = CONVERSION_POWER[kind]
+        if cost and not can_spend_power(owner.resources, cost):
+            continue
+        if kind == "power_priest" and owner.resources.priests >= priest_capacity(
+            state, player
+        ):
+            continue
+        if kind == "priest_worker" and owner.resources.priests < 1:
+            continue
+        if kind == "worker_coin" and owner.resources.workers < 1:
+            continue
+        actions.append(Convert(cast(ConversionKind, kind)))
+    return actions
+
+
+def take_conversion(
+    state: TerraMysticaState, player: PlayerId, kind: ConversionKind
+) -> Transition[TerraMysticaState]:
+    """Apply one free conversion without passing the turn."""
+    owner = state.players[player]
+    resources = owner.resources
+    burned = 0
+    cost = CONVERSION_POWER[kind]
+    if cost:
+        if not can_spend_power(resources, cost):
+            raise IllegalActionError("you do not have enough power to burn")
+        burned = power_shortfall(resources.power3, cost)
+        burned_resources = burn_power(resources, cost)
+        assert burned_resources is not None
+        spent = spend_power(burned_resources, cost)
+        assert spent is not None
+        resources = spent
+    if kind == "power_priest":
+        if resources.priests >= priest_capacity(state, player):
+            raise IllegalActionError("you have no priest token left")
+        resources = replace(resources, priests=resources.priests + 1)
+    elif kind == "power_worker":
+        resources = replace(resources, workers=resources.workers + 1)
+    elif kind == "power_coin":
+        resources = replace(resources, coins=resources.coins + 1)
+    elif kind == "priest_worker":
+        if resources.priests < 1:
+            raise IllegalActionError("you have no priest to convert")
+        resources = replace(
+            resources, priests=resources.priests - 1, workers=resources.workers + 1
+        )
+    elif kind == "worker_coin":
+        if resources.workers < 1:
+            raise IllegalActionError("you have no worker to convert")
+        resources = replace(
+            resources, workers=resources.workers - 1, coins=resources.coins + 1
+        )
+    else:
+        raise IllegalActionError("unknown conversion")
+    owner = replace(owner, resources=cap_priests(state, player, resources))
+    state = replace_player(state, player, owner)
+    event = Event(
+        "conversion",
+        f"{seat_label(player)} converted {CONVERSION_TEXT[kind]}{_burn_text(burned)}.",
+        {
+            "player": player,
+            "kind": kind,
+            "burned": burned,
+            "bowl2_burned": 2 * burned,
+        },
+    )
+    return Transition(state, (event,))
+
+
 def trade_vp_for_coin(
     state: TerraMysticaState, player: PlayerId
 ) -> Transition[TerraMysticaState]:
@@ -191,6 +272,27 @@ def explain_power_action(
     if not can_spend_power(owner.resources, POWER_ACTION_COSTS[action.kind]):
         return "You do not have enough power to burn."
     return "That power action is not legal now."
+
+
+def explain_conversion(
+    state: TerraMysticaState, player: PlayerId, action: Convert
+) -> str:
+    owner = state.players[player]
+    kind = action.kind
+    if kind not in CONVERSION_POWER:
+        return "There is no such conversion."
+    cost = CONVERSION_POWER[kind]
+    if cost and not can_spend_power(owner.resources, cost):
+        return "You do not have enough power to burn."
+    if kind == "power_priest" and owner.resources.priests >= priest_capacity(
+        state, player
+    ):
+        return "You have no priest token left."
+    if kind == "priest_worker" and owner.resources.priests < 1:
+        return "You have no priest to convert."
+    if kind == "worker_coin" and owner.resources.workers < 1:
+        return "You have no worker to convert."
+    return "That conversion is not legal now."
 
 
 def explain_trade_vp_for_coin(state: TerraMysticaState, player: PlayerId) -> str:
