@@ -77,7 +77,8 @@ Each round has an income phase, an action phase and cleanup.
 - **Pass** to stop acting for the round.
 
 ## Bridges
-A bridge connects two land spaces two steps apart with a river between them.
+A bridge crosses the edge between two river spaces and connects the two land
+spaces two steps apart on either side of that edge.
 Building one costs 3 power, paid like a power action; the Engineers may pay 2
 workers instead. You need a building on at least one of the two spaces and may
 have at most three bridges. Bridged spaces count as directly adjacent, including

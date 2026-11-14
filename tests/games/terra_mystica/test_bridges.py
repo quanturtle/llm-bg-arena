@@ -24,17 +24,26 @@ from tests.games.terra_mystica.support import (
 )
 
 
-def test_bridge_pairs_have_a_river_between_them() -> None:
+def test_bridge_pairs_cross_the_edge_between_two_river_spaces() -> None:
     board = Board.base()
     pairs = bridge_pairs(board)
     assert pairs
     for first, second in pairs:
         assert first.distance(second) == 2
         common = set(first.neighbours()) & set(second.neighbours())
-        assert any(
+        assert len(common) == 2
+        assert all(
             (tile := board.tile(position)) is not None and not tile.is_land
             for position in common
         )
+
+
+def test_bridge_pairs_reject_a_land_side_and_a_straight_crossing() -> None:
+    pairs = {frozenset(pair) for pair in bridge_pairs(Board.base())}
+    # Only one of the two spaces between 9,2 and 8,4 is river; 9,3 is land.
+    assert frozenset((Hex(9, 2), Hex(8, 4))) not in pairs
+    # 1,1 is the only river space between 1,0 and 1,2; this is a straight gap.
+    assert frozenset((Hex(1, 0), Hex(1, 2))) not in pairs
 
 
 def test_power_bridge_requires_a_building_and_moves_power_to_bowl_one() -> None:
@@ -76,7 +85,10 @@ def test_three_bridges_are_the_limit() -> None:
     player = state.order[0]
     state = replace(
         state,
-        bridges=tuple(Bridge(player, Hex(q, 0), Hex(q + 2, 0)) for q in range(3)),
+        bridges=tuple(
+            Bridge(player, first, second)
+            for first, second in bridge_pairs(state.board)[:3]
+        ),
     )
     assert bridge_actions(state, player) == []
 

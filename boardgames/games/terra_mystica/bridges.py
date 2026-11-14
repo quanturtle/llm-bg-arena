@@ -28,7 +28,7 @@ ENGINEER_BRIDGE_COST = 2
 
 
 def bridge_pairs(board: Board) -> tuple[tuple[Hex, Hex], ...]:
-    """Land pairs a bridge can join: two steps apart with a river between."""
+    """Land pairs a bridge can join: two steps apart across a river edge."""
     pairs: set[tuple[Hex, Hex]] = set()
     land = [tile.position for tile in board.tiles if tile.is_land]
     for index, first in enumerate(land):
@@ -36,10 +36,10 @@ def bridge_pairs(board: Board) -> tuple[tuple[Hex, Hex], ...]:
             if first.distance(second) != 2:
                 continue
             common = set(first.neighbours()) & set(second.neighbours())
-            if any(
-                (tile := board.tile(position)) is not None and not tile.is_land
-                for position in common
-            ):
+            if len(common) != 2:
+                continue
+            middle = [board.tile(position) for position in common]
+            if all(tile is not None and not tile.is_land for tile in middle):
                 pairs.add((first, second) if first < second else (second, first))
     return tuple(sorted(pairs))
 
