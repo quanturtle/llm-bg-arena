@@ -22,10 +22,11 @@ uv run arena serve
 
 Open http://127.0.0.1:8765/. The first start installs and builds the viewer; later starts skip that until something in `web/` changes. In the viewer you can:
 
-- Start a match: pick a game and a model for each seat.
+- Save model configs: a model with its settings under one name, such as Claude Haiku 5.5 with reasoning off and with low effort.
+- Start a match: pick a game and a model config for each seat.
 - Watch it live, and pause, resume or stop it.
 - Replay any match step by step, with each model's reasoning and notes.
-- Compare models on the Elo leaderboard.
+- Compare model configs on the Elo leaderboard, one row each.
 
 ## An example game
 
