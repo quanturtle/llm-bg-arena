@@ -5,12 +5,17 @@ from dataclasses import replace
 from boardgames.core import Event, PlayerId, seat_label
 from boardgames.games.terra_mystica import (
     BuildDwelling,
+    Building,
     Hex,
     PowerAction,
     SkipCultSpade,
     UseCultSpade,
 )
-from boardgames.games.terra_mystica.constants import FactionType, Terrain
+from boardgames.games.terra_mystica.constants import (
+    BuildingType,
+    FactionType,
+    Terrain,
+)
 from boardgames.games.terra_mystica.model import (
     TerraMysticaState,
     Tile,
@@ -311,3 +316,17 @@ def test_build_description_names_terrain_and_transform_cost() -> None:
     assert "desert -> lake" in description
     assert "3 spades = 9 workers" in description
     assert "building 3 coins + 2 workers" in description
+
+
+def test_build_text_names_the_owners_of_adjacent_structures() -> None:
+    state = play_setup(start(num_players=2, seed=2))
+    player = state.active_player
+    opponent = next(seat for seat in state.order if seat != player)
+    target, own, other = Hex(3, 4), Hex(2, 4), Hex(4, 4)
+    board = state.board.place(own, Building(BuildingType.DWELLING, player))
+    board = board.place(other, Building(BuildingType.DWELLING, opponent))
+    observation = GAME.observe(replace(state, board=board), player)
+    neighbours = f"next to your structure and {seat_label(opponent)}"
+    assert neighbours in GAME.describe_action(observation, BuildDwelling(target))
+    listed = f"{target.notation()} plains (next to {seat_label(opponent)})"
+    assert listed in GAME.render_text(observation)

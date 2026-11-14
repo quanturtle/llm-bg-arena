@@ -72,6 +72,8 @@ Each round has an income phase, an action phase and cleanup.
   7 and 10 grants 1, 2, 2 and 3 power. Space 10 needs a town key, and only one
   player may stand there.
 - **Power action**: each kind may be used once per round by all players together.
+  Gained power moves tokens from Bowl I to Bowl II, then from Bowl II to Bowl
+  III. Only Bowl III power can be spent, and spent tokens return to Bowl I.
   A priest costs 3 power, two workers 4 power, seven coins 4 power, one spade
   4 power and two spades 6 power. After a spade action transforms a tile to your
   home terrain, you may build a dwelling there. If Bowl III is short, you may
@@ -267,3 +269,29 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `bridge 2,0 1,2 workers` — the Engineers' bridge for 2 workers.
 - `alchemist vp` / `alchemist coins` — the Alchemists' 1 VP for 1 coin or 2 coins for 1 VP.
 - `pass` — stop acting this round.
+
+## Playing well
+- Place starting dwellings next to opponents' structures and a few spaces from
+  each other. Build later dwellings next to opponents and next to your own
+  structures. The state lists the empty spaces next to yours, and build
+  descriptions name the neighbours.
+- Power flows between neighbours. When an opponent builds or upgrades next to
+  your structures, you are offered power equal to the power values of your
+  structures next to theirs. Stay next to opponents to keep receiving it. It
+  works both ways: your builds offer them power too.
+- Take offered power when it is free or costs 1 victory point, or when it lets
+  you afford a power action. Decline when the victory points matter more.
+- A trading house next to an opponent costs half the coins.
+- Convert power, priests or workers when one missing coin or worker blocks a
+  build.
+- Keep your structures directly adjacent. A town needs 4 of them with total
+  power 7: dwelling 1, trading house or temple 2, stronghold or sanctuary 3.
+  Shipping, tunnels and flights do not join structures into a town.
+- Upgrade, do not only add dwellings. Four dwellings have power 4, so a town
+  needs upgrades. Trading houses pay coins and power every round.
+- Take the action the current round scores. Advance the cult its bonus pays
+  before the round ends.
+- Spend Bowl III power on power actions before opponents take them.
+- Use each special action you have once every round.
+- Pass only when no affordable action helps you. When you pass, take the bonus
+  card whose income or action you will use next round.

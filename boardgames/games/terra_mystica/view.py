@@ -235,12 +235,17 @@ def render_text(observation: Observation) -> str:
     lines.extend(board_lines(data))
     if observation.viewer is not None:
         lines.append(f"You are {seat_label(observation.viewer)}.")
+        expansion = expansion_line(data, observation.viewer)
+        if expansion:
+            lines.append(expansion)
     lines.extend(final_lines(data))
     lines.append("")
     lines.append(
         "Legend: P plains, S swamp, L lake, F forest, M mountain, "
         "W wasteland, D desert, R river. A digit is the owner of a building; "
-        "'.' is empty. Actions: build q,r [river q,r]; transform q,r [to T]; "
+        "'.' is empty. Space q,r is directly adjacent to q+1,r; q-1,r; q,r+1; "
+        "q,r-1; q+1,r-1; q-1,r+1, and to the other end of a bridge. "
+        "Actions: build q,r [river q,r]; transform q,r [to T]; "
         "upgrade q,r trading_house|temple|stronghold|sanctuary [river q,r]; "
         "shipping; digging; priest fire|water|earth|air 0-3; "
         "advance fire|water|earth|air; "
@@ -429,6 +434,28 @@ def board_lines(data: JsonObject) -> list[str]:
     return lines
 
 
+def expansion_line(data: JsonObject, viewer: PlayerId) -> str:
+    """Empty land directly adjacent to the viewer's structures, with its neighbours."""
+    if data.get("game_over") is True:
+        return ""
+    spaces: list[str] = []
+    for tile in _objects(data, "board"):
+        if _str(tile, "terrain") == Terrain.RIVER.value or _building_at(tile):
+            continue
+        position = Hex(_int(tile, "q"), _int(tile, "r"))
+        owners = _adjacent_owners(data, position)
+        if viewer not in owners:
+            continue
+        others = ", ".join(
+            seat_label(PlayerId(seat)) for seat in sorted(owners - {viewer})
+        )
+        suffix = f" (next to {others})" if others else ""
+        spaces.append(f"{position.notation()} {_str(tile, 'terrain')}{suffix}")
+    if not spaces:
+        return ""
+    return "Empty land next to your structures: " + "; ".join(spaces) + "."
+
+
 def final_lines(data: JsonObject) -> list[str]:
     final = data.get("final_scores")
     if not isinstance(final, list):
@@ -452,7 +479,12 @@ def describe_action(observation: Observation, action: Action) -> str:
     match action:
         case BuildDwelling(position=position, river=river):
             if observation.data.get("phase") == "setup":
-                return f"Place a starting dwelling at {position.notation()}."
+                seat = _int(observation.data, "active")
+                neighbours = _neighbours_text(observation.data, position, seat)
+                return (
+                    f"Place a starting dwelling at {position.notation()} "
+                    f"({neighbours})."
+                )
             suffix = "" if river is None else f" across river {river.notation()}"
             detail = _build_detail(observation.data, position)
             return f"Build a dwelling at {position.notation()}{suffix}{detail}."
@@ -695,6 +727,26 @@ def _adjacent_owner(
     return False
 
 
+def _adjacent_owners(data: JsonObject, position: Hex) -> set[int]:
+    """Seats owning a structure directly adjacent to `position`, bridges included."""
+    neighbours = (*position.neighbours(), *_bridge_partners(data, position))
+    return {
+        _int(building, "owner")
+        for neighbour in neighbours
+        if (building := _building_at(_tile_at(data, neighbour))) is not None
+    }
+
+
+def _neighbours_text(data: JsonObject, position: Hex, seat: int) -> str:
+    """Whose structures are directly adjacent to `position`, from `seat`'s view."""
+    owners = _adjacent_owners(data, position)
+    if not owners:
+        return "next to no structure"
+    names = ["your structure"] if seat in owners else []
+    names.extend(seat_label(PlayerId(other)) for other in sorted(owners - {seat}))
+    return "next to " + " and ".join(names)
+
+
 def _reach_cost(player: JsonObject, profile: FactionProfile) -> Cost:
     has_stronghold = any(
         _str(building, "type") == BuildingType.STRONGHOLD.value
@@ -753,6 +805,7 @@ def _build_detail(data: JsonObject, position: Hex) -> str:
     ):
         route = "tunnel" if profile.reach_cost.workers else "carpet flight"
         parts.append(f"{route} {_cost_text(_reach_cost(player, profile))}")
+    parts.append(_neighbours_text(data, position, _int(player, "seat")))
     return " (" + "; ".join(part for part in parts if part) + ")"
 
 
@@ -769,6 +822,8 @@ def _transform_detail(data: JsonObject, position: Hex, target: Terrain | None) -
         data, position, _int(player, "seat"), opponent=False
     ):
         parts.append(f"tunnel {_cost_text(_reach_cost(player, profile))}")
+    if target is None:
+        parts.append(_neighbours_text(data, position, _int(player, "seat")))
     return " (" + "; ".join(part for part in parts if part) + ")"
 
 
@@ -819,6 +874,8 @@ def _spade_detail(data: JsonObject, position: Hex, target: Terrain | None) -> st
     ):
         route = "tunnel" if profile.reach_cost.workers else "carpet flight"
         parts.append(f"{route} {_cost_text(_reach_cost(player, profile))}")
+    if target is None:
+        parts.append(_neighbours_text(data, position, _int(player, "seat")))
     return " (" + "; ".join(parts) + ")"
 
 
