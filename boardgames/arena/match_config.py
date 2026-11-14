@@ -8,9 +8,17 @@ built-in default (DEFAULT_MODEL, ModelSettings, PromptSettings, LlmAgentSettings
 
 from dataclasses import replace
 from pathlib import Path
+from typing import Annotated, Self
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationError,
+    model_validator,
+)
 from pydantic import JsonValue as PlainJson
 from pydantic_core import ErrorDetails
 
@@ -65,6 +73,10 @@ SUGGESTED_MODELS = (
     "z-ai/glm-5.3-flash",
 )
 AGENT_FIELDS = frozenset({"max_illegal_retries", "max_tool_calls", "fallback"})
+# a file stem without "/", so a config name never equals a model id
+type ModelConfigName = Annotated[
+    str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=64)
+]
 
 
 class ConfigModel(BaseModel):
@@ -92,6 +104,32 @@ class LlmOptions(ConfigModel):
     extractor: str | None = None
 
 
+class ModelConfig(LlmOptions):
+    """A saved player: a model and its settings, compared under the config's name."""
+
+    model: str
+
+    @model_validator(mode="after")
+    def reasoning_settings_agree(self) -> Self:
+        problem = reasoning_conflict(
+            self.reasoning, self.reasoning_effort, self.thinking_budget_tokens
+        )
+        if problem is not None:
+            raise ValueError(problem)
+        return self
+
+
+def parse_model_config(raw: object, source: str) -> ModelConfig:
+    """A validated model config from loaded YAML; `source` names it in errors."""
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{source}: the model config must be a mapping")
+    try:
+        return ModelConfig.model_validate(raw)
+    except ValidationError as error:
+        problems = "; ".join(problem_text(problem) for problem in error.errors())
+        raise ConfigError(f"{source}: {problems}") from error
+
+
 class LlmSeat(LlmOptions):
     """A language model seat: its model and settings; unset ones use the defaults."""
 
@@ -115,15 +153,19 @@ class MatchConfig(ConfigModel):
 
 def load_match_config(path: Path) -> MatchConfig:
     """The match config in a YAML file; an unreadable or invalid file raises."""
+    return parse_match_config(read_yaml(path), str(path))
+
+
+def read_yaml(path: Path) -> object:
+    """What a YAML file holds; an unreadable or malformed file raises ConfigError."""
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
     except OSError as error:
         raise ConfigError(f"cannot read {path}: {error}") from error
     except UnicodeDecodeError as error:
         raise ConfigError(f"{path} is not UTF-8 text: {error}") from error
     except yaml.YAMLError as error:
         raise ConfigError(f"{path} is not valid YAML: {error}") from error
-    return parse_match_config(raw, str(path))
 
 
 def parse_match_config(raw: object, source: str) -> MatchConfig:
