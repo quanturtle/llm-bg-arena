@@ -108,15 +108,16 @@ function PlayerCard({
           <span className="truncate">home {terrain.label.toLowerCase()}</span>
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-xs">
-        <Stat icon={Coins} label="Coins" value={player.coins} />
-        <Stat icon={Users} label="Workers" value={player.workers} />
-        <Stat icon={Church} label="Priests" value={player.priests} />
-        <Stat icon={Zap} label="Power in bowl I" value={`I ${player.power[0]}`} />
-        <Stat icon={Zap} label="Power in bowl II" value={`II ${player.power[1]}`} />
-        <Stat icon={Zap} label="Power in bowl III" value={`III ${player.power[2]}`} />
-        <Stat icon={Ship} label="Shipping track" value={player.shipping} />
-        <Stat icon={Shovel} label="Digging track" value={player.digging} />
+      {/* numbers sit at the right of their column; the wide gap keeps each one apart from the next column's icon */}
+      <div className="grid grid-cols-3 gap-x-5 gap-y-1 text-xs">
+        <Stat alignEnd icon={Coins} label="Coins" value={player.coins} />
+        <Stat alignEnd icon={Users} label="Workers" value={player.workers} />
+        <Stat alignEnd icon={Church} label="Priests" value={player.priests} />
+        <Stat alignEnd icon={Zap} label="Power in bowl I" prefix="I" value={player.power[0]} />
+        <Stat alignEnd icon={Zap} label="Power in bowl II" prefix="II" value={player.power[1]} />
+        <Stat alignEnd icon={Zap} label="Power in bowl III" prefix="III" value={player.power[2]} />
+        <Stat alignEnd icon={Ship} label="Shipping track" value={player.shipping} />
+        <Stat alignEnd icon={Shovel} label="Digging track" value={player.digging} />
       </div>
       <CultRow player={player} />
       <div className="flex flex-wrap items-center gap-1.5">

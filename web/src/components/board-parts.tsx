@@ -40,13 +40,30 @@ export function BorderPill({ tone, children }: { tone: "active" | "neutral" | "w
 }
 
 /** An icon and a number with a tooltip naming the stat; tabular digits keep the width steady. */
-export function Stat({ icon: Icon, label, value, className }: { icon: LucideIcon; label: string; value: React.ReactNode; className?: string }) {
+export function Stat({
+  icon: Icon,
+  label,
+  value,
+  prefix,
+  alignEnd = false,
+  className,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: React.ReactNode;
+  /** Text between the icon and the value, such as a bowl's numeral. */
+  prefix?: string;
+  /** Puts the value at the end of the stat's box, so values in a column line up on the right. */
+  alignEnd?: boolean;
+  className?: string;
+}) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <span className={cn("flex items-center gap-1.5 text-muted-foreground", className)}>
           <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-          <span className="font-medium text-foreground tabular-nums">{value}</span>
+          {prefix ? <span className="font-medium text-foreground">{prefix}</span> : null}
+          <span className={cn("font-medium text-foreground tabular-nums", alignEnd && "ml-auto")}>{value}</span>
         </span>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
