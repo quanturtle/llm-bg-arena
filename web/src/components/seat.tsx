@@ -44,14 +44,15 @@ export function SeatChip({
   className,
   children,
 }: {
-  seat: Pick<SeatSummary, "player" | "agent" | "model">;
+  seat: Pick<SeatSummary, "player" | "agent" | "entrant" | "model">;
   link?: boolean;
   className?: string;
   children?: React.ReactNode;
 }) {
   const name = seatName(seat);
   const label = link ? (
-    <Link href={agentHref(seat.agent)} className="truncate hover:underline">
+    // the agent page is the entrant's: a saved config's seats share one page
+    <Link href={agentHref(seat.entrant)} className="truncate hover:underline">
       {name}
     </Link>
   ) : (

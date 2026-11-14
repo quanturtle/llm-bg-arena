@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { listMatches, MatchTable } from "@/features/matches/match-table";
 import { StatsTable } from "@/features/stats/stats-table";
 import { useNow } from "@/hooks/use-now";
-import { api, type AgentGameStats, type HeadToHead } from "@/lib/api";
+import { api, type AgentGameStats, type HeadToHead, type JsonObject, type SeatSummary } from "@/lib/api";
 import { formatCost, formatPercent, formatSeconds } from "@/lib/format";
 
 // the agent page lists this many of its most recent matches
@@ -78,6 +78,49 @@ function OpponentsTable({ opponents }: { opponents: HeadToHead[] }) {
   );
 }
 
+const SETTING_LABELS: [string, string][] = [
+  ["temperature", "Temperature"],
+  ["top_p", "Top p"],
+  ["max_tokens", "Longest reply"],
+  ["verbosity", "Verbosity"],
+];
+const PLAYER_LABELS: [string, string][] = [
+  ["output_mode", "Output mode"],
+  ["max_illegal_retries", "Second chances"],
+  ["fallback", "Fallback"],
+  ["extractor", "Extractor"],
+  ["persona", "Persona"],
+];
+
+function reasoningText(model: JsonObject): string {
+  if (model.reasoning_effort) return `${String(model.reasoning_effort)} effort`;
+  if (model.thinking_budget_tokens) return `within ${String(model.thinking_budget_tokens)} tokens`;
+  return model.reasoning ? "on" : "off";
+}
+
+/** What a saved config plays with, read from the settings its latest match recorded. */
+function ConfigSettings({ settings }: { settings: JsonObject }) {
+  const model = (settings.model ?? {}) as JsonObject;
+  const set = (source: JsonObject, labels: [string, string][]) =>
+    labels.filter(([key]) => source[key] !== null && source[key] !== undefined).map(([key, label]): [string, string] => [label, String(source[key])]);
+  const entries: [string, string][] = [
+    ["Model", String(model.model)],
+    ["Reasoning", reasoningText(model)],
+    ...set(model, SETTING_LABELS),
+    ...set(settings, PLAYER_LABELS),
+  ];
+  return (
+    <dl className="mb-6 flex flex-wrap gap-x-6 gap-y-2 rounded-xl border bg-card px-4 py-3 text-sm">
+      {entries.map(([label, value]) => (
+        <div key={label} className="flex gap-1.5">
+          <dt className="text-muted-foreground">{label}</dt>
+          <dd className="font-medium">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card className="mb-6 gap-2 pb-0">
@@ -95,6 +138,8 @@ export function AgentView() {
   const catalog = useQuery({ queryKey: ["matches", { agent: name }], queryFn: () => api.matches({ agent: name }), enabled: Boolean(name) });
   const recent = listMatches((catalog.data?.matches ?? []).slice(0, RECENT_MATCHES), []);
   const now = useNow(recent.some((match) => match.status === "running"));
+  // a saved config always plays the same settings, so any of its seats shows them
+  const configSeat = recent.flatMap((match): SeatSummary[] => match.seats).find((seat) => seat.settings.config === name);
   if (!name) return <ErrorAlert error="No agent named in the address." />;
   return (
     <>
@@ -112,6 +157,7 @@ export function AgentView() {
       {detail.isPending ? <LoadingRows /> : null}
       {detail.data ? (
         <>
+          {configSeat ? <ConfigSettings settings={configSeat.settings} /> : null}
           {detail.data.overall ? <SummaryCards row={detail.data.overall} /> : null}
           <Section title="By game">
             <StatsTable rows={detail.data.games} withElo withGame />
