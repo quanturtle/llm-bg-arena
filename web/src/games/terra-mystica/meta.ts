@@ -123,12 +123,12 @@ export type PowerActionMeta = {
 };
 
 export const POWER_ACTIONS: readonly PowerActionMeta[] = [
+  { kind: "bridge", label: "Bridge", cost: 3, reward: "1 bridge", icon: Route },
   { kind: "priest", label: "Priest", cost: 3, reward: "1 priest", icon: Church },
   { kind: "workers", label: "Two workers", cost: 4, reward: "2 workers", icon: Users },
   { kind: "coins", label: "Seven coins", cost: 4, reward: "7 coins", icon: Coins },
   { kind: "spade", label: "One spade", cost: 4, reward: "1 spade", icon: Shovel },
   { kind: "double_spade", label: "Two spades", cost: 6, reward: "2 spades", icon: Pickaxe },
-  { kind: "bridge", label: "Bridge", cost: 3, reward: "1 bridge", icon: Route },
 ];
 
 // The five town tiles, each with two copies; founding a town lets its owner take one.
