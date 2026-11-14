@@ -30,6 +30,7 @@ import {
   type FormState,
 } from "@/features/new-match/form-model";
 import { SeatCard } from "@/features/new-match/seat-card";
+import { useModelLookup } from "@/features/new-match/use-model-lookup";
 import { matchHref } from "@/features/matches/match-table";
 import { api, type Launch, type MatchOptions } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -212,18 +213,7 @@ function NewMatchForm({ options, launches }: { options: MatchOptions; launches: 
   const counts = currentGame(state).player_counts;
   const most = counts[counts.length - 1];
   const full = state.seats.length >= most;
-  // a typed model id is looked up once; its settings then follow what it accepts
-  const lookUp = async (model: string) => {
-    if (!model || model in state.capabilities || model in state.unknown) {
-      dispatch({ type: "modelLookedUp", model, capabilities: null, error: null });
-      return;
-    }
-    try {
-      dispatch({ type: "modelLookedUp", model, capabilities: await api.modelCapabilities(model), error: null });
-    } catch (error) {
-      dispatch({ type: "modelLookedUp", model, capabilities: null, error: error instanceof Error ? error.message : String(error) });
-    }
-  };
+  const lookUp = useModelLookup(state, dispatch);
   return (
     <>
       <Step number={1} title="Game">

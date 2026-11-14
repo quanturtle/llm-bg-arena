@@ -124,23 +124,52 @@ function SeatInput({ state, field, seat, index, caps, dispatch }: FieldProps) {
   );
 }
 
-/** One player: its model, a line on what it sends, and the model's settings folded away. */
-export function SeatCard({
-  state,
-  seat,
-  index,
-  dispatch,
-  onTyped,
-}: {
+type SeatProps = {
   state: FormState;
   seat: Seat;
   index: number;
   dispatch: React.Dispatch<FormAction>;
-  onTyped: (model: string) => void;
-}) {
-  const caps = capsOf(state, seat);
-  const removable = state.seats.length > currentGame(state).player_counts[0];
+};
+
+/** A seat's model picker and a line on what it sends. */
+export function SeatModel({ state, seat, index, dispatch, onTyped }: SeatProps & { onTyped: (model: string) => void }) {
   const brief = modelBrief(state, seat);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>Model</Label>
+      <ModelPicker
+        models={state.options.models}
+        defaultModel={state.options.default_model}
+        model={seat.model}
+        custom={seat.custom}
+        onChoose={(model) => dispatch({ type: "chooseModel", index, model })}
+        onType={(model) => dispatch({ type: "typeModel", index, model })}
+        onTyped={() => onTyped(seat.model.trim())}
+      />
+      {brief ? <p className="text-xs text-muted-foreground">{brief}</p> : null}
+    </div>
+  );
+}
+
+/** The settings the seat's model accepts, one field each; `omit` leaves fields out. */
+export function SeatSettings({ state, seat, index, dispatch, omit = [] }: SeatProps & { omit?: SeatField["key"][] }) {
+  const caps = capsOf(state, seat);
+  return (
+    <>
+      {SEAT_FIELDS.filter((field) => fieldShows(field, caps) && !omit.includes(field.key)).map((field) => (
+        <div key={field.key} className="flex flex-col gap-1.5" title={field.hint ?? ""}>
+          <Label className="text-muted-foreground">{field.label}</Label>
+          <SeatInput state={state} field={field} seat={seat} index={index} caps={caps} dispatch={dispatch} />
+          {field.hint && field.kind !== "textarea" ? <p className="text-xs text-muted-foreground">{field.hint}</p> : null}
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** One player: its model, a line on what it sends, and the model's settings folded away. */
+export function SeatCard({ state, seat, index, dispatch, onTyped }: SeatProps & { onTyped: (model: string) => void }) {
+  const removable = state.seats.length > currentGame(state).player_counts[0];
   return (
     <Card className="gap-4">
       <CardHeader>
@@ -157,19 +186,7 @@ export function SeatCard({
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label>Model</Label>
-          <ModelPicker
-            models={state.options.models}
-            defaultModel={state.options.default_model}
-            model={seat.model}
-            custom={seat.custom}
-            onChoose={(model) => dispatch({ type: "chooseModel", index, model })}
-            onType={(model) => dispatch({ type: "typeModel", index, model })}
-            onTyped={() => onTyped(seat.model.trim())}
-          />
-          {brief ? <p className="text-xs text-muted-foreground">{brief}</p> : null}
-        </div>
+        <SeatModel state={state} seat={seat} index={index} dispatch={dispatch} onTyped={onTyped} />
         <Collapsible>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="group -ml-2 text-muted-foreground">
@@ -178,13 +195,7 @@ export function SeatCard({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 flex flex-col gap-3">
-            {SEAT_FIELDS.filter((field) => fieldShows(field, caps)).map((field) => (
-              <div key={field.key} className="flex flex-col gap-1.5" title={field.hint ?? ""}>
-                <Label className="text-muted-foreground">{field.label}</Label>
-                <SeatInput state={state} field={field} seat={seat} index={index} caps={caps} dispatch={dispatch} />
-                {field.hint && field.kind !== "textarea" ? <p className="text-xs text-muted-foreground">{field.hint}</p> : null}
-              </div>
-            ))}
+            <SeatSettings state={state} seat={seat} index={index} dispatch={dispatch} />
           </CollapsibleContent>
         </Collapsible>
       </CardContent>

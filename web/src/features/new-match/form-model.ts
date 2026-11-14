@@ -1,6 +1,6 @@
 // The new-match form as a pure reducer: game, game options, one seat per player, seed.
 // The view dispatches actions; `matchConfig` turns the state into the config the server takes.
-import type { GameOption, MatchOptions, ModelCapabilities, ReasoningEffort } from "@/lib/api";
+import type { GameOption, MatchOptions, ModelCapabilities, ModelConfig, ReasoningEffort } from "@/lib/api";
 import { PROVIDER_NAMES } from "@/lib/providers";
 
 /** How each game option reads in the form; unknown options get a label from their key. */
@@ -283,18 +283,39 @@ export function formReducer(state: FormState, action: FormAction): FormState {
   }
 }
 
-/** The match config sent to the server: only what the user filled in. */
+/** A seat's model and settings as the server takes them: only what the user filled in. */
+export function seatEntry(state: FormState, seat: Seat): Record<string, SettingValue> {
+  const entry: Record<string, SettingValue> = { model: seat.model.trim() || state.options.default_model, ...seat.settings };
+  // reasoning and its effort are separate settings; an effort only goes with reasoning on
+  const caps = capsOf(state, seat);
+  if (!caps || caps.reasoning) entry.reasoning = seat.reasoning;
+  if (!seat.reasoning) delete entry.reasoning_effort;
+  return entry;
+}
+
+/** The match config sent to the server. */
 export function matchConfig(state: FormState, seed: number | string) {
   const config = { num_players: state.seats.length, ...state.settings };
-  const seats = state.seats.map((seat) => {
-    const entry: Record<string, SettingValue> = { model: seat.model.trim() || state.options.default_model, ...seat.settings };
-    // reasoning and its effort are separate settings; an effort only goes with reasoning on
-    const caps = capsOf(state, seat);
-    if (!caps || caps.reasoning) entry.reasoning = seat.reasoning;
-    if (!seat.reasoning) delete entry.reasoning_effort;
-    return entry;
-  });
+  const seats = state.seats.map((seat) => seatEntry(state, seat));
   return { game: state.game, config, seed, seats };
+}
+
+/** A saved config in one line: its model, how it reasons and its verbosity. */
+export function configBrief(config: ModelConfig): string {
+  const parts = [modelName(config.model)];
+  if (config.reasoning_effort) parts.push(`reasoning ${EFFORT_LABELS[config.reasoning_effort].toLowerCase()}`);
+  else if (config.thinking_budget_tokens) parts.push(`reasoning within ${config.thinking_budget_tokens} tokens`);
+  else parts.push(config.reasoning ? "reasoning on" : "reasoning off");
+  if (config.verbosity) parts.push(`${config.verbosity} verbosity`);
+  return parts.join(" · ");
+}
+
+/** A config name from the model and how it reasons, such as "claude-haiku-5.5-low". */
+export function suggestedConfigName(entry: Record<string, SettingValue>): string {
+  const model = String(entry.model);
+  const tail = model.slice(model.indexOf("/") + 1).toLowerCase();
+  const reasoning = entry.reasoning_effort ?? (entry.reasoning ? "on" : "off");
+  return `${tail}-${reasoning}`.replace(/[^a-z0-9._-]+/g, "-").replace(/^[^a-z0-9]+/, "");
 }
 
 /** One line on what this player sends, so the defaults show without opening the settings. */
