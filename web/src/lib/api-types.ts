@@ -41,6 +41,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/model-configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Model Configs
+         * @description The saved model configs seats can name.
+         */
+        get: operations["list_model_configs_api_model_configs_get"];
+        put?: never;
+        /**
+         * Save Model Config
+         * @description Save a new model config; a name already saved is 409, since configs never
+         *     change.
+         */
+        post: operations["save_model_config_api_model_configs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/model-configs/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Model Config
+         * @description Delete a saved model config; matches it played keep their recorded settings.
+         */
+        delete: operations["delete_model_config_api_model_configs__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/model-capabilities": {
         parameters: {
             query?: never;
@@ -90,7 +135,7 @@ export interface paths {
         };
         /**
          * List Matches
-         * @description Matches newest first, filtered by game id and by an agent name at any seat.
+         * @description Matches newest first, filtered by game id and by an agent at any seat.
          */
         get: operations["list_matches_api_matches_get"];
         put?: never;
@@ -615,6 +660,8 @@ export interface components {
             player: number;
             /** Agent */
             agent: string;
+            /** Entrant */
+            entrant: string;
             /** Kind */
             kind: string;
             /** Model */
@@ -784,6 +831,8 @@ export interface components {
             default_model: string;
             /** Models */
             models: string[];
+            /** Configs */
+            configs: components["schemas"]["SavedModelConfig"][];
             /** Capabilities */
             capabilities: {
                 [key: string]: components["schemas"]["ModelCapabilities"];
@@ -815,6 +864,42 @@ export interface components {
             default_temperature: number | null;
         };
         /**
+         * ModelConfig
+         * @description A saved player: a model and its settings, compared under the config's name.
+         */
+        ModelConfig: {
+            /** Model */
+            model: string;
+            /** Temperature */
+            temperature?: number | null;
+            /** Top P */
+            top_p?: number | null;
+            /** Max Tokens */
+            max_tokens?: number | null;
+            /** Timeout Seconds */
+            timeout_seconds?: number | null;
+            /** Reasoning */
+            reasoning?: boolean | null;
+            reasoning_effort?: components["schemas"]["ReasoningEffort"] | null;
+            /** Thinking Budget Tokens */
+            thinking_budget_tokens?: number | null;
+            verbosity?: components["schemas"]["Verbosity"] | null;
+            /** Extra */
+            extra?: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
+            output_mode?: components["schemas"]["OutputMode"] | null;
+            /** Max Illegal Retries */
+            max_illegal_retries?: number | null;
+            /** Max Tool Calls */
+            max_tool_calls?: number | null;
+            fallback?: components["schemas"]["FallbackPolicy"] | null;
+            /** Persona */
+            persona?: string | null;
+            /** Extractor */
+            extractor?: string | null;
+        };
+        /**
          * MoveView
          * @description One step as the outline lists it: who did what, without boards or traces.
          */
@@ -833,6 +918,18 @@ export interface components {
             fallback: string | null;
             /** Latency Seconds */
             latency_seconds: number;
+        };
+        /**
+         * NewModelConfig
+         * @description A model config to save; `config` holds the settings as the form filled them.
+         */
+        NewModelConfig: {
+            /** Name */
+            name: string;
+            /** Config */
+            config: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
         };
         /**
          * Outline
@@ -855,6 +952,8 @@ export interface components {
             /** Log Updated At */
             log_updated_at: string | null;
         };
+        /** @enum {string} */
+        OutputMode: "tool" | "text" | "tools";
         /** @enum {string} */
         ReasoningEffort: "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
         /**
@@ -896,6 +995,15 @@ export interface components {
             prompt_version: number;
             /** Seats */
             seats: components["schemas"]["UnscoredSeatSummary"][];
+        };
+        /**
+         * SavedModelConfig
+         * @description A saved model config and the name seats and the leaderboard call it by.
+         */
+        SavedModelConfig: {
+            /** Name */
+            name: string;
+            config: components["schemas"]["ModelConfig"];
         };
         /** ScoreView */
         ScoreView: {
@@ -983,6 +1091,8 @@ export interface components {
             player: number;
             /** Agent */
             agent: string;
+            /** Entrant */
+            entrant: string;
             /** Kind */
             kind: string;
             /** Model */
@@ -1027,6 +1137,8 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** @enum {string} */
+        Verbosity: "low" | "medium" | "high" | "xhigh" | "max";
     };
     responses: never;
     parameters: never;
@@ -1072,6 +1184,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchOptions"];
+                };
+            };
+        };
+    };
+    list_model_configs_api_model_configs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedModelConfig"][];
+                };
+            };
+        };
+    };
+    save_model_config_api_model_configs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewModelConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedModelConfig"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_model_config_api_model_configs__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from boardgames.arena import cli
+from boardgames.arena.model_configs import DirectoryModelConfigs
 from boardgames.core import ConfigError
 from boardgames.games.puerto_rico import PuertoRico, PuertoRicoConfig
 from boardgames.games.tic_tac_toe import TicTacToe, TicTacToeConfig
@@ -27,6 +28,23 @@ def client(tmp_path: Path) -> TestClient:
     write_match(tmp_path, "ttt", seed=1, agents=costly_agents(2))
     launcher = MatchLauncher(tmp_path, None, None)
     return TestClient(create_app(MatchStore(tmp_path), launcher))
+
+
+def test_model_configs_are_saved_once_listed_and_deleted(tmp_path: Path) -> None:
+    app = create_app(
+        MatchStore(tmp_path),
+        MatchLauncher(tmp_path, None, None),
+        configs=DirectoryModelConfigs(tmp_path / "models"),
+    )
+    client = TestClient(app)
+    new = {"name": "haiku-low", "config": {"model": "a/b", "reasoning_effort": "low"}}
+    assert client.post("/api/model-configs", json=new).status_code == 201
+    assert client.post("/api/model-configs", json=new).status_code == 409
+    [saved] = client.get("/api/match-options").json()["configs"]
+    assert (saved["name"], saved["config"]["reasoning_effort"]) == ("haiku-low", "low")
+    assert client.delete("/api/model-configs/haiku-low").status_code == 204
+    assert client.get("/api/model-configs").json() == []
+    return
 
 
 def test_agent_pages_open_for_model_ids_with_a_slash(tmp_path: Path) -> None:

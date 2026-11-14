@@ -14,10 +14,18 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from pydantic import JsonValue as PlainJson
 
+from boardgames.arena.lineup import DEFAULT_MODEL_CONFIGS
 from boardgames.arena.match_config import (
     DEFAULT_MODEL,
     SUGGESTED_MODELS,
+    ModelConfig,
     builtin_seat_defaults,
+    parse_model_config,
+)
+from boardgames.arena.model_configs import (
+    ModelConfigExistsError,
+    ModelConfigs,
+    UnknownModelConfigError,
 )
 from boardgames.core import ArenaError, ConfigError, UnknownGameError, create_game
 from boardgames.games import game_ids
@@ -102,6 +110,24 @@ class GameOption(BaseModel):
     settings: dict[str, PlainJson]
 
 
+class SavedModelConfig(BaseModel):
+    """A saved model config and the name seats and the leaderboard call it by."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    config: ModelConfig
+
+
+class NewModelConfig(BaseModel):
+    """A model config to save; `config` holds the settings as the form filled them."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    config: dict[str, PlainJson]
+
+
 class MatchOptions(BaseModel):
     """Choices the new-match form offers, and what an untouched seat plays with.
 
@@ -112,6 +138,7 @@ class MatchOptions(BaseModel):
 
     default_model: str
     models: list[str]
+    configs: list[SavedModelConfig]
     # what each suggested model accepts
     capabilities: dict[str, ModelCapabilities]
     catalog_error: str | None
@@ -245,6 +272,7 @@ async def match_options(request: Request) -> MatchOptions:
     return MatchOptions(
         default_model=DEFAULT_MODEL,
         models=list(SUGGESTED_MODELS),
+        configs=saved_configs(configs_of(request)),
         capabilities=capabilities,
         catalog_error=catalog_error,
         seat_defaults=builtin_seat_defaults(),
@@ -255,6 +283,41 @@ async def match_options(request: Request) -> MatchOptions:
 def catalog_of(request: Request) -> ModelCatalog | None:
     catalog: ModelCatalog | None = request.app.state.catalog
     return catalog
+
+
+def configs_of(request: Request) -> ModelConfigs:
+    configs: ModelConfigs = request.app.state.configs
+    return configs
+
+
+def saved_configs(configs: ModelConfigs) -> list[SavedModelConfig]:
+    """Every saved model config, by name."""
+    return [
+        SavedModelConfig(name=name, config=configs.get(name))
+        for name in configs.names()
+    ]
+
+
+@api.get("/model-configs")
+def list_model_configs(request: Request) -> list[SavedModelConfig]:
+    """The saved model configs seats can name."""
+    return saved_configs(configs_of(request))
+
+
+@api.post("/model-configs", status_code=201)
+def save_model_config(request: Request, body: NewModelConfig) -> SavedModelConfig:
+    """Save a new model config; a name already saved is 409, since configs never
+    change."""
+    config = parse_model_config(body.config, body.name)
+    configs_of(request).save(body.name, config)
+    return SavedModelConfig(name=body.name, config=config)
+
+
+@api.delete("/model-configs/{name}", status_code=204)
+def delete_model_config(request: Request, name: str) -> Response:
+    """Delete a saved model config; matches it played keep their recorded settings."""
+    configs_of(request).delete(name)
+    return Response(status_code=204)
 
 
 async def suggested_capabilities(
@@ -455,10 +518,12 @@ def create_app(
     launcher: MatchLauncher,
     catalog: ModelCatalog | None = None,
     viewer_dir: Path | None = None,
+    configs: ModelConfigs = DEFAULT_MODEL_CONFIGS,
 ) -> FastAPI:
     """The viewer application over `store`; `launcher` starts matches from it.
 
     None for `catalog` shows every model; None for `viewer_dir` serves the API alone.
+    `configs` holds the saved model configs, the same ones `launcher` seats from.
     """
     app = FastAPI(
         title="Boardgames", docs_url="/api/docs", openapi_url="/api/openapi.json"
@@ -466,6 +531,7 @@ def create_app(
     app.state.store = store
     app.state.launcher = launcher
     app.state.catalog = catalog
+    app.state.configs = configs
     app.state.timelines = TimelineCache()
     app.include_router(api)
     app.add_exception_handler(UnknownMatchError, not_found)
@@ -474,6 +540,8 @@ def create_app(
     app.add_exception_handler(UnknownLaunchError, not_found)
     app.add_exception_handler(UnknownGameError, not_found)
     app.add_exception_handler(UnknownModelError, not_found)
+    app.add_exception_handler(UnknownModelConfigError, not_found)
+    app.add_exception_handler(ModelConfigExistsError, conflict)
     app.add_exception_handler(MatchStillPlayingError, conflict)
     app.add_exception_handler(ReadOnlyLogError, conflict)
     app.add_exception_handler(CatalogUnavailableError, unavailable)

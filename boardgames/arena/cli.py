@@ -315,15 +315,13 @@ def serve(args: argparse.Namespace, config: AppConfig) -> None:
     game_ids()
     viewer = current_viewer(args.viewer)
     opened = () if args.log is None else (args.log,)
+    configs = DirectoryModelConfigs(args.models)
     launcher = MatchLauncher(
-        args.runs,
-        config.chat_model(),
-        args.examples,
-        configs=DirectoryModelConfigs(args.models),
+        args.runs, config.chat_model(), args.examples, configs=configs
     )
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
     store = MatchStore(args.runs, read_only=opened)
-    app = create_app(store, launcher, OpenRouterCatalog(), viewer)
+    app = create_app(store, launcher, OpenRouterCatalog(), viewer, configs)
     server = uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port))
     open_replays(opened, args.host, args.port, server)
     server.run()
