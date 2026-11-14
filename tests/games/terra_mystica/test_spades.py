@@ -8,6 +8,7 @@ from boardgames.core import IllegalActionError, PlayerId
 from boardgames.games.terra_mystica import (
     BuildDwelling,
     Building,
+    Convert,
     Hex,
     PowerAction,
     SkipCultSpade,
@@ -284,6 +285,17 @@ def _action_spade_state(
         active_player=player,
     )
     return state, player, start_position, first, second
+
+
+def test_conversions_are_offered_during_action_spades() -> None:
+    state, player, _start, _first, _second = _action_spade_state(FactionType.WITCHES, 1)
+    state = with_resources(state, player, power1=0, power2=0, power3=5, priests=0)
+    assert Convert("power_priest") in listing(state)
+    after = GAME.apply(state, player, Convert("power_priest")).state
+    assert after.phase == "cult_spades"
+    assert after.active_player == player
+    assert after.cult_spades[player] == 1
+    assert after.players[player].resources.priests == 1
 
 
 def test_action_phase_spades_score_spade_round_points() -> None:

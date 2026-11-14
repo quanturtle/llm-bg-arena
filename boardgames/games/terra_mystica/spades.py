@@ -27,6 +27,7 @@ from boardgames.games.terra_mystica.constants import (
 from boardgames.games.terra_mystica.model import (
     Action,
     BuildDwelling,
+    Convert,
     Hex,
     SkipCultSpade,
     TerraMysticaState,
@@ -50,8 +51,11 @@ from boardgames.games.terra_mystica.model import (
 )
 from boardgames.games.terra_mystica.power import (
     alchemist_trades,
+    conversion_actions,
+    explain_conversion,
     explain_trade_coins_for_vp,
     explain_trade_vp_for_coin,
+    take_conversion,
     trade_coins_for_vp,
     trade_vp_for_coin,
 )
@@ -235,6 +239,7 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
                     actions.append(BuildDwelling(position, river=river))
 
     if action_phase:
+        actions.extend(conversion_actions(state, player))
         actions.extend(alchemist_trades(state, player))
 
     actions.append(SkipCultSpade())
@@ -242,9 +247,9 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
 
 
 def _has_cult_spade_choice(state: TerraMysticaState, player: PlayerId) -> bool:
-    """Whether the spade phase offers anything beyond skipping."""
+    """Whether the spade phase offers anything beyond converting or skipping."""
     return any(
-        not isinstance(action, SkipCultSpade)
+        not isinstance(action, SkipCultSpade | Convert)
         for action in cult_spade_actions(state, player)
     )
 
@@ -478,6 +483,8 @@ def apply_spade_phase(
         return use_cult_spade(state, player, action.position, action.to)
     if isinstance(action, SkipCultSpade):
         return skip_cult_spade(state, player)
+    if state.spade_return == "action" and isinstance(action, Convert):
+        return take_conversion(state, player, action.kind)
     if (
         state.spade_return == "action"
         and isinstance(action, TradeVpForCoin)
@@ -540,6 +547,8 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
         ):
             return "That river does not change the town here."
         return "That dwelling cannot be built there now."
+    if isinstance(action, Convert):
+        return explain_conversion(state, player, action)
     if isinstance(action, TradeVpForCoin):
         return explain_trade_vp_for_coin(state, player)
     if isinstance(action, TradeCoinsForVp):

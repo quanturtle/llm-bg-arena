@@ -3,7 +3,7 @@
 from dataclasses import replace
 
 from boardgames.core import Event, IllegalActionError, PlayerId, Transition, seat_label
-from boardgames.games.terra_mystica.constants import BuildingType
+from boardgames.games.terra_mystica.constants import BuildingType, Resources
 from boardgames.games.terra_mystica.model import (
     Action,
     ChoosePowerGain,
@@ -45,8 +45,7 @@ def queue_power_gains(
         if amounts.get(player, 0) > 0
         and min(
             amounts[player],
-            state.players[player].resources.power1
-            + state.players[player].resources.power2,
+            power_gain_capacity(state.players[player].resources),
         )
         > 0
     )
@@ -55,10 +54,15 @@ def queue_power_gains(
     return replace(state, pending_power=pending, power_actor=actor)
 
 
+def power_gain_capacity(resources: Resources) -> int:
+    """Power moves needed to put every Bowl I and II token into Bowl III."""
+    return 2 * resources.power1 + resources.power2
+
+
 def power_gain_amount(state: TerraMysticaState, gain: PowerGain) -> tuple[int, int]:
     """The power actually gained and the victory points it costs."""
     owner = state.players[gain.player]
-    actual = min(gain.amount, owner.resources.power1 + owner.resources.power2)
+    actual = min(gain.amount, power_gain_capacity(owner.resources))
     if actual - 1 > owner.victory_points:
         actual = owner.victory_points + 1
     return actual, max(0, actual - 1)

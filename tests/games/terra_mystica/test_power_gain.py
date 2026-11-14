@@ -2,6 +2,9 @@
 
 from dataclasses import replace
 
+import pytest
+
+from boardgames.core import PlayerId
 from boardgames.games.terra_mystica import (
     Building,
     ChoosePowerGain,
@@ -10,7 +13,12 @@ from boardgames.games.terra_mystica import (
 )
 from boardgames.games.terra_mystica.building import build_dwelling
 from boardgames.games.terra_mystica.constants import BuildingType
-from boardgames.games.terra_mystica.model import Hex, replace_player
+from boardgames.games.terra_mystica.model import (
+    Hex,
+    PowerGain,
+    replace_player,
+)
+from boardgames.games.terra_mystica.power_gain import power_gain_amount
 from tests.games.terra_mystica.support import (
     GAME,
     action_state,
@@ -28,7 +36,7 @@ def _neighbours(state: TerraMysticaState, position: Hex) -> list[Hex]:
     ]
 
 
-def _build_state() -> tuple[TerraMysticaState, Hex, int, int]:
+def _build_state() -> tuple[TerraMysticaState, Hex, PlayerId, PlayerId]:
     """A builder structure next to an empty tile next to an opponent structure."""
     state = start(num_players=2, seed=1)
     builder, opponent = state.order
@@ -109,6 +117,32 @@ def test_power_gain_is_capped_by_victory_points() -> None:
     assert after.victory_points == 0
     assert after.resources.power1 == 3
     assert after.resources.power2 == 7
+
+
+@pytest.mark.parametrize(
+    ("power1", "power2", "expected_power", "expected_cost"),
+    [(2, 0, 3, 2), (1, 0, 2, 1), (0, 2, 2, 1)],
+)
+def test_power_gain_uses_all_bowl_one_tokens(
+    power1: int, power2: int, expected_power: int, expected_cost: int
+) -> None:
+    state = start(num_players=2, seed=1)
+    builder, opponent = state.order
+    state = with_resources(
+        state,
+        opponent,
+        power1=power1,
+        power2=power2,
+        power3=12 - power1 - power2,
+    )
+    gain = PowerGain(
+        opponent,
+        3,
+        Hex(0, 0),
+        BuildingType.STRONGHOLD,
+        builder,
+    )
+    assert power_gain_amount(state, gain) == (expected_power, expected_cost)
 
 
 def test_upgrading_next_to_an_opponent_offers_power() -> None:
