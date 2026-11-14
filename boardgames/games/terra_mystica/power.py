@@ -40,6 +40,7 @@ from boardgames.games.terra_mystica.model import (
     spend_power,
 )
 from boardgames.games.terra_mystica.rounds import advance_turn
+from boardgames.games.terra_mystica.spade_gain import gain_spade_power
 
 
 def _token_count(value: int) -> str:
@@ -80,6 +81,7 @@ def take_power_action(
                 + amount * owner.profile.spade_vp_bonus,
             )
         state = replace_player(state, player, owner)
+        state = gain_spade_power(state, player, amount)
         state = replace(
             state,
             used_power_actions=state.used_power_actions | {kind},

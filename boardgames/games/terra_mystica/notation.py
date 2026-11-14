@@ -8,6 +8,7 @@ from boardgames.games.terra_mystica.constants import (
     POWER_ACTION_KINDS,
     BuildingType,
     Cult,
+    FactionType,
     PowerActionKind,
     Terrain,
 )
@@ -16,17 +17,26 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BonusSpade,
     BuildBridge,
     BuildDwelling,
+    ChaosDoubleTurn,
+    ChooseFaction,
     ChoosePowerGain,
     ChooseStrongholdPriests,
     ConversionKind,
     Convert,
+    CultistCult,
+    GiantsSpades,
     Hex,
+    NomadsSandstorm,
     Pass,
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    SpecialCult,
+    SwarmlingsUpgrade,
+    TakeBonusCard,
     TakeFavorTile,
     TakeTownTile,
     TradeCoinsForVp,
@@ -34,6 +44,7 @@ from boardgames.games.terra_mystica.model import (
     TransformTerrain,
     UpgradeBuilding,
     UseCultSpade,
+    WitchesRide,
 )
 
 HEX_TEXT = r"(-?[0-9]+),(-?[0-9]+)"
@@ -43,7 +54,7 @@ UPGRADE_PATTERN = re.compile(rf"upgrade {HEX_TEXT} ([a-z_]+)(?: river {HEX_TEXT}
 PRIEST_PATTERN = re.compile(r"priest (fire|water|earth|air) ([0-3])")
 ADVANCE_CULT_PATTERN = re.compile(r"advance (fire|water|earth|air)")
 STRONGHOLD_PATTERN = re.compile(r"stronghold ([0-3])")
-TOWN_PATTERN = re.compile(r"town ([0-4])")
+TOWN_PATTERN = re.compile(r"town ([0-7])")
 FAVOR_PATTERN = re.compile(r"favor (0|1[01]|[0-9])")
 POWER_PATTERN = re.compile(rf"power ({'|'.join(POWER_ACTION_KINDS)})")
 CULT_SPADE_PATTERN = re.compile(rf"spade {HEX_TEXT}(?: to ([a-z]+))?")
@@ -51,6 +62,14 @@ BRIDGE_PATTERN = re.compile(rf"bridge {HEX_TEXT} {HEX_TEXT}(?: (workers))?")
 CONVERT_PATTERN = re.compile(
     r"convert (power priest|power worker|power coin|priest worker|worker coin)"
 )
+FACTION_PATTERN = re.compile(r"faction ([a-z_]+)")
+BONUS_PATTERN = re.compile(r"bonus ([0-8])")
+SPECIAL_CULT_PATTERN = re.compile(r"special (auren|water|bonus) (fire|water|earth|air)")
+CULTIST_PATTERN = re.compile(r"cultist (fire|water|earth|air)")
+RIDE_PATTERN = re.compile(rf"ride {HEX_TEXT}")
+SWARMLINGS_PATTERN = re.compile(rf"swarmlings {HEX_TEXT}")
+GIANTS_PATTERN = re.compile(rf"giants {HEX_TEXT}")
+SANDSTORM_PATTERN = re.compile(rf"sandstorm {HEX_TEXT}")
 
 BUILDINGS: frozenset[str] = frozenset(building.value for building in BuildingType)
 TERRAINS: frozenset[str] = frozenset(
@@ -93,6 +112,27 @@ def format_action(action: Action) -> str:
             return "convert " + kind.replace("_", " ")
         case ChoosePowerGain(accept=accept):
             return "gain power" if accept else "decline power"
+        case ChooseFaction(faction=faction):
+            return f"faction {faction.value}"
+        case TakeBonusCard(index=index):
+            return f"bonus {index}"
+        case SpecialCult(source=source, cult=cult):
+            short = "water" if source == "water_favor" else source
+            return f"special {short} {cult.value}"
+        case CultistCult(cult=cult):
+            return f"cultist {cult.value}"
+        case BonusSpade():
+            return "special spade"
+        case WitchesRide(position=position):
+            return f"ride {position.notation()}"
+        case SwarmlingsUpgrade(position=position):
+            return f"swarmlings {position.notation()}"
+        case ChaosDoubleTurn():
+            return "double turn"
+        case GiantsSpades(position=position):
+            return f"giants {position.notation()}"
+        case NomadsSandstorm(position=position):
+            return f"sandstorm {position.notation()}"
         case UseCultSpade(position=position, to=terrain):
             suffix = "" if terrain is None else f" to {terrain.value}"
             return f"spade {position.notation()}{suffix}"
@@ -121,6 +161,10 @@ def parse_action(text: str) -> Action:
         return ChoosePowerGain(True)
     if text == "decline power":
         return ChoosePowerGain(False)
+    if text == "special spade":
+        return BonusSpade()
+    if text == "double turn":
+        return ChaosDoubleTurn()
 
     if match := BUILD_PATTERN.fullmatch(text):
         river = (
@@ -169,6 +213,30 @@ def parse_action(text: str) -> Action:
     if match := CONVERT_PATTERN.fullmatch(text):
         kind = cast(ConversionKind, match.group(1).replace(" ", "_"))
         return Convert(kind)
+    if match := FACTION_PATTERN.fullmatch(text):
+        try:
+            return ChooseFaction(FactionType(match.group(1)))
+        except ValueError as error:
+            raise NotationError(f"{text!r} does not name a faction") from error
+    if match := BONUS_PATTERN.fullmatch(text):
+        return TakeBonusCard(int(match.group(1)))
+    if match := SPECIAL_CULT_PATTERN.fullmatch(text):
+        source = match.group(1)
+        special_source = "water_favor" if source == "water" else source
+        return SpecialCult(
+            cast(Literal["auren", "water_favor", "bonus"], special_source),
+            Cult(match.group(2)),
+        )
+    if match := CULTIST_PATTERN.fullmatch(text):
+        return CultistCult(Cult(match.group(1)))
+    if match := RIDE_PATTERN.fullmatch(text):
+        return WitchesRide(parse_hex(match.group(1), match.group(2)))
+    if match := SWARMLINGS_PATTERN.fullmatch(text):
+        return SwarmlingsUpgrade(parse_hex(match.group(1), match.group(2)))
+    if match := GIANTS_PATTERN.fullmatch(text):
+        return GiantsSpades(parse_hex(match.group(1), match.group(2)))
+    if match := SANDSTORM_PATTERN.fullmatch(text):
+        return NomadsSandstorm(parse_hex(match.group(1), match.group(2)))
     if match := CULT_SPADE_PATTERN.fullmatch(text):
         terrain = parse_terrain(match.group(3))
         return UseCultSpade(parse_hex(match.group(1), match.group(2)), terrain)

@@ -3,13 +3,21 @@
 from dataclasses import replace
 
 from boardgames.core import Event, IllegalActionError, PlayerId, Transition, seat_label
-from boardgames.games.terra_mystica.constants import BuildingType, Resources
+from boardgames.games.terra_mystica.constants import (
+    BuildingType,
+    Cult,
+    FactionType,
+    Resources,
+)
+from boardgames.games.terra_mystica.cults import cult_top_occupied
 from boardgames.games.terra_mystica.model import (
     Action,
     ChoosePowerGain,
+    CultistCult,
     Hex,
     PowerGain,
     TerraMysticaState,
+    advance_cult,
     gain_power,
     replace_player,
 )
@@ -51,7 +59,15 @@ def queue_power_gains(
     )
     if not pending:
         return state
-    return replace(state, pending_power=pending, power_actor=actor)
+    cultist = state.players[actor].profile.type is FactionType.CULTISTS
+    return replace(
+        state,
+        pending_power=pending,
+        power_actor=actor,
+        cultist_offered=cultist,
+        cultist_taken=False,
+        cultist_actor=actor if cultist else None,
+    )
 
 
 def power_gain_capacity(resources: Resources) -> int:
@@ -123,6 +139,11 @@ def take_power_gain(
         },
     )
     state = replace_player(state, player, owner)
+    if accept and gain.builder != player:
+        state = replace(
+            state,
+            cultist_taken=state.cultist_taken or state.cultist_actor == gain.builder,
+        )
     pending = state.pending_power[1:]
     state = replace(state, pending_power=pending)
     if pending:
@@ -130,8 +151,84 @@ def take_power_gain(
     actor = state.power_actor
     if actor is None:
         raise IllegalActionError("no player is waiting to resume their turn")
-    state = replace(state, phase="action", active_player=actor, power_actor=None)
+    if state.cultist_actor == actor and state.cultist_offered:
+        if state.cultist_taken:
+            state = replace(
+                state,
+                phase="cultist_cult",
+                active_player=actor,
+                power_actor=None,
+                pending_power=(),
+            )
+            return Transition(state, (event,))
+        owner = replace(
+            state.players[actor],
+            resources=gain_power(state.players[actor].resources, 1),
+        )
+        state = replace_player(state, actor, owner)
+        state = replace(
+            state,
+            phase="action",
+            active_player=actor,
+            power_actor=None,
+            cultist_offered=False,
+            cultist_taken=False,
+            cultist_actor=None,
+        )
+        return advance_turn(state, actor, (event,))
+    state = replace(
+        state,
+        phase="action",
+        active_player=actor,
+        power_actor=None,
+        cultist_offered=False,
+        cultist_taken=False,
+        cultist_actor=None,
+    )
     return advance_turn(state, actor, (event,))
+
+
+def cultist_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]:
+    if state.phase != "cultist_cult" or player != state.active_player:
+        return []
+    return [CultistCult(cult) for cult in Cult]
+
+
+def take_cultist_cult(
+    state: TerraMysticaState, player: PlayerId, cult: Cult
+) -> Transition[TerraMysticaState]:
+    if state.phase != "cultist_cult":
+        raise IllegalActionError("the Cultists have no cult step now")
+    owner = state.players[player]
+    owner, power = advance_cult(
+        owner, cult, 1, top_occupied=cult_top_occupied(state, player, cult)
+    )
+    state = replace_player(state, player, owner)
+    state = replace(
+        state,
+        phase="action",
+        active_player=player,
+        cultist_offered=False,
+        cultist_taken=False,
+        cultist_actor=None,
+    )
+    event = Event(
+        "cultist_cult",
+        f"{seat_label(player)} advanced {cult.value} by 1 for the Cultists' "
+        f"ability and gained {power} power.",
+        {"player": player, "cult": cult.value, "power": power},
+    )
+    return advance_turn(state, player, (event,))
+
+
+def explain_cultist_cult(
+    state: TerraMysticaState, player: PlayerId, action: Action
+) -> str:
+    if not isinstance(action, CultistCult):
+        return "Choose a cult track."
+    if state.phase != "cultist_cult":
+        return "The Cultists have no cult step now."
+    return "That cult step cannot be taken now."
 
 
 def explain_power_gain(

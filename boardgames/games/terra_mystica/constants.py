@@ -202,7 +202,7 @@ TOWN_SUPPLY = 10
 
 @dataclass(frozen=True)
 class TownTile:
-    """One kind of base-game town tile."""
+    """One kind of town tile."""
 
     victory_points: int
     coins: int = 0
@@ -210,6 +210,10 @@ class TownTile:
     priests: int = 0
     power: int = 0
     cult_steps: bool = False
+    cult_steps_amount: int = 1
+    keys: int = 0
+    shipping: bool = False
+    fakir_range: bool = False
 
 
 TOWN_TILES: tuple[TownTile, ...] = (
@@ -219,6 +223,125 @@ TOWN_TILES: tuple[TownTile, ...] = (
     TownTile(6, power=8),
     TownTile(8, cult_steps=True),
 )
+
+PROMO_TOWN_TILES: tuple[TownTile, ...] = (
+    TownTile(2, cult_steps=True, cult_steps_amount=2, keys=2),
+    TownTile(4, shipping=True, fakir_range=True),
+    TownTile(11),
+)
+
+PROMO_TOWN_SUPPLY: tuple[int, ...] = (1, 1, 1)
+
+
+@dataclass(frozen=True)
+class BonusCard:
+    """One of the nine bonus cards."""
+
+    index: int
+    label: str
+    income: Income = Income()
+    shipping_bonus: int = 0
+    spade_special: bool = False
+    cult_special: bool = False
+    pass_vp: tuple[tuple[BuildingType, int], ...] = ()
+
+
+BONUS_CARDS: tuple[BonusCard, ...] = (
+    BonusCard(0, "1 priest each income phase", Income(priests=1)),
+    BonusCard(1, "1 worker and 3 power each income phase", Income(workers=1, power=3)),
+    BonusCard(2, "6 coins each income phase", Income(coins=6)),
+    BonusCard(
+        3, "3 power each income phase; shipping +1", Income(power=3), shipping_bonus=1
+    ),
+    BonusCard(
+        4,
+        "2 coins each income phase; special action for 1 free spade",
+        Income(coins=2),
+        spade_special=True,
+    ),
+    BonusCard(
+        5,
+        "4 coins each income phase; special action to advance a cult",
+        Income(coins=4),
+        cult_special=True,
+    ),
+    BonusCard(
+        6,
+        "2 coins each income phase; pass VP for dwellings",
+        Income(coins=2),
+        pass_vp=((BuildingType.DWELLING, 1),),
+    ),
+    BonusCard(
+        7,
+        "1 worker each income phase; pass VP for trading houses",
+        Income(workers=1),
+        pass_vp=((BuildingType.TRADING_HOUSE, 2),),
+    ),
+    BonusCard(
+        8,
+        "2 workers each income phase; pass VP for stronghold and sanctuary",
+        Income(workers=2),
+        pass_vp=((BuildingType.STRONGHOLD, 4), (BuildingType.SANCTUARY, 4)),
+    ),
+)
+
+BONUS_CARD_COUNTS: tuple[int, ...] = (5, 6, 7, 8)
+
+VARIABLE_START_VP: dict[str, dict[FactionType, int]] = {
+    "standard": {
+        FactionType.DARKLINGS: 15,
+        FactionType.CULTISTS: 16,
+        FactionType.ENGINEERS: 16,
+        FactionType.CHAOS_MAGICIANS: 19,
+        FactionType.MERMAIDS: 19,
+        FactionType.NOMADS: 19,
+        FactionType.WITCHES: 19,
+        FactionType.SWARMLINGS: 22,
+        FactionType.GIANTS: 25,
+        FactionType.ALCHEMISTS: 27,
+        FactionType.AUREN: 27,
+        FactionType.FAKIRS: 33,
+    },
+    "fjords": {
+        FactionType.NOMADS: 15,
+        FactionType.WITCHES: 15,
+        FactionType.CULTISTS: 15,
+        FactionType.DARKLINGS: 15,
+        FactionType.FAKIRS: 25,
+        FactionType.HALFLINGS: 25,
+        FactionType.AUREN: 25,
+        FactionType.GIANTS: 25,
+        FactionType.ALCHEMISTS: 25,
+    },
+    "lakes": {
+        FactionType.NOMADS: 15,
+        FactionType.ENGINEERS: 15,
+        FactionType.CULTISTS: 15,
+        FactionType.DARKLINGS: 15,
+        FactionType.FAKIRS: 25,
+        FactionType.SWARMLINGS: 25,
+        FactionType.GIANTS: 25,
+        FactionType.DWARVES: 30,
+    },
+}
+
+FIXED_FACTIONS: dict[int, tuple[FactionType, ...]] = {
+    2: (FactionType.WITCHES, FactionType.NOMADS),
+    3: (FactionType.WITCHES, FactionType.NOMADS, FactionType.ALCHEMISTS),
+    4: (
+        FactionType.WITCHES,
+        FactionType.NOMADS,
+        FactionType.HALFLINGS,
+        FactionType.MERMAIDS,
+    ),
+    5: (
+        FactionType.WITCHES,
+        FactionType.NOMADS,
+        FactionType.HALFLINGS,
+        FactionType.MERMAIDS,
+        FactionType.GIANTS,
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -249,7 +372,13 @@ FAVOR_TILES: tuple[FavorTile, ...] = (
         town_power=-1,
         copies=3,
     ),
-    FavorTile(5, "2 Water cult steps", Cult.WATER, 2, copies=3),
+    FavorTile(
+        5,
+        "2 Water cult steps; special action to advance 1 cult",
+        Cult.WATER,
+        2,
+        copies=3,
+    ),
     FavorTile(
         6,
         "2 Earth cult steps; 1 worker and 1 power each round",

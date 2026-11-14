@@ -9,11 +9,11 @@ from boardgames.core import (
     Transition,
     seat_label,
 )
+from boardgames.games.terra_mystica.bonus import effective_shipping
 from boardgames.games.terra_mystica.constants import (
     MAX_BUILDINGS,
     SCORING_VALUES,
     TERRAIN_WHEEL,
-    TOWN_SUPPLY,
     BuildingType,
     Cost,
     FactionProfile,
@@ -56,6 +56,7 @@ from boardgames.games.terra_mystica.strongholds import stronghold_reward
 from boardgames.games.terra_mystica.towns import (
     build_river_choices,
     town_rewards,
+    town_supply,
     town_tile_actions,
     upgrade_river_choices,
 )
@@ -83,6 +84,8 @@ def build_dwelling(
     river: Hex | None = None,
     *,
     reach_paid: bool = False,
+    free: bool = False,
+    ignore_reach: bool = False,
 ) -> Transition[TerraMysticaState]:
     owner = state.players[player]
     profile = owner.profile
@@ -98,15 +101,17 @@ def build_dwelling(
         >= MAX_BUILDINGS[BuildingType.DWELLING]
     ):
         raise IllegalActionError("you have no dwellings left")
-    reach = effective_reach(state.board, player, profile)
-    if position not in state.board.reachable_land(
-        player, owner.shipping, reach, state.bridges
+    reach = effective_reach(state.board, player, profile, owner.extra_reach)
+    if not ignore_reach and position not in state.board.reachable_land(
+        player, effective_shipping(state, player), reach, state.bridges
     ):
         raise IllegalActionError(
             "the tile must be directly or indirectly adjacent to one of your structures"
         )
-    tunneling = reach > 0 and not adjacent_to_own(
-        state.board, player, position, state.bridges
+    tunneling = (
+        not ignore_reach
+        and reach > 0
+        and not adjacent_to_own(state.board, player, position, state.bridges)
     )
     spades = spades_for(profile, tile.terrain)
     terrain_cost = spade_cost(profile, owner.digging, spades)
@@ -121,6 +126,8 @@ def build_dwelling(
         else Cost()
     )
     total = add_costs(add_costs(terrain_cost, build_cost), reach_cost)
+    if free:
+        total = Cost()
     if not can_pay(owner.resources, total):
         raise IllegalActionError("you cannot pay for that transform, build and tunnel")
     resources = pay(owner.resources, total)
@@ -209,9 +216,9 @@ def transform_terrain(
         raise IllegalActionError("you cannot transform a river")
     if tile.building is not None:
         raise IllegalActionError("that tile is occupied")
-    reach = effective_reach(state.board, player, profile)
+    reach = effective_reach(state.board, player, profile, owner.extra_reach)
     if position not in state.board.reachable_land(
-        player, owner.shipping, reach, state.bridges
+        player, effective_shipping(state, player), reach, state.bridges
     ):
         raise IllegalActionError(
             "the tile must be directly or indirectly adjacent to one of your structures"
@@ -290,6 +297,8 @@ def upgrade_building(
     position: Hex,
     target: BuildingType,
     river: Hex | None = None,
+    *,
+    free: bool = False,
 ) -> Transition[TerraMysticaState]:
     owner = state.players[player]
     profile = owner.profile
@@ -309,9 +318,9 @@ def upgrade_building(
         target,
         bool(state.board.adjacent_opponents(position, player, state.bridges)),
     )
-    if not can_pay(owner.resources, cost):
+    if not free and not can_pay(owner.resources, cost):
         raise IllegalActionError("you cannot afford that upgrade")
-    resources = pay(owner.resources, cost)
+    resources = owner.resources if free else pay(owner.resources, cost)
     building = replace(tile.building, type=target, in_town=tile.building.in_town)
     board = state.board.replace_tile(position, replace(tile, building=building))
     victory_points = owner.victory_points
@@ -391,7 +400,7 @@ def upgrade_building(
             )
             return Transition(state, tuple(events))
         state, events = stronghold_reward(state, player, events)
-        if state.phase in ("cult_spades", "stronghold_convert"):
+        if state.phase in ("cult_spades", "stronghold_convert", "favor_choice"):
             return Transition(state, tuple(events))
     if founded and town_tile_actions(state):
         state = replace(
@@ -480,7 +489,7 @@ def _dwelling_actions(
                 player,
                 profile,
                 tile.position,
-                TOWN_SUPPLY - state.towns,
+                town_supply(state) - state.towns,
                 town_power(owner),
                 state.bridges,
             ):
@@ -574,7 +583,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                     profile,
                     position,
                     BuildingType.TRADING_HOUSE,
-                    TOWN_SUPPLY - state.towns,
+                    town_supply(state) - state.towns,
                     town_power(owner),
                     state.bridges,
                 )
@@ -590,7 +599,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                 profile,
                 position,
                 BuildingType.TEMPLE,
-                TOWN_SUPPLY - state.towns,
+                town_supply(state) - state.towns,
                 town_power(owner),
                 state.bridges,
             )
@@ -606,7 +615,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                 profile,
                 position,
                 BuildingType.STRONGHOLD,
-                TOWN_SUPPLY - state.towns,
+                town_supply(state) - state.towns,
                 town_power(owner),
                 state.bridges,
             )
@@ -622,7 +631,7 @@ def _upgrade_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
                 profile,
                 position,
                 BuildingType.SANCTUARY,
-                TOWN_SUPPLY - state.towns,
+                town_supply(state) - state.towns,
                 town_power(owner),
                 state.bridges,
             )
@@ -666,8 +675,8 @@ def building_actions(state: TerraMysticaState, player: PlayerId) -> list[Action]
     build_reachable = set(
         state.board.reachable_land(
             player,
-            owner.shipping,
-            effective_reach(state.board, player, owner.profile),
+            effective_shipping(state, player),
+            effective_reach(state.board, player, owner.profile, owner.extra_reach),
             state.bridges,
         )
     )
@@ -699,7 +708,7 @@ def explain_build(
             player,
             profile,
             action.position,
-            TOWN_SUPPLY - state.towns,
+            town_supply(state) - state.towns,
             town_power(owner),
             state.bridges,
         ):
@@ -709,9 +718,9 @@ def explain_build(
         >= MAX_BUILDINGS[BuildingType.DWELLING]
     ):
         return "You have no dwellings left."
-    reach = effective_reach(state.board, player, profile)
+    reach = effective_reach(state.board, player, profile, owner.extra_reach)
     if action.position not in state.board.reachable_land(
-        player, owner.shipping, reach, state.bridges
+        player, effective_shipping(state, player), reach, state.bridges
     ):
         return (
             "The tile must be directly or indirectly adjacent to one of "
@@ -754,9 +763,9 @@ def explain_transform(
         return "That tile is already that terrain."
     if profile.terraform_spades is not None and target is not profile.home_terrain:
         return "The Giants can only transform to home terrain."
-    reach = effective_reach(state.board, player, profile)
+    reach = effective_reach(state.board, player, profile, owner.extra_reach)
     if action.position not in state.board.reachable_land(
-        player, owner.shipping, reach, state.bridges
+        player, effective_shipping(state, player), reach, state.bridges
     ):
         return (
             "The tile must be directly or indirectly adjacent to one of "
@@ -801,7 +810,7 @@ def explain_upgrade(
             profile,
             action.position,
             action.to,
-            TOWN_SUPPLY - state.towns,
+            town_supply(state) - state.towns,
             town_power(owner),
             state.bridges,
         ):

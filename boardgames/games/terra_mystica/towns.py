@@ -11,6 +11,7 @@ from boardgames.core import (
 )
 from boardgames.games.terra_mystica.constants import (
     CULT_ORDER,
+    PROMO_TOWN_TILES,
     SCORING_VALUES,
     TOWN_SUPPLY,
     TOWN_TILES,
@@ -20,6 +21,7 @@ from boardgames.games.terra_mystica.constants import (
     Income,
     Resources,
     ScoringAction,
+    TownTile,
 )
 from boardgames.games.terra_mystica.cults import cult_top_occupied
 from boardgames.games.terra_mystica.model import (
@@ -37,10 +39,16 @@ from boardgames.games.terra_mystica.model import (
     income_with_power,
     replace_player,
     settle_town,
+    shipping_points,
     town_power,
 )
 from boardgames.games.terra_mystica.rounds import advance_turn, round_scoring
 from boardgames.games.terra_mystica.strongholds import stronghold_reward
+
+
+def town_supply(state: TerraMysticaState) -> int:
+    """The number of towns available, including the promo tiles."""
+    return TOWN_SUPPLY + (len(PROMO_TOWN_TILES) if state.config.promo_town_tiles else 0)
 
 
 def town_rewards(
@@ -64,7 +72,7 @@ def town_rewards(
             position,
             player,
             river=river,
-            towns_left=TOWN_SUPPLY - state.towns,
+            towns_left=town_supply(state) - state.towns,
             power=power,
             bridges=state.bridges,
         )
@@ -74,7 +82,7 @@ def town_rewards(
         board,
         player,
         power,
-        TOWN_SUPPLY - state.towns - len(founded),
+        town_supply(state) - state.towns - len(founded),
         state.bridges,
     )
     founded.extend(more)
@@ -99,16 +107,27 @@ def town_rewards(
     return board, resources, victory_points, keys, count, events
 
 
+def town_tile(index: int) -> TownTile:
+    """The town tile at a state index, including the promo tiles."""
+    if index < len(TOWN_TILES):
+        return TOWN_TILES[index]
+    return PROMO_TOWN_TILES[index - len(TOWN_TILES)]
+
+
 def take_town_tile(
     state: TerraMysticaState, player: PlayerId, index: int
 ) -> Transition[TerraMysticaState]:
-    if index < 0 or index >= len(TOWN_TILES):
+    if index < 0 or index >= len(state.town_tiles):
         raise IllegalActionError("there is no such town tile")
     if state.town_tiles[index] <= 0:
         raise IllegalActionError("that town tile is already taken")
-    tile = TOWN_TILES[index]
+    tile = town_tile(index)
     owner = state.players[player]
-    owner = replace(owner, victory_points=owner.victory_points + tile.victory_points)
+    owner = replace(
+        owner,
+        victory_points=owner.victory_points + tile.victory_points,
+        keys=owner.keys + tile.keys,
+    )
     resources = income_with_power(
         owner.resources,
         Income(
@@ -125,10 +144,23 @@ def take_town_tile(
             owner, power = advance_cult(
                 owner,
                 cult,
-                1,
+                tile.cult_steps_amount,
                 top_occupied=cult_top_occupied(state, player, cult),
             )
-            gained.append(f"{cult.value} +1 ({power} power)")
+            gained.append(f"{cult.value} +{tile.cult_steps_amount} ({power} power)")
+    if tile.shipping and owner.profile.can_ship:
+        if owner.shipping < owner.profile.shipping_max:
+            level = owner.shipping + 1
+            owner = replace(
+                owner,
+                shipping=level,
+                victory_points=owner.victory_points
+                + shipping_points(level, owner.profile.shipping_start),
+            )
+            gained.append(f"shipping {level}")
+    elif tile.fakir_range and owner.profile.type is FactionType.FAKIRS:
+        owner = replace(owner, extra_reach=owner.extra_reach + 1)
+        gained.append("carpet flight +1")
     state = replace_player(state, player, owner)
     town_tiles = list(state.town_tiles)
     town_tiles[index] -= 1
@@ -157,7 +189,7 @@ def take_town_tile(
     if state.pending_stronghold:
         state = replace(state, pending_stronghold=False)
         state, events = stronghold_reward(state, player, events)
-        if state.phase in ("cult_spades", "stronghold_convert"):
+        if state.phase in ("cult_spades", "stronghold_convert", "favor_choice"):
             return Transition(state, tuple(events))
     state = replace(state, phase="action", active_player=player)
     return advance_turn(state, player, tuple(events))
@@ -254,7 +286,7 @@ def town_tile_actions(state: TerraMysticaState) -> list[Action]:
 
 def explain_town_choice(state: TerraMysticaState, action: Action) -> str:
     if isinstance(action, TakeTownTile):
-        if action.index < 0 or action.index >= len(TOWN_TILES):
+        if action.index < 0 or action.index >= len(state.town_tiles):
             return "There is no such town tile."
         if state.town_tiles[action.index] <= 0:
             return "That town tile is already taken."

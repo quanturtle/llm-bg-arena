@@ -9,6 +9,7 @@ from boardgames.core import (
     seats,
 )
 from boardgames.games.terra_mystica.constants import (
+    BONUS_CARDS,
     CULT_ORDER,
     FACTION_BY_TYPE,
     FAVOR_TILES,
@@ -25,16 +26,25 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BonusSpade,
     BuildBridge,
     BuildDwelling,
+    ChaosDoubleTurn,
+    ChooseFaction,
     ChoosePowerGain,
     ChooseStrongholdPriests,
     Convert,
+    CultistCult,
+    GiantsSpades,
     Hex,
+    NomadsSandstorm,
     Pass,
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    SpecialCult,
+    SwarmlingsUpgrade,
+    TakeBonusCard,
     TakeFavorTile,
     TakeTownTile,
     TerraMysticaState,
@@ -43,6 +53,7 @@ from boardgames.games.terra_mystica.model import (
     TransformTerrain,
     UpgradeBuilding,
     UseCultSpade,
+    WitchesRide,
     building_cost,
     cult_bonus_json,
     power_shortfall,
@@ -89,6 +100,17 @@ def observe(state: TerraMysticaState, viewer: PlayerId | None) -> Observation:
         "pending_favors": state.pending_favors,
         "pending_town": state.pending_town,
         "pending_towns": state.pending_towns,
+        "bonus_available": [
+            {
+                "index": index,
+                "label": BONUS_CARDS[index].label,
+                "coins": state.bonus_coins[index],
+            }
+            for index in state.bonus_available
+        ],
+        "bonus_returned": state.bonus_returned,
+        "faction_queue": list(state.faction_queue),
+        "used_special_actions": sorted(state.used_special_actions),
         "pending_power": [
             {
                 "player": gain.player,
@@ -172,6 +194,14 @@ def player_data(state: TerraMysticaState, seat: PlayerId) -> JsonObject:
             {"index": index, "label": FAVOR_TILES[index].label}
             for index in sorted(player.favors)
         ],
+        "bonus_card": (
+            None
+            if player.bonus_card is None
+            else {
+                "index": player.bonus_card,
+                "label": BONUS_CARDS[player.bonus_card].label,
+            }
+        ),
         "buildings": [
             {
                 "position": position.notation(),
@@ -191,6 +221,9 @@ def render_text(observation: Observation) -> str:
     lines.append(orders_line(data))
     lines.append(passed_line(data))
     lines.append(power_actions_line(data))
+    bonus = bonus_cards_line(data)
+    if bonus:
+        lines.append(bonus)
     power_gain = power_gain_line(data)
     if power_gain:
         lines.append(power_gain)
@@ -213,8 +246,11 @@ def render_text(observation: Observation) -> str:
         "advance fire|water|earth|air; "
         "power priest|workers|coins|spade|double_spade; "
         "convert power priest|power worker|power coin|priest worker|worker coin; "
-        "town 0-4; favor 0-11; bridge q,r q,r [workers]; stronghold 0-3; "
+        "town 0-7; favor 0-11; bridge q,r q,r [workers]; stronghold 0-3; "
         "spade q,r [to T]; skip spade; gain power|decline power; "
+        "faction NAME; bonus 0-8; special auren|water|bonus CULT; "
+        "special spade; cultist CULT; ride q,r; swarmlings q,r; "
+        "giants q,r; sandstorm q,r; double turn; "
         "alchemist vp|coins; pass."
     )
     return "\n".join(lines)
@@ -281,6 +317,18 @@ def power_actions_line(data: JsonObject) -> str:
     return "Power actions used this round: " + (", ".join(actions) or "none") + "."
 
 
+def bonus_cards_line(data: JsonObject) -> str:
+    cards = _objects(data, "bonus_available")
+    if not cards:
+        return ""
+    parts = [
+        f"{_int(card, 'index')} {_str(card, 'label')}"
+        + (f" (+{_int(card, 'coins')} coins)" if _int(card, "coins") else "")
+        for card in cards
+    ]
+    return "Available bonus cards: " + "; ".join(parts) + "."
+
+
 def power_gain_line(data: JsonObject) -> str:
     gains = _objects(data, "pending_power")
     if not gains:
@@ -337,6 +385,12 @@ def player_lines(data: JsonObject) -> list[str]:
             f"{_int(favor, 'index')} {_str(favor, 'label')}"
             for favor in _objects(player, "favors")
         ]
+        bonus = player.get("bonus_card")
+        bonus_text = (
+            f", bonus {_int(bonus, 'index')} {_str(bonus, 'label')}"
+            if isinstance(bonus, dict)
+            else ""
+        )
         lines.append(
             f"{seat_label(seat)} {_str(player, 'name')}: "
             f"{_int(player, 'victory_points')} VP, "
@@ -346,7 +400,7 @@ def player_lines(data: JsonObject) -> list[str]:
             f"cults {cult_text}, shipping {_int(player, 'shipping')}, "
             f"digging {_int(player, 'digging')}, keys {_int(player, 'keys')}, "
             f"home {_str(player, 'home_terrain')}, "
-            f"favors [{', '.join(favors) or 'none'}]. "
+            f"favors [{', '.join(favors) or 'none'}]{bonus_text}. "
             f"Buildings: {', '.join(buildings) or 'none'}."
         )
     return lines
@@ -475,6 +529,30 @@ def describe_action(observation: Observation, action: Action) -> str:
                 else "cult-bonus spade"
             )
             return f"Skip the remaining {spade_kind}s."
+        case ChooseFaction(faction=faction):
+            return f"Choose the {faction.value} faction."
+        case TakeBonusCard(index=index):
+            label = (
+                BONUS_CARDS[index].label if 0 <= index < len(BONUS_CARDS) else "unknown"
+            )
+            return f"Take bonus card {index} ({label})."
+        case SpecialCult(source=source, cult=cult):
+            steps = "2" if source == "auren" else "1"
+            return f"Advance {cult.value} by {steps} as a special action."
+        case CultistCult(cult=cult):
+            return f"Advance {cult.value} by 1 for the Cultists' ability."
+        case BonusSpade():
+            return "Take a free spade as a special action."
+        case WitchesRide(position=position):
+            return f"Build a free dwelling on the forest at {position.notation()}."
+        case SwarmlingsUpgrade(position=position):
+            return f"Upgrade the dwelling at {position.notation()} for free."
+        case ChaosDoubleTurn():
+            return "Take a double turn."
+        case GiantsSpades(position=position):
+            return f"Transform {position.notation()} into wasteland for free."
+        case NomadsSandstorm(position=position):
+            return f"Transform {position.notation()} into desert for free."
         case TradeVpForCoin():
             return "Trade 1 victory point for 1 coin."
         case TradeCoinsForVp():

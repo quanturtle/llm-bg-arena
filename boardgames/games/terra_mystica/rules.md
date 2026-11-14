@@ -14,14 +14,16 @@ starting cult positions, building costs and a few rules exceptions. You may only
 build on your home terrain, so you must transform neighbouring terrain to expand.
 
 This implementation uses the standard 113-tile base map, all fourteen base-game
-factions and their starting resources, building costs and cost/track exceptions.
-Dwarves may tunnel two spaces and Fakirs may fly two spaces (three with a
-stronghold), so both can build and score across rivers. Not yet implemented:
-bonus cards, the faction special actions, and the Alchemists' 2 power per spade
-after their stronghold. The core economy, terraforming, cults, towns, the
-stronghold rewards and scoring are playable.
+factions and their starting resources, building costs and cost/track exceptions,
+and the optional Fjords and Lakes maps (113 and 112 tiles). Dwarves may tunnel
+two spaces and Fakirs may fly two spaces (three with a stronghold), so both can
+build and score across rivers. Bonus cards, the faction special actions, the
+Auren/Alchemists/Engineers/Cultists abilities, faction choice, variable starting
+points, promo town tiles and the fixed beginner setup are implemented.
 
 Known limitations:
+- The fixed beginner setup uses the recommended factions but still lets players
+  choose their starting home tiles.
 - A Mermaid town's skipped river is not stored after the build or upgrade that
   founded it, so later structures must reach the existing town without it.
 - The river skip is only offered during a build or upgrade, not as a free action.
@@ -92,6 +94,63 @@ and an opponent may take less only to avoid dropping below 0 victory points or
 when the bowls cannot supply the full amount. Bridges count as direct adjacency
 here.
 
+## Special actions
+Each special action may be used once per Action phase. They are regular actions.
+- The Auren stronghold grants a favor tile immediately and the special action to
+  advance 2 cult spaces of your choice.
+- The Witches stronghold grants a special action to build a free dwelling on any
+  empty Forest space, ignoring adjacency and paying no worker or coin.
+- The Swarmlings stronghold grants a special action to upgrade a dwelling to a
+  trading house for free.
+- The Chaos Magicians stronghold grants a special action to take two actions in a
+  row. Passing is one of those actions.
+- The Giants stronghold grants a special action to get 2 free spades and
+  transform a reachable tile into wasteland; you may then build a dwelling there.
+- The Nomads stronghold grants a special action to transform a tile directly
+  adjacent to one of your structures into desert, without using a spade or
+  crossing a river or bridge; you may then build a dwelling there.
+- The 2 Water favor tile grants a special action to advance 1 cult space.
+- Bonus card 4 grants a special action to take one free spade; bonus card 5
+  grants a special action to advance 1 cult space.
+
+## Bonus cards
+A match with bonus cards uses nine cards, of which `players + 3` are face up.
+After the starting dwellings, players choose one in reverse play order. Place 1
+coin on each of the three leftover cards. Each player keeps one card:
+- 1 priest each income phase
+- 1 worker and 3 power each income phase
+- 6 coins each income phase
+- 3 power each income phase; shipping +1 for building (not final scoring, and
+  no benefit to the Dwarves or Fakirs)
+- 2 coins each income phase; the free-spade special action
+- 4 coins each income phase; the free-cult special action
+- 2 coins each income phase; on passing, 1 VP per dwelling
+- 1 worker each income phase; on passing, 2 VP per trading house
+- 2 workers each income phase; on passing, 4 VP for a stronghold and 4 for a
+  sanctuary
+On passing, return your card and score its passing points. Unless it is the last
+round, take one of the three available cards (not the one just returned) and
+collect any coins on it. Each end of round adds 1 coin to every available card.
+
+## Faction abilities
+- Auren: the stronghold grants a favor tile immediately.
+- Alchemists: after the stronghold, gain 2 power whenever you receive a spade.
+  You may also trade 1 VP for 1 coin or 2 coins for 1 VP at any time.
+- Engineers: after the stronghold, score 3 VP for each bridge connecting two of
+  your own structures when you pass.
+- Cultists: whenever an opponent accepts power from your build or upgrade,
+  advance 1 cult space of your choice. If every opponent offered power declines,
+  gain 1 power instead.
+
+## Setup variants
+Faction choice is used by default; players choose unused factions in play order.
+The fixed beginner setup uses the recommended factions instead. Variable points
+give factions their published starting VP for the chosen map. The Fjords and
+Lakes maps replace the base terrain layout. Promo town tiles add three tile
+kinds: 2 VP, +2 on every cult and 2 keys; 4 VP with a shipping step (or an extra
+Fakir flight space); and 11 VP. Pass order still determines the next round's
+starting player.
+
 ## Bridges
 A bridge crosses the edge between two river spaces and connects the two land
 spaces two steps apart on either side of that edge.
@@ -110,7 +169,9 @@ not join a town. The Mermaids may choose one river space to ignore; a normal
 build or upgrade does not join across a river. Building or upgrading into a town
 awards a key, the faction's town bonus and a choice of one of the remaining town
 tiles: 5 VP and 6 coins; 7 VP and 2 workers; 9 VP and 1 priest; 6 VP and 8 power;
-or 8 VP and one step on each cult track. A town is founded automatically; you
+or 8 VP and one step on each cult track. With promo town tiles, the additional
+choices are 2 VP with 2 steps on every cult and 2 keys, 4 VP with a shipping
+step (or an extra Fakir flight space), and 11 VP. A town is founded automatically; you
 only choose the town tile. There are at most 10 towns. A key lets
 one cult marker enter space 10. Structures already in a town are marked and
 cannot found another town; building next to a town expands it.
@@ -128,7 +189,7 @@ the rest of the game. The twelve kinds are:
 - 3 Earth cult steps
 - 3 Air cult steps
 - 2 Fire cult steps; your towns need 1 less power
-- 2 Water cult steps
+- 2 Water cult steps; special action to advance 1 cult space
 - 2 Earth cult steps; 1 worker and 1 power each income phase
 - 2 Air cult steps; 4 power each income phase
 - 1 Fire cult step; 3 coins each income phase
@@ -191,8 +252,17 @@ Positions are axial hex coordinates written `q,r`, for example `0,0`.
 - `spade 0,0` — use your spades on a reachable tile.
 - `spade 0,0 to forest` — aim cult-bonus spades at a chosen terrain.
 - `skip spade` — forfeit the rest of your spades.
-- `town 0` — take town tile 0.
-- `favor 0` — take favor tile 0.
+- `town 0-7` — take a town tile.
+- `favor 0-11` — take a favor tile.
+- `faction witches` — choose a faction during setup.
+- `bonus 4` — take bonus card 4.
+- `special auren fire`, `special water earth`, `special bonus air` — use a cult special action.
+- `special spade` — use bonus card 4's free spade.
+- `cultist fire` — choose the Cultists' free cult step.
+- `ride q,r` — Witches' free forest dwelling.
+- `swarmlings q,r` — free Swarmling trading-house upgrade.
+- `giants q,r`, `sandstorm q,r` — the Giants' and Nomads' terrain specials.
+- `double turn` — the Chaos Magicians' special action.
 - `bridge 2,0 1,2` — build a bridge for 3 power.
 - `bridge 2,0 1,2 workers` — the Engineers' bridge for 2 workers.
 - `alchemist vp` / `alchemist coins` — the Alchemists' 1 VP for 1 coin or 2 coins for 1 VP.

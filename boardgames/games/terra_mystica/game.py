@@ -45,15 +45,24 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BonusSpade,
     BuildBridge,
     BuildDwelling,
+    ChaosDoubleTurn,
+    ChooseFaction,
     ChoosePowerGain,
     ChooseStrongholdPriests,
     Convert,
+    CultistCult,
+    GiantsSpades,
+    NomadsSandstorm,
     Pass,
     PowerAction,
     SendPriest,
     SkipCultSpade,
+    SpecialCult,
+    SwarmlingsUpgrade,
+    TakeBonusCard,
     TakeFavorTile,
     TakeTownTile,
     TerraMysticaConfig,
@@ -62,6 +71,7 @@ from boardgames.games.terra_mystica.model import (
     TradeVpForCoin,
     TransformTerrain,
     UpgradeBuilding,
+    WitchesRide,
 )
 from boardgames.games.terra_mystica.notation import format_action, parse_action
 from boardgames.games.terra_mystica.power import (
@@ -72,16 +82,19 @@ from boardgames.games.terra_mystica.power import (
 )
 from boardgames.games.terra_mystica.power_gain import (
     power_gain_amount,
+    take_cultist_cult,
     take_power_gain,
 )
-from boardgames.games.terra_mystica.rounds import pass_turn
+from boardgames.games.terra_mystica.rounds import pass_turn, take_bonus_card
 from boardgames.games.terra_mystica.scoring import final_scores
 from boardgames.games.terra_mystica.setup import (
     check_config,
+    choose_faction,
     place_starting_dwelling,
     start_game,
 )
 from boardgames.games.terra_mystica.spades import apply_spade_phase
+from boardgames.games.terra_mystica.special import take_special_action
 from boardgames.games.terra_mystica.strongholds import choose_stronghold_priests
 from boardgames.games.terra_mystica.towns import take_town_tile
 from boardgames.games.terra_mystica.view import (
@@ -96,7 +109,7 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     """The base game: six rounds, fourteen factions and the standard map."""
 
     id: ClassVar[str] = "terra_mystica"
-    rules_version: ClassVar[int] = 12
+    rules_version: ClassVar[int] = 13
 
     # Config ---------------------------------------------------------------
 
@@ -120,6 +133,30 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     def pending_decisions(self, state: TerraMysticaState) -> tuple[Decision, ...]:
         if state.phase == "game_over":
             return ()
+        if state.phase == "faction_choice":
+            return (
+                Decision(
+                    state.active_player,
+                    "faction_choice",
+                    "Choose an unused faction.",
+                ),
+            )
+        if state.phase == "bonus_choice":
+            return (
+                Decision(
+                    state.active_player,
+                    "bonus_choice",
+                    "Take one of the available bonus cards.",
+                ),
+            )
+        if state.phase == "cultist_cult":
+            return (
+                Decision(
+                    state.active_player,
+                    "cultist_cult",
+                    "Choose a cult to advance for the Cultists' ability.",
+                ),
+            )
         if state.phase == "setup":
             return (
                 Decision(
@@ -221,6 +258,18 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
     def apply_legal(
         self, state: TerraMysticaState, player: PlayerId, action: Action
     ) -> Transition[TerraMysticaState]:
+        if state.phase == "faction_choice":
+            if not isinstance(action, ChooseFaction):
+                raise IllegalActionError("choose a faction now")
+            return choose_faction(state, player, action.faction)
+        if state.phase == "bonus_choice":
+            if not isinstance(action, TakeBonusCard):
+                raise IllegalActionError("take a bonus card now")
+            return take_bonus_card(state, player, action.index)
+        if state.phase == "cultist_cult":
+            if not isinstance(action, CultistCult):
+                raise IllegalActionError("choose a cult now")
+            return take_cultist_cult(state, player, action.cult)
         if state.phase == "setup":
             if not isinstance(action, BuildDwelling):
                 raise IllegalActionError("place a starting dwelling now")
@@ -271,6 +320,19 @@ class TerraMystica(Game[TerraMysticaState, Action, TerraMysticaConfig]):
             return take_power_action(state, player, action.kind)
         if isinstance(action, Convert):
             return take_conversion(state, player, action.kind)
+        if isinstance(
+            action,
+            (
+                SpecialCult,
+                BonusSpade,
+                WitchesRide,
+                SwarmlingsUpgrade,
+                ChaosDoubleTurn,
+                GiantsSpades,
+                NomadsSandstorm,
+            ),
+        ):
+            return take_special_action(state, player, action)
         if isinstance(action, TradeVpForCoin):
             return trade_vp_for_coin(state, player)
         if isinstance(action, TradeCoinsForVp):

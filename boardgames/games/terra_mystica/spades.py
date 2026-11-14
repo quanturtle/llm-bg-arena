@@ -13,11 +13,11 @@ from boardgames.core import (
     Transition,
     seat_label,
 )
+from boardgames.games.terra_mystica.bonus import effective_shipping
 from boardgames.games.terra_mystica.building import adjacent_to_own, build_dwelling
 from boardgames.games.terra_mystica.constants import (
     SCORING_VALUES,
     TERRAIN_WHEEL,
-    TOWN_SUPPLY,
     BuildingType,
     Cost,
     FactionType,
@@ -67,7 +67,10 @@ from boardgames.games.terra_mystica.rounds import (
     round_tile,
     start_next_round,
 )
-from boardgames.games.terra_mystica.towns import build_river_choices
+from boardgames.games.terra_mystica.towns import (
+    build_river_choices,
+    town_supply,
+)
 
 
 def _action_spade_offer(
@@ -134,7 +137,7 @@ def _action_spade_offer(
             return ("You do not have enough spades.", 0, Cost(), False)
 
     tunneling = effective_reach(
-        state.board, player, profile
+        state.board, player, profile, owner.extra_reach
     ) > 0 and not adjacent_to_own(state.board, player, tile.position, state.bridges)
     if tunneling and state.spade_reach_used:
         return ("You can only tunnel or fly once per spade action.", 0, Cost(), False)
@@ -156,9 +159,15 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
     profile = owner.profile
     budget = state.cult_spades[player]
     action_phase = state.spade_return == "action"
-    reach = effective_reach(state.board, player, profile) if action_phase else 0
+    reach = (
+        effective_reach(state.board, player, profile, owner.extra_reach)
+        if action_phase
+        else 0
+    )
     reachable = set(
-        state.board.reachable_land(player, owner.shipping, reach, state.bridges)
+        state.board.reachable_land(
+            player, effective_shipping(state, player), reach, state.bridges
+        )
     )
     actions: list[Action] = []
 
@@ -232,7 +241,7 @@ def cult_spade_actions(state: TerraMysticaState, player: PlayerId) -> list[Actio
                     player,
                     profile,
                     position,
-                    TOWN_SUPPLY - state.towns,
+                    town_supply(state) - state.towns,
                     town_power(owner),
                     state.bridges,
                 ):
@@ -326,9 +335,13 @@ def use_cult_spade(
     target = to or profile.home_terrain
     if tile.terrain is target:
         raise IllegalActionError("that tile is already that terrain")
-    reach = effective_reach(state.board, player, profile) if action_phase else 0
+    reach = (
+        effective_reach(state.board, player, profile, owner.extra_reach)
+        if action_phase
+        else 0
+    )
     if position not in state.board.reachable_land(
-        player, owner.shipping, reach, state.bridges
+        player, effective_shipping(state, player), reach, state.bridges
     ):
         raise IllegalActionError("that tile is not reachable")
     if profile.terraform_spades is not None and target is not profile.home_terrain:
@@ -512,9 +525,13 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
         target = action.to or profile.home_terrain
         if tile.terrain is target:
             return "That tile is already that terrain."
-        reach = effective_reach(state.board, player, profile) if action_phase else 0
+        reach = (
+            effective_reach(state.board, player, profile, owner.extra_reach)
+            if action_phase
+            else 0
+        )
         if action.position not in state.board.reachable_land(
-            player, owner.shipping, reach, state.bridges
+            player, effective_shipping(state, player), reach, state.bridges
         ):
             return "That tile is not reachable."
         if budget <= 0:
@@ -541,7 +558,7 @@ def explain_spade(state: TerraMysticaState, player: PlayerId, action: Action) ->
             player,
             profile,
             action.position,
-            TOWN_SUPPLY - state.towns,
+            town_supply(state) - state.towns,
             town_power(owner),
             state.bridges,
         ):

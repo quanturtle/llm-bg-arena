@@ -30,7 +30,13 @@ P1, P2, P3 = seats(3)
 
 def start(num_players: int = 2, seed: int = 1, rounds: int = 1) -> TerraMysticaState:
     return GAME.setup(
-        TerraMysticaConfig(num_players=num_players, rounds=rounds), seed
+        TerraMysticaConfig(
+            num_players=num_players,
+            rounds=rounds,
+            bonus_cards=False,
+            faction_choice=False,
+        ),
+        seed,
     ).state
 
 

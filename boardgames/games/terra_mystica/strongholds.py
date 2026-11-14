@@ -31,6 +31,21 @@ def stronghold_reward(
     """Apply a faction's one-time stronghold reward."""
     owner = state.players[player]
     profile = owner.profile
+    if profile.type is FactionType.AUREN:
+        state = replace(
+            state,
+            phase="favor_choice",
+            active_player=player,
+            pending_favors=state.pending_favors + 1,
+        )
+        events.append(
+            Event(
+                "stronghold_reward",
+                f"{seat_label(player)} gained a favor tile from the stronghold.",
+                {"player": player, "favor": True},
+            )
+        )
+        return state, events
     if profile.type is FactionType.CULTISTS:
         owner = replace(owner, victory_points=owner.victory_points + 7)
         events.append(

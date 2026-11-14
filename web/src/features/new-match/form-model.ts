@@ -9,6 +9,12 @@ export const GAME_OPTIONS: Record<string, { label: string; hint?: string; min?: 
   "catan.max_offers_per_turn": { label: "Trade offers per turn", hint: "0 means no limit.", min: 0, max: 20 },
   "puerto_rico.victory_point_supply": { label: "Victory point chips", hint: "0 uses the standard supply; fewer chips end the game sooner.", min: 0 },
   "puerto_rico.max_rounds": { label: "Round limit", hint: "0 plays to the normal end of the game.", min: 0 },
+  "terra_mystica.map_variant": { label: "Map", hint: "standard, fjords or lakes." },
+  "terra_mystica.bonus_cards": { label: "Bonus cards", hint: "Deal and draft the nine bonus cards." },
+  "terra_mystica.faction_choice": { label: "Faction choice", hint: "Players choose factions instead of drawing them." },
+  "terra_mystica.variable_points": { label: "Variable starting VP", hint: "Use the map's published starting points per faction." },
+  "terra_mystica.fixed_setup": { label: "Fixed beginner setup", hint: "Use the recommended factions for the player count." },
+  "terra_mystica.promo_town_tiles": { label: "Promo town tiles", hint: "Add the three promo town tile kinds." },
 };
 
 export const EFFORT_LABELS: Record<ReasoningEffort, string> = {

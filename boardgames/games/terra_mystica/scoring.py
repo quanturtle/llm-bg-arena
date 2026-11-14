@@ -30,7 +30,12 @@ def final_scores(
             state.board,
             seat,
             state.players[seat].shipping,
-            effective_reach(state.board, seat, state.players[seat].profile),
+            effective_reach(
+                state.board,
+                seat,
+                state.players[seat].profile,
+                state.players[seat].extra_reach,
+            ),
             state.bridges,
         )
         for seat in all_seats

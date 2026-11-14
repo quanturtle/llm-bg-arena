@@ -6,7 +6,6 @@ from typing import Literal, cast
 
 from boardgames.core import JsonValue, PlayerId, Rng
 from boardgames.games.terra_mystica.constants import (
-    BASE_MAP_ROWS,
     CULT_ORDER,
     CULT_POWER_THRESHOLDS,
     FACTION_BY_TYPE,
@@ -29,6 +28,7 @@ from boardgames.games.terra_mystica.constants import (
     ScoringTile,
     Terrain,
 )
+from boardgames.games.terra_mystica.maps import MAP_ROWS
 
 type Phase = Literal[
     "setup",
@@ -38,6 +38,9 @@ type Phase = Literal[
     "town_choice",
     "favor_choice",
     "power_gain",
+    "faction_choice",
+    "bonus_choice",
+    "cultist_cult",
     "game_over",
 ]
 
@@ -105,37 +108,49 @@ class Tile:
         return self.terrain is not Terrain.RIVER
 
 
-def _base_tiles() -> tuple[tuple[Hex, Terrain], ...]:
+def _map_tiles(name: str) -> tuple[tuple[Hex, Terrain], ...]:
     items: list[tuple[Hex, Terrain]] = []
-    for r, row in enumerate(BASE_MAP_ROWS):
-        start_q = -(r // 2)
+    for row_number, row in MAP_ROWS[name]:
+        start_q = -(row_number // 2)
         for offset, terrain in enumerate(row):
-            items.append((Hex(start_q + offset, r), terrain))
+            items.append((Hex(start_q + offset, row_number), terrain))
     return tuple(items)
-
-
-BASE_TILES: tuple[tuple[Hex, Terrain], ...] = _base_tiles()
-HEX_INDEX: dict[Hex, int] = {
-    position: index for index, (position, _) in enumerate(BASE_TILES)
-}
 
 
 @dataclass(frozen=True)
 class Board:
-    """The immutable base map and its buildings."""
+    """One map's immutable tiles and its buildings."""
 
     tiles: tuple[Tile, ...]
+    index: tuple[Hex, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.index:
+            object.__setattr__(
+                self, "index", tuple(tile.position for tile in self.tiles)
+            )
 
     @classmethod
     def base(cls) -> "Board":
-        return cls(tuple(Tile(position, terrain) for position, terrain in BASE_TILES))
+        return cls.for_map("standard")
+
+    @classmethod
+    def for_map(cls, name: str) -> "Board":
+        if name not in MAP_ROWS:
+            raise ValueError(f"unknown map {name!r}")
+        return cls(
+            tuple(Tile(position, terrain) for position, terrain in _map_tiles(name))
+        )
 
     def tile(self, position: Hex) -> Tile | None:
-        index = HEX_INDEX.get(position)
-        return None if index is None else self.tiles[index]
+        try:
+            index = self.index.index(position)
+        except ValueError:
+            return None
+        return self.tiles[index]
 
     def replace_tile(self, position: Hex, tile: Tile) -> "Board":
-        index = HEX_INDEX[position]
+        index = self.index.index(position)
         return Board((*self.tiles[:index], tile, *self.tiles[index + 1 :]))
 
     def place(self, position: Hex, building: Building) -> "Board":
@@ -335,6 +350,8 @@ class PlayerState:
     digging: int = 0
     keys: int = 0
     favors: frozenset[int] = frozenset()
+    bonus_card: int | None = None
+    extra_reach: int = 0
 
     @property
     def profile(self) -> FactionProfile:
@@ -367,10 +384,16 @@ class PowerGain:
 
 @dataclass(frozen=True)
 class TerraMysticaConfig:
-    """Table size and, for short matches, the number of rounds."""
+    """Table size, length, map and optional rules modules."""
 
     num_players: int = 2
     rounds: int = 6
+    map_variant: Literal["standard", "fjords", "lakes"] = "standard"
+    bonus_cards: bool = True
+    faction_choice: bool = True
+    variable_points: bool = False
+    fixed_setup: bool = False
+    promo_town_tiles: bool = False
 
 
 @dataclass(frozen=True)
@@ -403,6 +426,18 @@ class TerraMysticaState:
     pending_town_river: Hex | None = None
     pending_power: tuple[PowerGain, ...] = ()
     power_actor: PlayerId | None = None
+    bonus_available: tuple[int, ...] = ()
+    bonus_coins: tuple[int, ...] = (0,) * 9
+    bonus_returned: int | None = None
+    pending_bonus: bool = False
+    bonus_mode: Literal["setup", "pass"] | None = None
+    bonus_queue: tuple[PlayerId, ...] = ()
+    faction_queue: tuple[PlayerId, ...] = ()
+    used_special_actions: frozenset[str] = frozenset()
+    extra_actions: int = 0
+    cultist_offered: bool = False
+    cultist_taken: bool = False
+    cultist_actor: PlayerId | None = None
     spade_return: Literal["round", "action"] = "round"
     spade_actor: PlayerId | None = None
     power_spade_tiles: tuple[Hex, ...] = ()
@@ -535,6 +570,73 @@ class ChoosePowerGain:
 
 
 @dataclass(frozen=True)
+class ChooseFaction:
+    """Choose an unused faction during setup."""
+
+    faction: FactionType
+
+
+@dataclass(frozen=True)
+class TakeBonusCard:
+    """Take one of the available bonus cards."""
+
+    index: int
+
+
+@dataclass(frozen=True)
+class SpecialCult:
+    """Advance one cult for free from Auren, the Water favor or a bonus card."""
+
+    source: Literal["auren", "water_favor", "bonus"]
+    cult: Cult
+
+
+@dataclass(frozen=True)
+class CultistCult:
+    """The Cultists' free cult step after an opponent takes power."""
+
+    cult: Cult
+
+
+@dataclass(frozen=True)
+class BonusSpade:
+    """The bonus card's special action: one free spade and an optional build."""
+
+
+@dataclass(frozen=True)
+class WitchesRide:
+    """Build a free dwelling on any free forest space."""
+
+    position: Hex
+
+
+@dataclass(frozen=True)
+class SwarmlingsUpgrade:
+    """Upgrade a dwelling to a trading house for free."""
+
+    position: Hex
+
+
+@dataclass(frozen=True)
+class ChaosDoubleTurn:
+    """Take two actions in a row."""
+
+
+@dataclass(frozen=True)
+class GiantsSpades:
+    """Transform a reachable tile into home terrain with two free spades."""
+
+    position: Hex
+
+
+@dataclass(frozen=True)
+class NomadsSandstorm:
+    """Transform an edge-adjacent tile into home terrain for free."""
+
+    position: Hex
+
+
+@dataclass(frozen=True)
 class UseCultSpade:
     """Spend available spades to transform a reachable tile."""
 
@@ -577,6 +679,16 @@ type Action = (
     | PowerAction
     | Convert
     | ChoosePowerGain
+    | ChooseFaction
+    | TakeBonusCard
+    | SpecialCult
+    | CultistCult
+    | BonusSpade
+    | WitchesRide
+    | SwarmlingsUpgrade
+    | ChaosDoubleTurn
+    | GiantsSpades
+    | NomadsSandstorm
     | UseCultSpade
     | SkipCultSpade
     | TradeVpForCoin
@@ -825,14 +937,19 @@ def spade_cost(profile: FactionProfile, digging: int, spades: int) -> Cost:
     return Cost(workers=spades * workers_per_spade)
 
 
-def effective_reach(board: Board, player: PlayerId, profile: FactionProfile) -> int:
-    """The faction's tunneling or carpet range, including a stronghold bonus."""
+def effective_reach(
+    board: Board, player: PlayerId, profile: FactionProfile, extra: int = 0
+) -> int:
+    """The faction's tunneling or carpet range, including stronghold and bonus."""
     if profile.reach <= 0:
         return 0
     has_stronghold = board.count(player, BuildingType.STRONGHOLD) > 0
-    if has_stronghold and profile.reach_with_stronghold > profile.reach:
-        return profile.reach_with_stronghold
-    return profile.reach
+    base = (
+        profile.reach_with_stronghold
+        if has_stronghold and profile.reach_with_stronghold > profile.reach
+        else profile.reach
+    )
+    return base + extra
 
 
 def effective_reach_cost(

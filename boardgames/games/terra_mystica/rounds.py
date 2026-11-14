@@ -2,8 +2,21 @@
 
 from dataclasses import replace
 
-from boardgames.core import Event, PlayerId, Transition, seat_label, seats
+from boardgames.core import (
+    Event,
+    IllegalActionError,
+    PlayerId,
+    Transition,
+    seat_label,
+    seats,
+)
+from boardgames.games.terra_mystica.bonus import (
+    bonus_income,
+    bonus_pass_vp,
+    check_bonus_choice,
+)
 from boardgames.games.terra_mystica.constants import (
+    BONUS_CARDS,
     STANDARD_DWELLING_INCOME,
     STANDARD_TEMPLE_INCOME,
     STANDARD_TRADING_HOUSE_INCOME,
@@ -29,6 +42,7 @@ from boardgames.games.terra_mystica.model import (
     replace_player,
 )
 from boardgames.games.terra_mystica.scoring import final_scores
+from boardgames.games.terra_mystica.spade_gain import gain_spade_power
 
 
 def round_tile(state: TerraMysticaState) -> ScoringTile:
@@ -72,6 +86,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
     sanctuary_income = profile.sanctuary_income if sanctuaries else Income()
     stronghold_income = profile.stronghold_income if strongholds else Income()
     favor = favor_income(player)
+    bonus = bonus_income(player)
     return Income(
         coins=(
             profile.base_income.coins
@@ -81,6 +96,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + sanctuary_income.coins
             + stronghold_income.coins
             + favor.coins
+            + bonus.coins
         ),
         workers=(
             profile.base_income.workers
@@ -90,6 +106,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + sanctuary_income.workers
             + stronghold_income.workers
             + favor.workers
+            + bonus.workers
         ),
         priests=(
             profile.base_income.priests
@@ -99,6 +116,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + sanctuary_income.priests
             + stronghold_income.priests
             + favor.priests
+            + bonus.priests
         ),
         power=(
             profile.base_income.power
@@ -108,6 +126,7 @@ def income_for(board: Board, seat: PlayerId, player: PlayerState) -> Income:
             + sanctuary_income.power
             + stronghold_income.power
             + favor.power
+            + bonus.power
         ),
         victory_points=profile.base_income.victory_points,
     )
@@ -142,6 +161,11 @@ def start_round(
         pending_town_river=None,
         pending_power=(),
         power_actor=None,
+        used_special_actions=frozenset(),
+        extra_actions=0,
+        cultist_offered=False,
+        cultist_taken=False,
+        cultist_actor=None,
         pending_towns=0,
     )
     events: list[Event] = [
@@ -218,7 +242,16 @@ def start_next_round(
         pending_town_river=None,
         pending_power=(),
         power_actor=None,
+        used_special_actions=frozenset(),
+        extra_actions=0,
+        cultist_offered=False,
+        cultist_taken=False,
+        cultist_actor=None,
         pending_towns=0,
+        bonus_coins=tuple(
+            coins + (1 if index in state.bonus_available else 0)
+            for index, coins in enumerate(state.bonus_coins)
+        ),
     )
     state, round_events = start_round(state)
     return Transition(state, (*events, *round_events))
@@ -326,6 +359,7 @@ def end_round(
                         + budget * owner.profile.spade_vp_bonus,
                     ),
                 )
+            state = gain_spade_power(state, PlayerId(seat), budget)
         state = replace(
             state,
             phase="cult_spades",
@@ -362,38 +396,173 @@ def _next_unpassed(state: TerraMysticaState, player: PlayerId) -> PlayerId:
     return player
 
 
+def _finish_pass(
+    state: TerraMysticaState, player: PlayerId, events: tuple[Event, ...]
+) -> Transition[TerraMysticaState]:
+    state = replace(state, phase="action")
+    if len(state.passed) >= len(state.players):
+        return end_round(state, events)
+    next_player = _next_unpassed(state, player)
+    state = replace(state, active_player=next_player)
+    return Transition(state, events)
+
+
 def pass_turn(
     state: TerraMysticaState, player: PlayerId
 ) -> Transition[TerraMysticaState]:
     owner = state.players[player]
     trading = state.board.count(player, BuildingType.TRADING_HOUSE)
     favor_vp = favor_pass_vp(owner, trading)
-    if favor_vp:
-        owner = replace(owner, victory_points=owner.victory_points + favor_vp)
-        state = replace_player(state, player, owner)
+    bonus_vp = bonus_pass_vp(state, player)
+    bridge_vp = 0
+    if (
+        owner.profile.type is FactionType.ENGINEERS
+        and state.board.count(player, BuildingType.STRONGHOLD) > 0
+    ):
+        for bridge in state.bridges:
+            if bridge.owner != player:
+                continue
+            first = state.board.tile(bridge.first)
+            second = state.board.tile(bridge.second)
+            if (
+                first is not None
+                and first.building is not None
+                and first.building.owner == player
+                and second is not None
+                and second.building is not None
+                and second.building.owner == player
+            ):
+                bridge_vp += 3
+    card = owner.bonus_card
+    victory_points = owner.victory_points + favor_vp + bonus_vp + bridge_vp
+    owner = replace(owner, victory_points=victory_points, bonus_card=None)
+    state = replace_player(state, player, owner)
     passed = state.passed | {player}
     pass_order = (*state.pass_order, player)
     text = f"{seat_label(player)} passed"
     if favor_vp:
         text += f" and gained {favor_vp} VP from a favor tile"
+    if bonus_vp:
+        text += f" and gained {bonus_vp} VP from a bonus card"
+    if bridge_vp:
+        text += f" and gained {bridge_vp} VP from bridges"
     event = Event(
         "passed",
         text + ".",
-        {"player": player, "favor_vp": favor_vp},
+        {
+            "player": player,
+            "favor_vp": favor_vp,
+            "bonus_vp": bonus_vp,
+            "bridge_vp": bridge_vp,
+            "bonus_card": card,
+        },
     )
-    if len(passed) >= len(state.players):
-        state = replace(state, passed=passed, pass_order=pass_order)
-        return end_round(state, (event,))
-    next_player = _next_unpassed(
-        replace(state, passed=passed, pass_order=pass_order), player
-    )
+    available = state.bonus_available
+    if card is not None and card not in available:
+        available = (*available, card)
     state = replace(
         state,
         passed=passed,
         pass_order=pass_order,
-        active_player=next_player,
+        bonus_available=available,
+        bonus_returned=card,
+        extra_actions=0,
     )
-    return Transition(state, (event,))
+    if state.config.bonus_cards and state.round < state.config.rounds and available:
+        state = replace(
+            state,
+            phase="bonus_choice",
+            pending_bonus=True,
+            bonus_mode="pass",
+            active_player=player,
+        )
+        return Transition(state, (event,))
+    return _finish_pass(state, player, (event,))
+
+
+def begin_bonus_draft(
+    state: TerraMysticaState, events: tuple[Event, ...]
+) -> Transition[TerraMysticaState]:
+    """Start the initial bonus-card draft after the starting dwellings."""
+    queue = tuple(reversed(state.order))
+    state = replace(
+        state,
+        phase="bonus_choice",
+        pending_bonus=True,
+        bonus_mode="setup",
+        bonus_queue=queue,
+        bonus_returned=None,
+        active_player=queue[0],
+    )
+    event = Event(
+        "bonus_draft",
+        f"{seat_label(queue[0])} takes the first bonus card.",
+        {"player": queue[0]},
+    )
+    return Transition(state, (*events, event))
+
+
+def take_bonus_card(
+    state: TerraMysticaState, player: PlayerId, index: int
+) -> Transition[TerraMysticaState]:
+    """Take an available bonus card, then continue the draft or the pass."""
+    check_bonus_choice(state, player)
+    if index not in state.bonus_available or index == state.bonus_returned:
+        raise IllegalActionError("that bonus card is not available")
+    owner = state.players[player]
+    coins = state.bonus_coins[index]
+    owner = replace(
+        owner,
+        bonus_card=index,
+        resources=replace(owner.resources, coins=owner.resources.coins + coins),
+    )
+    state = replace_player(state, player, owner)
+    available = tuple(card for card in state.bonus_available if card != index)
+    coins_left = list(state.bonus_coins)
+    coins_left[index] = 0
+    state = replace(
+        state,
+        bonus_available=available,
+        bonus_coins=tuple(coins_left),
+    )
+    event = Event(
+        "bonus_card",
+        f"{seat_label(player)} took bonus card {index} ({BONUS_CARDS[index].label}).",
+        {"player": player, "bonus_card": index, "coins": coins},
+    )
+    if state.bonus_mode == "setup":
+        queue = state.bonus_queue[1:]
+        if queue:
+            return Transition(
+                replace(
+                    state,
+                    bonus_queue=queue,
+                    active_player=queue[0],
+                    bonus_returned=None,
+                ),
+                (event,),
+            )
+        coins_left = [
+            coins + (1 if index in available else 0)
+            for index, coins in enumerate(state.bonus_coins)
+        ]
+        state = replace(
+            state,
+            pending_bonus=False,
+            bonus_mode=None,
+            bonus_queue=(),
+            bonus_returned=None,
+            bonus_coins=tuple(coins_left),
+        )
+        state, round_events = start_round(state)
+        return Transition(state, (event, *round_events))
+    state = replace(
+        state,
+        pending_bonus=False,
+        bonus_mode=None,
+        bonus_returned=None,
+    )
+    return _finish_pass(state, player, (event,))
 
 
 def advance_turn(
@@ -406,6 +575,8 @@ def advance_turn(
         return Transition(
             replace(state, phase="power_gain", active_player=gain.player), events
         )
+    if state.extra_actions > 0 and player not in state.passed:
+        return Transition(replace(state, extra_actions=state.extra_actions - 1), events)
     unpassed = [seat for seat in state.order if seat not in state.passed]
     if unpassed == [player]:
         return Transition(state, events)

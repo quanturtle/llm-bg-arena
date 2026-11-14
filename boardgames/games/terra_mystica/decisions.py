@@ -5,6 +5,10 @@ picks the one that applies to the current phase and action.
 """
 
 from boardgames.core import PlayerId, seat_label
+from boardgames.games.terra_mystica.bonus import (
+    bonus_actions,
+    explain_bonus,
+)
 from boardgames.games.terra_mystica.bridges import (
     bridge_actions,
     explain_bridge,
@@ -31,18 +35,28 @@ from boardgames.games.terra_mystica.model import (
     AdvanceCult,
     AdvanceDigging,
     AdvanceShipping,
+    BonusSpade,
     BuildBridge,
     BuildDwelling,
+    ChaosDoubleTurn,
+    ChooseFaction,
     ChoosePowerGain,
     Convert,
+    CultistCult,
+    GiantsSpades,
+    NomadsSandstorm,
     Pass,
     PowerAction,
     SendPriest,
+    SpecialCult,
+    SwarmlingsUpgrade,
+    TakeBonusCard,
     TerraMysticaState,
     TradeCoinsForVp,
     TradeVpForCoin,
     TransformTerrain,
     UpgradeBuilding,
+    WitchesRide,
 )
 from boardgames.games.terra_mystica.power import (
     alchemist_trades,
@@ -54,11 +68,17 @@ from boardgames.games.terra_mystica.power import (
     power_actions,
 )
 from boardgames.games.terra_mystica.power_gain import (
+    cultist_actions,
+    explain_cultist_cult,
     explain_power_gain,
     power_gain_actions,
 )
 from boardgames.games.terra_mystica.setup import explain_setup, setup_actions
 from boardgames.games.terra_mystica.spades import cult_spade_actions, explain_spade
+from boardgames.games.terra_mystica.special import (
+    explain_special,
+    special_actions,
+)
 from boardgames.games.terra_mystica.strongholds import (
     convert_actions,
     explain_convert,
@@ -76,13 +96,18 @@ def action_phase_actions(state: TerraMysticaState, player: PlayerId) -> list[Act
     actions.extend(power_actions(state, player))
     actions.extend(conversion_actions(state, player))
     actions.extend(alchemist_trades(state, player))
+    actions.extend(special_actions(state, player))
     actions.append(Pass())
     return actions
 
 
 def legal_action_list(state: TerraMysticaState, player: PlayerId) -> list[Action]:
-    if state.phase == "setup":
+    if state.phase in ("setup", "faction_choice"):
         return setup_actions(state, player)
+    if state.phase == "bonus_choice":
+        return bonus_actions(state, player)
+    if state.phase == "cultist_cult":
+        return cultist_actions(state, player)
     if state.phase == "cult_spades":
         return cult_spade_actions(state, player)
     if state.phase == "stronghold_convert":
@@ -123,6 +148,25 @@ def _explain_action(state: TerraMysticaState, player: PlayerId, action: Action) 
         return explain_conversion(state, player, action)
     if isinstance(action, ChoosePowerGain):
         return explain_power_gain(state, player, action)
+    if isinstance(action, ChooseFaction):
+        return explain_setup(state, player, action)
+    if isinstance(action, TakeBonusCard):
+        return explain_bonus(state, action)
+    if isinstance(action, CultistCult):
+        return explain_cultist_cult(state, player, action)
+    if isinstance(
+        action,
+        (
+            SpecialCult,
+            BonusSpade,
+            WitchesRide,
+            SwarmlingsUpgrade,
+            ChaosDoubleTurn,
+            GiantsSpades,
+            NomadsSandstorm,
+        ),
+    ):
+        return explain_special(state, player, action)
     if isinstance(action, TradeVpForCoin):
         return explain_trade_vp_for_coin(state, player)
     if isinstance(action, TradeCoinsForVp):
@@ -145,6 +189,12 @@ def explain_illegal(state: TerraMysticaState, player: PlayerId, action: Action) 
         return explain_favor(state, action)
     if state.phase == "power_gain":
         return explain_power_gain(state, player, action)
+    if state.phase == "cultist_cult":
+        return explain_cultist_cult(state, player, action)
+    if state.phase == "bonus_choice":
+        return explain_bonus(state, action)
+    if state.phase == "faction_choice":
+        return explain_setup(state, player, action)
     if state.phase != "action":
         return "The game is over."
     if player != state.active_player:
