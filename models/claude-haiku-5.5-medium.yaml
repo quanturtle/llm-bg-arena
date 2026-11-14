@@ -1,0 +1,4 @@
+model: anthropic/claude-haiku-5.5
+reasoning: true
+reasoning_effort: medium
+verbosity: low

@@ -1,0 +1,4 @@
+model: openai/gpt-6-luna
+reasoning: true
+reasoning_effort: low
+verbosity: low

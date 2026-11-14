@@ -1,8 +1,8 @@
 # catan (seed 271366)
 
-Seats: P1 anthropic/claude-haiku-5.5, P2 deepseek/deepseek-v4.1-flash, P3 openai/gpt-6-luna
+Seats: P1 claude-haiku-5.5-off, P2 deepseek-v4.1-flash-off, P3 gpt-6-luna-off
 
-## Step 1: P1 anthropic/claude-haiku-5.5 plays `settle v14`
+## Step 1: P1 claude-haiku-5.5-off plays `settle v14`
 
 Asked: Place a settlement on an empty intersection.
 
@@ -16,7 +16,7 @@ Game start. I placed first settlement at v14 (mountains10, pasture9, forest4). P
 
 _9736 tokens, $0.0011_
 
-## Step 2: P1 anthropic/claude-haiku-5.5 plays `road e16`
+## Step 2: P1 claude-haiku-5.5-off plays `road e16`
 
 Asked: Place a road touching your new settlement on v14.
 
@@ -30,7 +30,7 @@ Game start. First settlement v14 (mountains10, pasture9, forest4). Road e16 towa
 
 _7804 tokens, $0.0008_
 
-## Step 3: P2 deepseek/deepseek-v4.1-flash plays `settle v24`
+## Step 3: P2 deepseek-v4.1-flash-off plays `settle v24`
 
 Asked: Place a settlement on an empty intersection.
 
@@ -44,7 +44,7 @@ P1 at v14 (mountains10/pasture9/forest4). I settled v24 (pasture9/hills10/forest
 
 _7013 tokens, $0.0005_
 
-## Step 4: P2 deepseek/deepseek-v4.1-flash plays `road e28`
+## Step 4: P2 deepseek-v4.1-flash-off plays `road e28`
 
 Asked: Place a road touching your new settlement on v24.
 
@@ -58,7 +58,7 @@ Settled v24 (pasture9/hills10/forest11). Road e28 heads toward v18 (pasture6/hil
 
 _5844 tokens, $0.0020_
 
-## Step 5: P3 openai/gpt-6-luna plays `settle v8`
+## Step 5: P3 gpt-6-luna-off plays `settle v8`
 
 Asked: Place a settlement on an empty intersection.
 
@@ -72,7 +72,7 @@ First settlement v8: wood 3, wheat 2, sheep 6 production, balanced resource acce
 
 _6484 tokens, $0.0008_
 
-## Step 6: P3 openai/gpt-6-luna plays `road e12`
+## Step 6: P3 gpt-6-luna-off plays `road e12`
 
 Asked: Place a road touching your new settlement on v8.
 
@@ -86,7 +86,7 @@ First settlement v8: adjacent wood 3, wheat 2, sheep 6. Road e12 points toward v
 
 _5377 tokens, $0.0005_
 
-## Step 7: P3 openai/gpt-6-luna plays `settle v31`
+## Step 7: P3 gpt-6-luna-off plays `settle v31`
 
 Asked: Place a settlement on an empty intersection.
 
@@ -100,7 +100,7 @@ First settlement v8: wood 3, wheat 2, sheep 6; road e12 toward v12. Second settl
 
 _6358 tokens, $0.0006_
 
-## Step 8: P3 openai/gpt-6-luna plays `road e37`
+## Step 8: P3 gpt-6-luna-off plays `road e37`
 
 Asked: Place a road touching your new settlement on v31.
 
@@ -114,7 +114,7 @@ First settlement v8: wood 3, wheat 2, sheep 6; road e12 toward v12. Second settl
 
 _5414 tokens, $0.0005_
 
-## Step 9: P2 deepseek/deepseek-v4.1-flash plays `settle v23`
+## Step 9: P2 deepseek-v4.1-flash-off plays `settle v23`
 
 Asked: Place a settlement on an empty intersection.
 
@@ -128,7 +128,7 @@ Settled v24 (pasture9/hills10/forest11) + road e28; second settlement v23 (pastu
 
 _6812 tokens, $0.0004_
 
-## Step 10: P2 deepseek/deepseek-v4.1-flash plays `road e27`
+## Step 10: P2 deepseek-v4.1-flash-off plays `road e27`
 
 Asked: Place a road touching your new settlement on v23.
 
@@ -142,7 +142,7 @@ Settled v24 (pasture9/hills10/forest11) + road e28; second settlement v23 (pastu
 
 _5977 tokens, $0.0004_
 
-## Step 11: P1 anthropic/claude-haiku-5.5 plays `settle v22`
+## Step 11: P1 claude-haiku-5.5-off plays `settle v22`
 
 Asked: Place a settlement on an empty intersection.
 
@@ -156,7 +156,7 @@ Game start. First settlement v14 (mountains10, pasture9, forest4). Road e16 towa
 
 _9308 tokens, $0.0011_
 
-## Step 12: P1 anthropic/claude-haiku-5.5 plays `road e34`
+## Step 12: P1 claude-haiku-5.5-off plays `road e34`
 
 Asked: Place a road touching your new settlement on v22.
 
@@ -170,7 +170,7 @@ Settlements v14 and v22. Road e16 and e34 placed. Plan: expand for wood/brick/sh
 
 _7874 tokens, $0.0009_
 
-## Step 13: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 13: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -184,7 +184,7 @@ Settlements v14 and v22. Roads e16, e34. Plan: expand for wood/brick/sheep/wheat
 
 _7725 tokens, $0.0008_
 
-## Step 14: P1 anthropic/claude-haiku-5.5 plays `road e17`
+## Step 14: P1 claude-haiku-5.5-off plays `road e17`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -198,7 +198,7 @@ Settlements v14, v22. Roads e16, e34. Plan: expand toward brick port (v10/v15) a
 
 _8661 tokens, $0.0010_
 
-## Step 15: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 15: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -212,7 +212,7 @@ Settlements v14, v22. Roads e16, e17, e34. Plan: expand toward brick port (v10/v
 
 _7982 tokens, $0.0009_
 
-## Step 16: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 16: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -226,7 +226,7 @@ Settled v24 (pasture9/hills10/forest11) + road e28; second settlement v23 (pastu
 
 _5896 tokens, $0.0002_
 
-## Step 17: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P3`
+## Step 17: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -240,7 +240,7 @@ Settled v24 (pasture9/hills10/forest11) + road e28; second settlement v23 (pastu
 
 _6180 tokens, $0.0008_
 
-## Step 18: P3 openai/gpt-6-luna plays `accept`
+## Step 18: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -254,7 +254,7 @@ First settlement v8: wood 3, wheat 2, sheep 6; road e12 toward v12. Second settl
 
 _5597 tokens, $0.0006_
 
-## Step 19: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P1`
+## Step 19: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -268,7 +268,7 @@ Settled v24 (pasture9/hills10/forest11) + road e28; second settlement v23 (pastu
 
 _6360 tokens, $0.0003_
 
-## Step 20: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 20: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -282,7 +282,7 @@ Settlements v14, v22. Roads e16, e17, e34. Plan: expand toward brick port (v10/v
 
 _7907 tokens, $0.0009_
 
-## Step 21: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 21: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -296,7 +296,7 @@ Settled v24 + road e28; v23 + road e27. Hand: brick2, sheep2, wheat1 (5). P1 dec
 
 _6383 tokens, $0.0003_
 
-## Step 22: P3 openai/gpt-6-luna plays `accept`
+## Step 22: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -310,7 +310,7 @@ First settlement v8: wood 3, wheat 2, sheep 6; road e12 toward v12. Second settl
 
 _5485 tokens, $0.0005_
 
-## Step 23: P2 deepseek/deepseek-v4.1-flash plays `road e29`
+## Step 23: P2 deepseek-v4.1-flash-off plays `road e29`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -324,7 +324,7 @@ Settled v24 + road e28; v23 + road e27. Hand after trade: brick2, wheat1, wood1 
 
 _6038 tokens, $0.0008_
 
-## Step 24: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 24: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -338,7 +338,7 @@ Settled v24 + road e28; v23 + road e27; built road e29 (v19-v24) to extend towar
 
 _5892 tokens, $0.0003_
 
-## Step 25: P3 openai/gpt-6-luna plays `roll`
+## Step 25: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -352,7 +352,7 @@ Starting settlements v8 (wood 3, wheat 2, sheep 6) and v31 (wood 11, wheat 5, or
 
 _5403 tokens, $0.0005_
 
-## Step 26: P3 openai/gpt-6-luna plays `offer brick for wood to P2`
+## Step 26: P3 gpt-6-luna-off plays `offer brick for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -366,7 +366,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5952 tokens, $0.0006_
 
-## Step 27: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 27: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -380,7 +380,7 @@ Settled v24 + road e28; v23 + road e27; built road e29 (v19-v24). Hand brick1 sh
 
 _5893 tokens, $0.0003_
 
-## Step 28: P3 openai/gpt-6-luna plays `offer brick for wood to P1`
+## Step 28: P3 gpt-6-luna-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -394,7 +394,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5891 tokens, $0.0006_
 
-## Step 29: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 29: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -408,7 +408,7 @@ Settlements v14, v22. Roads e16, e17, e34. Plan: expand toward brick port (v10/v
 
 _8090 tokens, $0.0009_
 
-## Step 30: P3 openai/gpt-6-luna plays `offer sheep for wood to P2`
+## Step 30: P3 gpt-6-luna-off plays `offer sheep for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -422,7 +422,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5898 tokens, $0.0006_
 
-## Step 31: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 31: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -436,7 +436,7 @@ Settled v24 + road e28; v23 + road e27; built road e29. Hand brick1 sheep2 wheat
 
 _5851 tokens, $0.0004_
 
-## Step 32: P3 openai/gpt-6-luna plays `end turn`
+## Step 32: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -450,7 +450,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5380 tokens, $0.0005_
 
-## Step 33: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 33: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -464,7 +464,7 @@ Settlements v14, v22. Roads e16, e17, e34. Plan: expand toward brick port (v10/v
 
 _7803 tokens, $0.0008_
 
-## Step 34: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 34: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -478,7 +478,7 @@ Settlements v14, v22. Roads e16, e17, e34. Plan: expand toward brick port (v10/v
 
 _9230 tokens, $0.0010_
 
-## Step 35: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 35: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -492,7 +492,7 @@ Settled v24 + road e28; v23 + road e27; built road e29. Hand brick3 sheep2 wheat
 
 _5824 tokens, $0.0004_
 
-## Step 36: P2 deepseek/deepseek-v4.1-flash plays `road e30`
+## Step 36: P2 deepseek-v4.1-flash-off plays `road e30`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -506,7 +506,7 @@ Settled v24 + roads e28,e29,e27. Extending e30 (v19-v25) toward v25 spot (wood4/
 
 _6749 tokens, $0.0022_
 
-## Step 37: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P3`
+## Step 37: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -520,7 +520,7 @@ Settled v24 + roads e28,e29,e27,e30. Length 4. Hand: brick2 sheep2 wheat1 wood0.
 
 _6326 tokens, $0.0004_
 
-## Step 38: P3 openai/gpt-6-luna plays `decline`
+## Step 38: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -534,7 +534,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5500 tokens, $0.0005_
 
-## Step 39: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P1`
+## Step 39: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -548,7 +548,7 @@ Settled v24 + roads e28,e29,e27,e30. Length 4. Hand: brick2 sheep2 wheat1. Goal:
 
 _6301 tokens, $0.0002_
 
-## Step 40: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 40: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -562,7 +562,7 @@ Settlements v14, v22. Roads e16, e17, e34. Plan: expand toward brick port (v10/v
 
 _8056 tokens, $0.0009_
 
-## Step 41: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 41: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -576,7 +576,7 @@ Settled v24 + roads e28,e29,e27,e30. Length 4. Hand: brick2 sheep2 wheat1. Goal:
 
 _6315 tokens, $0.0002_
 
-## Step 42: P3 openai/gpt-6-luna plays `decline`
+## Step 42: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -590,7 +590,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5425 tokens, $0.0005_
 
-## Step 43: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 43: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -604,7 +604,7 @@ Settled v24 + roads e27,e28,e29,e30. Length 4. Hand: brick2 sheep2 wheat1 (5 car
 
 _5784 tokens, $0.0003_
 
-## Step 44: P3 openai/gpt-6-luna plays `roll`
+## Step 44: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -618,7 +618,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5331 tokens, $0.0005_
 
-## Step 45: P3 openai/gpt-6-luna plays `road e13`
+## Step 45: P3 gpt-6-luna-off plays `road e13`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -632,7 +632,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _6283 tokens, $0.0006_
 
-## Step 46: P3 openai/gpt-6-luna plays `end turn`
+## Step 46: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -646,7 +646,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5712 tokens, $0.0006_
 
-## Step 47: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 47: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -660,7 +660,7 @@ Settlements v14, v22. Roads e16, e17, e34. Plan: expand toward brick port (v10/v
 
 _7844 tokens, $0.0008_
 
-## Step 48: P1 anthropic/claude-haiku-5.5 plays `road e22`
+## Step 48: P1 claude-haiku-5.5-off plays `road e22`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -674,7 +674,7 @@ Settlements v14, v22. Roads e16, e17, e34, plan e22 (toward v20). Plan: expand t
 
 _9263 tokens, $0.0010_
 
-## Step 49: P1 anthropic/claude-haiku-5.5 plays `road e24`
+## Step 49: P1 claude-haiku-5.5-off plays `road e24`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -688,7 +688,7 @@ Settlements v14, v22. Roads e16, e17, e22, e34. Plan: expand toward wood port v1
 
 _9275 tokens, $0.0010_
 
-## Step 50: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 50: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -702,7 +702,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _8606 tokens, $0.0009_
 
-## Step 51: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 51: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -716,7 +716,7 @@ Settled v24 + roads e27,e28,e29,e30. Length 4. Need wood badly to build settle v
 
 _5828 tokens, $0.0008_
 
-## Step 52: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 52: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -730,7 +730,7 @@ Settled v24 + roads e27,e28,e29,e30. Length 4. Plan: build settle v25 (wood+bric
 
 _6421 tokens, $0.0004_
 
-## Step 53: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 53: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -744,7 +744,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _8032 tokens, $0.0009_
 
-## Step 54: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 54: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -758,7 +758,7 @@ Settled v24 + roads e27,e28,e29,e30. Length 4. Plan: build settle v25 (needs woo
 
 _6668 tokens, $0.0003_
 
-## Step 55: P3 openai/gpt-6-luna plays `decline`
+## Step 55: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -772,7 +772,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5533 tokens, $0.0005_
 
-## Step 56: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 56: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -786,7 +786,7 @@ Settled v24 + roads e27,e28,e29,e30. Length 4. Hand wood1 brick2 sheep3 wheat1 (
 
 _6744 tokens, $0.0003_
 
-## Step 57: P3 openai/gpt-6-luna plays `decline`
+## Step 57: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -800,7 +800,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5390 tokens, $0.0005_
 
-## Step 58: P2 deepseek/deepseek-v4.1-flash plays `road e35`
+## Step 58: P2 deepseek-v4.1-flash-off plays `road e35`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -814,7 +814,7 @@ Settled v24 + roads e27,e28,e29,e30. Length 4. Hand wood1 brick2 sheep3 wheat1 (
 
 _6120 tokens, $0.0003_
 
-## Step 59: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 59: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -828,7 +828,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35. Longest road 5 paths (award hel
 
 _5873 tokens, $0.0011_
 
-## Step 60: P3 openai/gpt-6-luna plays `roll`
+## Step 60: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -842,7 +842,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5358 tokens, $0.0005_
 
-## Step 61: P3 openai/gpt-6-luna plays `dev`
+## Step 61: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -856,7 +856,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _6025 tokens, $0.0006_
 
-## Step 62: P3 openai/gpt-6-luna plays `offer sheep for wood to P2`
+## Step 62: P3 gpt-6-luna-off plays `offer sheep for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -870,7 +870,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5746 tokens, $0.0006_
 
-## Step 63: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 63: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -884,7 +884,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35. Longest road 5 (award held). Ha
 
 _5869 tokens, $0.0012_
 
-## Step 64: P3 openai/gpt-6-luna plays `offer sheep for wood to P1`
+## Step 64: P3 gpt-6-luna-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -898,7 +898,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5754 tokens, $0.0006_
 
-## Step 65: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 65: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -912,7 +912,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _8192 tokens, $0.0009_
 
-## Step 66: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 66: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -926,7 +926,7 @@ Settlements v8 (wood3,wheat2,sheep6) and v31 (wood11,wheat5,ore8); roads e12,e37
 
 _5778 tokens, $0.0006_
 
-## Step 67: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 67: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -940,7 +940,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35. Longest road 5 (award held). Ha
 
 _5915 tokens, $0.0003_
 
-## Step 68: P3 openai/gpt-6-luna plays `end turn`
+## Step 68: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -954,7 +954,7 @@ Settlements v8 and v31; roads e12,e37,e13. VP card makes 3 points. Current resou
 
 _5402 tokens, $0.0005_
 
-## Step 69: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 69: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -968,7 +968,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _7869 tokens, $0.0009_
 
-## Step 70: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 70: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -982,7 +982,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _9373 tokens, $0.0011_
 
-## Step 71: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 71: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -996,7 +996,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35. Longest road 5 (award held). Ha
 
 _5847 tokens, $0.0008_
 
-## Step 72: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 72: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1012,7 +1012,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35 (longest road 5, award held). Ha
 
 _7012 tokens, $0.0012_
 
-## Step 73: P3 openai/gpt-6-luna plays `roll`
+## Step 73: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1026,7 +1026,7 @@ Settlements v8 and v31; roads e12,e37,e13. VP card makes 3 points. Current resou
 
 _5409 tokens, $0.0005_
 
-## Step 74: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 74: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1040,7 +1040,7 @@ Settlements v8 and v31; VP card makes 3 points. Roads e12,e13,e37. Need brick fo
 
 _6062 tokens, $0.0006_
 
-## Step 75: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 75: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1054,7 +1054,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35 (longest road 5, award held). Ha
 
 _5967 tokens, $0.0006_
 
-## Step 76: P3 openai/gpt-6-luna plays `offer sheep for brick to P1`
+## Step 76: P3 gpt-6-luna-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1068,7 +1068,7 @@ Settlements v8 and v31; VP card makes 3 points. Roads e12,e13,e37. Need brick fo
 
 _6077 tokens, $0.0006_
 
-## Step 77: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 77: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1082,7 +1082,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _8124 tokens, $0.0009_
 
-## Step 78: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 78: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1096,7 +1096,7 @@ Settlements v8 and v31; VP card makes 3 points. Roads e12,e13,e37. Need brick fo
 
 _6095 tokens, $0.0006_
 
-## Step 79: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 79: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1110,7 +1110,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35 (longest road 5, award held). Ha
 
 _5897 tokens, $0.0002_
 
-## Step 80: P3 openai/gpt-6-luna plays `dev`
+## Step 80: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1124,7 +1124,7 @@ Settlements v8 and v31; VP card makes 3 points. Roads e12,e13,e37. Need brick fo
 
 _5404 tokens, $0.0005_
 
-## Step 81: P3 openai/gpt-6-luna plays `end turn`
+## Step 81: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1138,7 +1138,7 @@ Settlements v8 and v31; VP card makes 3 points. Roads e12,e13,e37. Hand wood2, s
 
 _5351 tokens, $0.0005_
 
-## Step 82: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 82: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1152,7 +1152,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _7918 tokens, $0.0009_
 
-## Step 83: P1 anthropic/claude-haiku-5.5 plays `road e18`
+## Step 83: P1 claude-haiku-5.5-off plays `road e18`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1166,7 +1166,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24. Plan: expand toward wood port v
 
 _9416 tokens, $0.0011_
 
-## Step 84: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 84: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1180,7 +1180,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8422 tokens, $0.0009_
 
-## Step 85: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 85: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1194,7 +1194,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35 (longest road 5, award held). Ha
 
 _5840 tokens, $0.0003_
 
-## Step 86: P2 deepseek/deepseek-v4.1-flash plays `road e42`
+## Step 86: P2 deepseek-v4.1-flash-off plays `road e42`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1208,7 +1208,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35, now +e42 (v29-v34). Longest roa
 
 _6765 tokens, $0.0011_
 
-## Step 87: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 87: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1222,7 +1222,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (v29-v34). Longest road 6, a
 
 _6167 tokens, $0.0015_
 
-## Step 88: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 88: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -1236,7 +1236,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8090 tokens, $0.0009_
 
-## Step 89: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 89: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1250,7 +1250,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (v29-v34). Longest road 6, a
 
 _6178 tokens, $0.0004_
 
-## Step 90: P3 openai/gpt-6-luna plays `decline`
+## Step 90: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -1264,7 +1264,7 @@ Settlements v8 and v31; VP card makes 3 points. Roads e12,e13,e37. Hand wood2, s
 
 _5521 tokens, $0.0005_
 
-## Step 91: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P3`
+## Step 91: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1278,7 +1278,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (v29-v34). Longest road 6, a
 
 _6220 tokens, $0.0004_
 
-## Step 92: P3 openai/gpt-6-luna plays `decline`
+## Step 92: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1292,7 +1292,7 @@ Settlements v8 and v31; VP card makes 3 points. Roads e12,e13,e37. Hand wood2, s
 
 _5411 tokens, $0.0005_
 
-## Step 93: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 93: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1306,7 +1306,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (v29-v34). Longest road 6, a
 
 _5889 tokens, $0.0004_
 
-## Step 94: P3 openai/gpt-6-luna plays `roll`
+## Step 94: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1320,7 +1320,7 @@ Settlements v8 and v31; VP card gives 3 total. Roads e12,e13,e37. Hand wood2, sh
 
 _5369 tokens, $0.0005_
 
-## Step 95: P3 openai/gpt-6-luna plays `play knight h9 P2`
+## Step 95: P3 gpt-6-luna-off plays `play knight h9 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1334,7 +1334,7 @@ Settlements v8 and v31; currently 3 VP including hidden VP card. Roads e12,e13,e
 
 _6627 tokens, $0.0007_
 
-## Step 96: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 96: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1348,7 +1348,7 @@ Settlements v8 and v31; hidden VP puts total at 3. P3 roads e12,e13,e37; P2 hold
 
 _6144 tokens, $0.0006_
 
-## Step 97: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 97: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1362,7 +1362,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (v29-v34). Longest road 6, a
 
 _5982 tokens, $0.0020_
 
-## Step 98: P3 openai/gpt-6-luna plays `offer sheep for brick to P1`
+## Step 98: P3 gpt-6-luna-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1376,7 +1376,7 @@ Settlements v8/v31; hidden VP gives 3 total. Roads e12,e13,e37; P2 longest road.
 
 _6117 tokens, $0.0006_
 
-## Step 99: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 99: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1390,7 +1390,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8102 tokens, $0.0009_
 
-## Step 100: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 100: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1404,7 +1404,7 @@ Settlements v8/v31; hidden VP gives 3 total. Roads e12,e13,e37; P2 longest road.
 
 _6123 tokens, $0.0006_
 
-## Step 101: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 101: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1418,7 +1418,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (v29-v34). Longest road 6, a
 
 _5929 tokens, $0.0019_
 
-## Step 102: P3 openai/gpt-6-luna plays `dev`
+## Step 102: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1432,7 +1432,7 @@ Settlements v8/v31; hidden VP gives 3 total. Roads e12,e13,e37; P2 longest road.
 
 _5426 tokens, $0.0005_
 
-## Step 103: P3 openai/gpt-6-luna plays `end turn`
+## Step 103: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1446,7 +1446,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. P2 holds longest road. Roads 
 
 _5378 tokens, $0.0005_
 
-## Step 104: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 104: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1460,7 +1460,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _7882 tokens, $0.0009_
 
-## Step 105: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 105: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1474,7 +1474,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8738 tokens, $0.0010_
 
-## Step 106: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 106: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1488,7 +1488,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (v29-v34). Longest road 6, a
 
 _5879 tokens, $0.0005_
 
-## Step 107: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P3`
+## Step 107: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1502,7 +1502,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42. Longest road 6, award held.
 
 _6206 tokens, $0.0002_
 
-## Step 108: P3 openai/gpt-6-luna plays `decline`
+## Step 108: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1516,7 +1516,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. P2 holds longest road. Roads 
 
 _5482 tokens, $0.0005_
 
-## Step 109: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P1`
+## Step 109: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1530,7 +1530,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42. Longest road 6, award held.
 
 _6263 tokens, $0.0010_
 
-## Step 110: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 110: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1544,7 +1544,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8017 tokens, $0.0009_
 
-## Step 111: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 111: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1558,7 +1558,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42. Longest road 6, award held.
 
 _6260 tokens, $0.0004_
 
-## Step 112: P3 openai/gpt-6-luna plays `roll`
+## Step 112: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1572,7 +1572,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. P2 holds longest road. Roads 
 
 _5380 tokens, $0.0005_
 
-## Step 113: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 113: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1586,7 +1586,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. P2 holds longest road. Roads 
 
 _5915 tokens, $0.0006_
 
-## Step 114: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 114: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1600,7 +1600,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42. Longest road 6, award held.
 
 _5897 tokens, $0.0013_
 
-## Step 115: P3 openai/gpt-6-luna plays `offer sheep for brick to P1`
+## Step 115: P3 gpt-6-luna-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1614,7 +1614,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. P2 holds longest road. Roads 
 
 _5904 tokens, $0.0006_
 
-## Step 116: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 116: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1628,7 +1628,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8027 tokens, $0.0009_
 
-## Step 117: P3 openai/gpt-6-luna plays `offer wood for brick to P2`
+## Step 117: P3 gpt-6-luna-off plays `offer wood for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1642,7 +1642,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. P2 holds longest road. Roads 
 
 _5912 tokens, $0.0006_
 
-## Step 118: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 118: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -1656,7 +1656,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42. Longest road 6, award held.
 
 _5913 tokens, $0.0019_
 
-## Step 119: P3 openai/gpt-6-luna plays `end turn`
+## Step 119: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1670,7 +1670,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5396 tokens, $0.0005_
 
-## Step 120: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 120: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1684,7 +1684,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _7882 tokens, $0.0009_
 
-## Step 121: P1 anthropic/claude-haiku-5.5 plays `robber h8 P2`
+## Step 121: P1 claude-haiku-5.5-off plays `robber h8 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -1698,7 +1698,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8609 tokens, $0.0010_
 
-## Step 122: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 122: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1712,7 +1712,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _9039 tokens, $0.0010_
 
-## Step 123: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 123: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1726,7 +1726,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road award). 
 
 _5896 tokens, $0.0013_
 
-## Step 124: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 124: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1740,7 +1740,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road award). 
 
 _6061 tokens, $0.0011_
 
-## Step 125: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 125: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -1754,7 +1754,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8027 tokens, $0.0009_
 
-## Step 126: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P3`
+## Step 126: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1768,7 +1768,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road award). 
 
 _6278 tokens, $0.0005_
 
-## Step 127: P3 openai/gpt-6-luna plays `decline`
+## Step 127: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1784,7 +1784,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _11176 tokens, $0.0007_
 
-## Step 128: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P1`
+## Step 128: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1798,7 +1798,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road award). 
 
 _6215 tokens, $0.0004_
 
-## Step 129: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 129: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1812,7 +1812,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8068 tokens, $0.0009_
 
-## Step 130: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 130: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1826,7 +1826,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand: 
 
 _5832 tokens, $0.0003_
 
-## Step 131: P3 openai/gpt-6-luna plays `roll`
+## Step 131: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1840,7 +1840,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5360 tokens, $0.0005_
 
-## Step 132: P3 openai/gpt-6-luna plays `offer wood for brick to P2`
+## Step 132: P3 gpt-6-luna-off plays `offer wood for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1854,7 +1854,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _6034 tokens, $0.0006_
 
-## Step 133: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 133: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -1868,7 +1868,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand: 
 
 _5836 tokens, $0.0003_
 
-## Step 134: P3 openai/gpt-6-luna plays `offer sheep for brick to P1`
+## Step 134: P3 gpt-6-luna-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1882,7 +1882,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _6026 tokens, $0.0006_
 
-## Step 135: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 135: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1896,7 +1896,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _8119 tokens, $0.0009_
 
-## Step 136: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 136: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1910,7 +1910,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _6019 tokens, $0.0006_
 
-## Step 137: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 137: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -1924,7 +1924,7 @@ Settlements v23, v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand: 
 
 _5847 tokens, $0.0002_
 
-## Step 138: P3 openai/gpt-6-luna plays `end turn`
+## Step 138: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1938,7 +1938,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5504 tokens, $0.0005_
 
-## Step 139: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 139: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1952,7 +1952,7 @@ Settlements v14, v22. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward wood po
 
 _7912 tokens, $0.0009_
 
-## Step 140: P1 anthropic/claude-haiku-5.5 plays `settle v11`
+## Step 140: P1 claude-haiku-5.5-off plays `settle v11`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1966,7 +1966,7 @@ Settlements v14, v22, v11 (new). Roads e16,e17,e22,e34,e24,e18. Plan: expand tow
 
 _9754 tokens, $0.0011_
 
-## Step 141: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 141: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -1980,7 +1980,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward v1
 
 _8663 tokens, $0.0010_
 
-## Step 142: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 142: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -1994,7 +1994,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand wa
 
 _5799 tokens, $0.0003_
 
-## Step 143: P3 openai/gpt-6-luna plays `discard wood`
+## Step 143: P3 gpt-6-luna-off plays `discard wood`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -2008,7 +2008,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5491 tokens, $0.0005_
 
-## Step 144: P3 openai/gpt-6-luna plays `discard wood`
+## Step 144: P3 gpt-6-luna-off plays `discard wood`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -2022,7 +2022,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5420 tokens, $0.0005_
 
-## Step 145: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 145: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -2036,7 +2036,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5423 tokens, $0.0005_
 
-## Step 146: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 146: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -2050,7 +2050,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5416 tokens, $0.0005_
 
-## Step 147: P2 deepseek/deepseek-v4.1-flash plays `robber h6 P1`
+## Step 147: P2 deepseek-v4.1-flash-off plays `robber h6 P1`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -2064,7 +2064,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand wo
 
 _6238 tokens, $0.0003_
 
-## Step 148: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P1`
+## Step 148: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2078,7 +2078,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand wo
 
 _6262 tokens, $0.0011_
 
-## Step 149: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 149: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -2092,7 +2092,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward v1
 
 _8082 tokens, $0.0009_
 
-## Step 150: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P3`
+## Step 150: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2106,7 +2106,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand wo
 
 _6241 tokens, $0.0002_
 
-## Step 151: P3 openai/gpt-6-luna plays `decline`
+## Step 151: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -2120,7 +2120,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5471 tokens, $0.0005_
 
-## Step 152: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P3`
+## Step 152: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2134,7 +2134,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). Hand wo
 
 _6285 tokens, $0.0002_
 
-## Step 153: P3 openai/gpt-6-luna plays `decline`
+## Step 153: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -2148,7 +2148,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5374 tokens, $0.0005_
 
-## Step 154: P2 deepseek/deepseek-v4.1-flash plays `bank 4 sheep for 1 brick`
+## Step 154: P2 deepseek-v4.1-flash-off plays `bank 4 sheep for 1 brick`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2162,7 +2162,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). P1 v14,
 
 _5940 tokens, $0.0001_
 
-## Step 155: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 155: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2176,7 +2176,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). P1 v14,
 
 _6155 tokens, $0.0014_
 
-## Step 156: P3 openai/gpt-6-luna plays `roll`
+## Step 156: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2190,7 +2190,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5339 tokens, $0.0005_
 
-## Step 157: P3 openai/gpt-6-luna plays `offer wheat for brick to P2`
+## Step 157: P3 gpt-6-luna-off plays `offer wheat for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2204,7 +2204,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5902 tokens, $0.0006_
 
-## Step 158: P2 deepseek/deepseek-v4.1-flash plays `accept`
+## Step 158: P2 deepseek-v4.1-flash-off plays `accept`
 
 Asked: Answer P3's offer: 1 wheat for 1 brick. Accept or decline.
 
@@ -2218,7 +2218,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road). P1 v14,
 
 _6021 tokens, $0.0009_
 
-## Step 159: P3 openai/gpt-6-luna plays `road e47`
+## Step 159: P3 gpt-6-luna-off plays `road e47`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2232,7 +2232,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _6358 tokens, $0.0007_
 
-## Step 160: P3 openai/gpt-6-luna plays `offer wheat for wood to P2`
+## Step 160: P3 gpt-6-luna-off plays `offer wheat for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2246,7 +2246,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5746 tokens, $0.0006_
 
-## Step 161: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 161: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wheat for 1 wood. Accept or decline.
 
@@ -2260,7 +2260,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _6080 tokens, $0.0004_
 
-## Step 162: P3 openai/gpt-6-luna plays `offer sheep for wood to P1`
+## Step 162: P3 gpt-6-luna-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2274,7 +2274,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5741 tokens, $0.0006_
 
-## Step 163: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 163: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -2288,7 +2288,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward v1
 
 _8371 tokens, $0.0010_
 
-## Step 164: P3 openai/gpt-6-luna plays `end turn`
+## Step 164: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2302,7 +2302,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5402 tokens, $0.0005_
 
-## Step 165: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 165: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2316,7 +2316,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward v1
 
 _7901 tokens, $0.0009_
 
-## Step 166: P1 anthropic/claude-haiku-5.5 plays `robber h9 P2`
+## Step 166: P1 claude-haiku-5.5-off plays `robber h9 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -2330,7 +2330,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. Plan: expand toward v1
 
 _8504 tokens, $0.0010_
 
-## Step 167: P1 anthropic/claude-haiku-5.5 plays `dev`
+## Step 167: P1 claude-haiku-5.5-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2344,7 +2344,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads 4VP (longest 
 
 _9025 tokens, $0.0010_
 
-## Step 168: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 168: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2358,7 +2358,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads 4VP (longest 
 
 _8383 tokens, $0.0009_
 
-## Step 169: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 169: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2372,7 +2372,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _6006 tokens, $0.0014_
 
-## Step 170: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for ore to P1`
+## Step 170: P2 deepseek-v4.1-flash-off plays `offer sheep for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2386,7 +2386,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _6742 tokens, $0.0016_
 
-## Step 171: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 171: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 ore. Accept or decline.
 
@@ -2400,7 +2400,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads 4VP (longest 
 
 _8108 tokens, $0.0009_
 
-## Step 172: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 172: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2420,7 +2420,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _6912 tokens, $0.0018_
 
-## Step 173: P3 openai/gpt-6-luna plays `roll`
+## Step 173: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2434,7 +2434,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5513 tokens, $0.0005_
 
-## Step 174: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 174: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2448,7 +2448,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5757 tokens, $0.0006_
 
-## Step 175: P2 deepseek/deepseek-v4.1-flash plays `accept`
+## Step 175: P2 deepseek-v4.1-flash-off plays `accept`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -2462,7 +2462,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _5957 tokens, $0.0012_
 
-## Step 176: P3 openai/gpt-6-luna plays `offer brick for wood to P2`
+## Step 176: P3 gpt-6-luna-off plays `offer brick for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2476,7 +2476,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5944 tokens, $0.0006_
 
-## Step 177: P2 deepseek/deepseek-v4.1-flash plays `accept`
+## Step 177: P2 deepseek-v4.1-flash-off plays `accept`
 
 Asked: Answer P3's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -2490,7 +2490,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _5901 tokens, $0.0003_
 
-## Step 178: P3 openai/gpt-6-luna plays `offer sheep for wood to P1`
+## Step 178: P3 gpt-6-luna-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2504,7 +2504,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _6005 tokens, $0.0006_
 
-## Step 179: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 179: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -2518,7 +2518,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads 4VP (longest 
 
 _8216 tokens, $0.0009_
 
-## Step 180: P3 openai/gpt-6-luna plays `end turn`
+## Step 180: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2532,7 +2532,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5465 tokens, $0.0005_
 
-## Step 181: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 181: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2546,7 +2546,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads 4VP (longest 
 
 _7887 tokens, $0.0009_
 
-## Step 182: P1 anthropic/claude-haiku-5.5 plays `play knight h8 P2`
+## Step 182: P1 claude-haiku-5.5-off plays `play knight h8 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2560,7 +2560,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (4VP, longest
 
 _9850 tokens, $0.0011_
 
-## Step 183: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 183: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2574,7 +2574,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (4VP, longest
 
 _9354 tokens, $0.0010_
 
-## Step 184: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 184: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2588,7 +2588,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _5907 tokens, $0.0005_
 
-## Step 185: P2 deepseek/deepseek-v4.1-flash plays `offer brick for ore to P1`
+## Step 185: P2 deepseek-v4.1-flash-off plays `offer brick for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2602,7 +2602,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). Tot
 
 _6610 tokens, $0.0003_
 
-## Step 186: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 186: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 brick for 1 ore. Accept or decline.
 
@@ -2616,7 +2616,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (4VP, longest
 
 _8102 tokens, $0.0009_
 
-## Step 187: P2 deepseek/deepseek-v4.1-flash plays `offer ore for wheat to P1`
+## Step 187: P2 deepseek-v4.1-flash-off plays `offer ore for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2630,7 +2630,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). 4VP
 
 _6813 tokens, $0.0004_
 
-## Step 188: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 188: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 ore for 1 wheat. Accept or decline.
 
@@ -2644,7 +2644,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (4VP, longest
 
 _7977 tokens, $0.0009_
 
-## Step 189: P2 deepseek/deepseek-v4.1-flash plays `offer ore for wheat to P3`
+## Step 189: P2 deepseek-v4.1-flash-off plays `offer ore for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2658,7 +2658,7 @@ Settlements v23,v24. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP). 4VP
 
 _6796 tokens, $0.0003_
 
-## Step 190: P3 openai/gpt-6-luna plays `accept`
+## Step 190: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 ore for 1 wheat. Accept or decline.
 
@@ -2672,7 +2672,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47. P2 ho
 
 _5624 tokens, $0.0006_
 
-## Step 191: P2 deepseek/deepseek-v4.1-flash plays `settle v34`
+## Step 191: P2 deepseek-v4.1-flash-off plays `settle v34`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2686,7 +2686,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP).
 
 _6176 tokens, $0.0014_
 
-## Step 192: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 192: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2700,7 +2700,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP).
 
 _5814 tokens, $0.0003_
 
-## Step 193: P3 openai/gpt-6-luna plays `roll`
+## Step 193: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2714,7 +2714,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47. P2 ho
 
 _5402 tokens, $0.0005_
 
-## Step 194: P3 openai/gpt-6-luna plays `offer wood for brick to P2`
+## Step 194: P3 gpt-6-luna-off plays `offer wood for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2728,7 +2728,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47. P2 ho
 
 _6128 tokens, $0.0006_
 
-## Step 195: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 195: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -2742,7 +2742,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP).
 
 _5986 tokens, $0.0002_
 
-## Step 196: P3 openai/gpt-6-luna plays `offer wood for brick to P1`
+## Step 196: P3 gpt-6-luna-off plays `offer wood for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2756,7 +2756,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47. P2 ho
 
 _6147 tokens, $0.0006_
 
-## Step 197: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 197: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P3's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -2770,7 +2770,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _8297 tokens, $0.0010_
 
-## Step 198: P3 openai/gpt-6-luna plays `road e48`
+## Step 198: P3 gpt-6-luna-off plays `road e48`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2784,7 +2784,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47,e48. P
 
 _6579 tokens, $0.0007_
 
-## Step 199: P3 openai/gpt-6-luna plays `end turn`
+## Step 199: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2798,7 +2798,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47,e48. P
 
 _5954 tokens, $0.0006_
 
-## Step 200: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 200: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2812,7 +2812,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _7932 tokens, $0.0009_
 
-## Step 201: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 201: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2826,7 +2826,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _9548 tokens, $0.0011_
 
-## Step 202: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 202: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2840,7 +2840,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP).
 
 _5984 tokens, $0.0004_
 
-## Step 203: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 203: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2854,7 +2854,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP).
 
 _6271 tokens, $0.0022_
 
-## Step 204: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 204: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -2868,7 +2868,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _8174 tokens, $0.0010_
 
-## Step 205: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P1`
+## Step 205: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2882,7 +2882,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP).
 
 _6810 tokens, $0.0009_
 
-## Step 206: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 206: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -2896,7 +2896,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _7952 tokens, $0.0009_
 
-## Step 207: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P3`
+## Step 207: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2910,7 +2910,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 (len6, longest road 2VP).
 
 _6634 tokens, $0.0007_
 
-## Step 208: P3 openai/gpt-6-luna plays `accept`
+## Step 208: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -2924,7 +2924,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47,e48. P
 
 _5606 tokens, $0.0006_
 
-## Step 209: P2 deepseek/deepseek-v4.1-flash plays `road e36`
+## Step 209: P2 deepseek-v4.1-flash-off plays `road e36`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2938,7 +2938,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42 + e36 (len7, longest road
 
 _6189 tokens, $0.0006_
 
-## Step 210: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 210: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2952,7 +2952,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42,e36 (len7, longest road).
 
 _5830 tokens, $0.0003_
 
-## Step 211: P3 openai/gpt-6-luna plays `roll`
+## Step 211: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -2966,7 +2966,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47,e48. P
 
 _5407 tokens, $0.0005_
 
-## Step 212: P3 openai/gpt-6-luna plays `offer sheep for wood to P1`
+## Step 212: P3 gpt-6-luna-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -2980,7 +2980,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47,e48. P
 
 _6128 tokens, $0.0006_
 
-## Step 213: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 213: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -2994,7 +2994,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _8137 tokens, $0.0009_
 
-## Step 214: P3 openai/gpt-6-luna plays `offer sheep for brick to P1`
+## Step 214: P3 gpt-6-luna-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3008,7 +3008,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47,e48. P
 
 _6138 tokens, $0.0006_
 
-## Step 215: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 215: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -3022,7 +3022,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _8019 tokens, $0.0009_
 
-## Step 216: P3 openai/gpt-6-luna plays `offer sheep for brick to P2`
+## Step 216: P3 gpt-6-luna-off plays `offer sheep for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3036,7 +3036,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. Roads e12,e13,e37,e47,e48. P2
 
 _6126 tokens, $0.0006_
 
-## Step 217: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 217: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -3050,7 +3050,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42,e36 (len7, longest road).
 
 _5900 tokens, $0.0008_
 
-## Step 218: P3 openai/gpt-6-luna plays `dev`
+## Step 218: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3064,7 +3064,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. Roads e12,e13,e37,e47,e48. P2
 
 _5452 tokens, $0.0005_
 
-## Step 219: P3 openai/gpt-6-luna plays `end turn`
+## Step 219: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3078,7 +3078,7 @@ Settlements v8/v31; hidden VP cards 2, total 4 VP. Roads e12,e13,e37,e47,e48. P2
 
 _5408 tokens, $0.0005_
 
-## Step 220: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 220: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3092,7 +3092,7 @@ Settlements v14, v22, v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl lon
 
 _7954 tokens, $0.0009_
 
-## Step 221: P1 anthropic/claude-haiku-5.5 plays `bank 4 sheep for 1 wheat`
+## Step 221: P1 claude-haiku-5.5-off plays `bank 4 sheep for 1 wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3106,7 +3106,7 @@ Settlements v14,v22,v11. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP incl longe
 
 _9731 tokens, $0.0011_
 
-## Step 222: P1 anthropic/claude-haiku-5.5 plays `settle v15`
+## Step 222: P1 claude-haiku-5.5-off plays `settle v15`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3120,7 +3120,7 @@ Settlements v14,v22,v11,v15(new). Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP).
 
 _9942 tokens, $0.0011_
 
-## Step 223: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 223: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3134,7 +3134,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9211 tokens, $0.0010_
 
-## Step 224: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 224: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3148,7 +3148,7 @@ Settlements v23,v24,v34. Roads e27,e28,e29,e30,e35,e42,e36 (len7, longest road).
 
 _5827 tokens, $0.0008_
 
-## Step 225: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P1`
+## Step 225: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3162,7 +3162,7 @@ Settlements v23,v24,v34. Roads e27-e30,e35,e36,e42 (len7, longest road). VP 5. P
 
 _6708 tokens, $0.0015_
 
-## Step 226: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 226: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -3176,7 +3176,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8120 tokens, $0.0009_
 
-## Step 227: P2 deepseek/deepseek-v4.1-flash plays `offer ore for wood to P3`
+## Step 227: P2 deepseek-v4.1-flash-off plays `offer ore for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3190,7 +3190,7 @@ Settlements v23,v24,v34. Roads e27-e30,e35,e36,e42 (len7, longest road). VP 5. P
 
 _6592 tokens, $0.0006_
 
-## Step 228: P3 openai/gpt-6-luna plays `accept`
+## Step 228: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 ore for 1 wood. Accept or decline.
 
@@ -3204,7 +3204,7 @@ Settlements v8/v31; 2 hidden VP cards (4 VP total). Roads e12,e13,e37,e47,e48; P
 
 _5591 tokens, $0.0006_
 
-## Step 229: P2 deepseek/deepseek-v4.1-flash plays `road e43`
+## Step 229: P2 deepseek-v4.1-flash-off plays `road e43`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3254,7 +3254,7 @@ Settlements v23,v24,v34. Roads e27-e30,e35,e36,e42 (len7, longest road). VP 5. H
 
 _7981 tokens, $0.0019_
 
-## Step 230: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 230: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3268,7 +3268,7 @@ Settlements v23,v24,v34. Roads e27-e30,e35,e36,e42,e43 (len8, longest road). VP 
 
 _6276 tokens, $0.0010_
 
-## Step 231: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 231: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -3282,7 +3282,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8174 tokens, $0.0009_
 
-## Step 232: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 232: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3296,7 +3296,7 @@ Settlements v23,v24,v34. Roads e27-e30,e35,e36,e42,e43 (len8, longest road). VP 
 
 _5918 tokens, $0.0003_
 
-## Step 233: P3 openai/gpt-6-luna plays `roll`
+## Step 233: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3310,7 +3310,7 @@ Settlements v8/v31; two hidden VP cards, total 4 VP. Roads e12,e13,e37,e47,e48; 
 
 _5432 tokens, $0.0005_
 
-## Step 234: P3 openai/gpt-6-luna plays `play knight h9 P2`
+## Step 234: P3 gpt-6-luna-off plays `play knight h9 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3324,7 +3324,7 @@ Settlements v8/v31; two hidden VP cards, total 4 VP. Roads e12,e13,e37,e47,e48; 
 
 _6419 tokens, $0.0007_
 
-## Step 235: P3 openai/gpt-6-luna plays `end turn`
+## Step 235: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3338,7 +3338,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. Roads e12,e13,e37,e47,e48; P2
 
 _5959 tokens, $0.0006_
 
-## Step 236: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 236: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3352,7 +3352,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8057 tokens, $0.0009_
 
-## Step 237: P1 anthropic/claude-haiku-5.5 plays `robber h8 P2`
+## Step 237: P1 claude-haiku-5.5-off plays `robber h8 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -3366,7 +3366,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8607 tokens, $0.0010_
 
-## Step 238: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 238: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3380,7 +3380,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9593 tokens, $0.0011_
 
-## Step 239: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 239: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3394,7 +3394,7 @@ Settlements v23,v24,v34. Longest road 8 (safe vs 3). VP 5 (longest road kept thr
 
 _5964 tokens, $0.0002_
 
-## Step 240: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 240: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3408,7 +3408,7 @@ Settlements v23,v24,v34. Longest road 8 (safe vs 3). VP 5. Hand now wheat1 sheep
 
 _6240 tokens, $0.0013_
 
-## Step 241: P3 openai/gpt-6-luna plays `roll`
+## Step 241: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3422,7 +3422,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5502 tokens, $0.0005_
 
-## Step 242: P3 openai/gpt-6-luna plays `offer sheep for wheat to P2`
+## Step 242: P3 gpt-6-luna-off plays `offer sheep for wheat to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3436,7 +3436,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5970 tokens, $0.0006_
 
-## Step 243: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 243: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -3450,7 +3450,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3 each). VP 5. Hand wheat1 shee
 
 _5901 tokens, $0.0003_
 
-## Step 244: P3 openai/gpt-6-luna plays `offer wood for wheat to P1`
+## Step 244: P3 gpt-6-luna-off plays `offer wood for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3464,7 +3464,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5964 tokens, $0.0006_
 
-## Step 245: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 245: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 wood for 1 wheat. Accept or decline.
 
@@ -3478,7 +3478,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8143 tokens, $0.0009_
 
-## Step 246: P3 openai/gpt-6-luna plays `offer sheep for wheat to P2`
+## Step 246: P3 gpt-6-luna-off plays `offer sheep for wheat to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3492,7 +3492,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5998 tokens, $0.0006_
 
-## Step 247: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 247: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -3506,7 +3506,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3 each). VP 5. Hand wheat1 shee
 
 _5888 tokens, $0.0002_
 
-## Step 248: P3 openai/gpt-6-luna plays `end turn`
+## Step 248: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3520,7 +3520,7 @@ Settlements v8/v31; 2 hidden VP cards, total 4 VP. P2 holds longest road. Roads 
 
 _5475 tokens, $0.0005_
 
-## Step 249: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 249: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3534,7 +3534,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _7958 tokens, $0.0009_
 
-## Step 250: P1 anthropic/claude-haiku-5.5 plays `bank 2 wood for 1 wheat`
+## Step 250: P1 claude-haiku-5.5-off plays `bank 2 wood for 1 wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3548,7 +3548,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9576 tokens, $0.0011_
 
-## Step 251: P1 anthropic/claude-haiku-5.5 plays `dev`
+## Step 251: P1 claude-haiku-5.5-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3562,7 +3562,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9912 tokens, $0.0011_
 
-## Step 252: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 252: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3576,7 +3576,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9176 tokens, $0.0010_
 
-## Step 253: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 253: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3590,7 +3590,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3 each). VP 5. Hand wheat1 shee
 
 _5835 tokens, $0.0003_
 
-## Step 254: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 254: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3604,7 +3604,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3 each). VP 5. Hand wheat1 shee
 
 _6411 tokens, $0.0011_
 
-## Step 255: P3 openai/gpt-6-luna plays `roll`
+## Step 255: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3618,7 +3618,7 @@ P3 has settlements v8/v31, 2 hidden VP cards (4 VP total), roads e12,e13,e37,e47
 
 _5522 tokens, $0.0005_
 
-## Step 256: P3 openai/gpt-6-luna plays `end turn`
+## Step 256: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3632,7 +3632,7 @@ P3 settlements v8/v31, 5 roads e12,e13,e37,e47,e48; 2 hidden VP cards (4 VP tota
 
 _6143 tokens, $0.0006_
 
-## Step 257: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 257: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3646,7 +3646,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _7924 tokens, $0.0009_
 
-## Step 258: P1 anthropic/claude-haiku-5.5 plays `play knight h5 P2`
+## Step 258: P1 claude-haiku-5.5-off plays `play knight h5 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3660,7 +3660,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _10010 tokens, $0.0011_
 
-## Step 259: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 259: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3674,7 +3674,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9285 tokens, $0.0010_
 
-## Step 260: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 260: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3688,7 +3688,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3). VP 5. Robber now on h5 (P1 
 
 _5845 tokens, $0.0007_
 
-## Step 261: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for ore to P1`
+## Step 261: P2 deepseek-v4.1-flash-off plays `offer sheep for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3702,7 +3702,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3). VP 5. Robber on h5. P3 has 
 
 _6344 tokens, $0.0004_
 
-## Step 262: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 262: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 ore. Accept or decline.
 
@@ -3716,7 +3716,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8004 tokens, $0.0009_
 
-## Step 263: P2 deepseek/deepseek-v4.1-flash plays `offer wood for ore to P3`
+## Step 263: P2 deepseek-v4.1-flash-off plays `offer wood for ore to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3730,7 +3730,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3). VP 5. Robber on h5. P3 has 
 
 _6397 tokens, $0.0002_
 
-## Step 264: P3 openai/gpt-6-luna plays `accept`
+## Step 264: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 wood for 1 ore. Accept or decline.
 
@@ -3744,7 +3744,7 @@ P3 has settlements v8/v31 and 5 roads e12,e13,e37,e47,e48; 2 hidden VP cards (4 
 
 _5579 tokens, $0.0005_
 
-## Step 265: P2 deepseek/deepseek-v4.1-flash plays `dev`
+## Step 265: P2 deepseek-v4.1-flash-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3758,7 +3758,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3). VP 5. Robber on h5. P3 has 
 
 _6440 tokens, $0.0003_
 
-## Step 266: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 266: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3772,7 +3772,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3). VP 5. Robber on h5. P3 2 de
 
 _6047 tokens, $0.0013_
 
-## Step 267: P3 openai/gpt-6-luna plays `roll`
+## Step 267: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3786,7 +3786,7 @@ P3 has settlements v8/v31 and roads e12,e13,e37,e47,e48; 2 hidden VP cards (4 VP
 
 _5394 tokens, $0.0005_
 
-## Step 268: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 268: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -3800,7 +3800,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8068 tokens, $0.0009_
 
-## Step 269: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 269: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -3814,7 +3814,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _7951 tokens, $0.0009_
 
-## Step 270: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 270: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -3828,7 +3828,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _7949 tokens, $0.0009_
 
-## Step 271: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 271: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -3842,7 +3842,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _7965 tokens, $0.0009_
 
-## Step 272: P3 openai/gpt-6-luna plays `discard wood`
+## Step 272: P3 gpt-6-luna-off plays `discard wood`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -3856,7 +3856,7 @@ P3 has settlements v8/v31 and roads e12,e13,e37,e47,e48; 2 hidden VP cards (4 VP
 
 _5507 tokens, $0.0005_
 
-## Step 273: P3 openai/gpt-6-luna plays `discard wood`
+## Step 273: P3 gpt-6-luna-off plays `discard wood`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -3870,7 +3870,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48; 2 hidden VP cards (4 VP total)
 
 _5435 tokens, $0.0005_
 
-## Step 274: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 274: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -3884,7 +3884,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48; 2 hidden VP cards. P2 holds lo
 
 _5413 tokens, $0.0005_
 
-## Step 275: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 275: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -3898,7 +3898,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48; 2 hidden VP cards. P2 holds lo
 
 _5410 tokens, $0.0005_
 
-## Step 276: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 276: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -3912,7 +3912,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48; 2 hidden VP cards. P2 holds lo
 
 _5402 tokens, $0.0005_
 
-## Step 277: P3 openai/gpt-6-luna plays `robber h8 P2`
+## Step 277: P3 gpt-6-luna-off plays `robber h8 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -3926,7 +3926,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48; 2 hidden VP cards. P2 holds lo
 
 _5760 tokens, $0.0006_
 
-## Step 278: P3 openai/gpt-6-luna plays `dev`
+## Step 278: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3940,7 +3940,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48; 2 hidden VP cards. P2 holds lo
 
 _6111 tokens, $0.0007_
 
-## Step 279: P3 openai/gpt-6-luna plays `end turn`
+## Step 279: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3954,7 +3954,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48. 2 VP cards, 1 knight in hand (
 
 _5906 tokens, $0.0006_
 
-## Step 280: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 280: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3968,7 +3968,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _7944 tokens, $0.0009_
 
-## Step 281: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 281: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -3982,7 +3982,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9214 tokens, $0.0010_
 
-## Step 282: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 282: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -3996,7 +3996,7 @@ Settlements v23,v24,v34. Longest road 6 (safe vs 3). VP 5. Robber on h8 (P3 move
 
 _5977 tokens, $0.0009_
 
-## Step 283: P2 deepseek/deepseek-v4.1-flash plays `robber h2 P1`
+## Step 283: P2 deepseek-v4.1-flash-off plays `robber h2 P1`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -4010,7 +4010,7 @@ Settlements v23,v24,v34. Longest road 6 (safe). VP 5. Moved robber to h2 (mounta
 
 _6287 tokens, $0.0011_
 
-## Step 284: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 284: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4024,7 +4024,7 @@ Settlements v23,v24,v34. Longest road 6 (safe, ahead of P1/P3 at 3). VP 5. Hand:
 
 _6737 tokens, $0.0011_
 
-## Step 285: P3 openai/gpt-6-luna plays `roll`
+## Step 285: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4038,7 +4038,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48. Has 2 hidden VP cards, 1 knigh
 
 _5471 tokens, $0.0005_
 
-## Step 286: P3 openai/gpt-6-luna plays `play knight h10 P2`
+## Step 286: P3 gpt-6-luna-off plays `play knight h10 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4052,7 +4052,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48. Has 2 hidden VP cards, no long
 
 _6432 tokens, $0.0007_
 
-## Step 287: P3 openai/gpt-6-luna plays `end turn`
+## Step 287: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4066,7 +4066,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48. 2 hidden VP cards and largest 
 
 _6047 tokens, $0.0006_
 
-## Step 288: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 288: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4080,7 +4080,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8068 tokens, $0.0009_
 
-## Step 289: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 289: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4094,7 +4094,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9441 tokens, $0.0011_
 
-## Step 290: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 290: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4108,7 +4108,7 @@ Settlements v23,v24,v34. Longest road 6 (safe). VP 5. Need wheat/ore for city, w
 
 _5950 tokens, $0.0013_
 
-## Step 291: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 291: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4122,7 +4122,7 @@ Settlements v23,v24,v34. Longest road 6 (safe). VP 5. Hand: wood1 brick2 sheep2.
 
 _7050 tokens, $0.0004_
 
-## Step 292: P3 openai/gpt-6-luna plays `roll`
+## Step 292: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4136,7 +4136,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48. 2 hidden VP cards and largest 
 
 _5442 tokens, $0.0005_
 
-## Step 293: P3 openai/gpt-6-luna plays `bank 4 sheep for 1 brick`
+## Step 293: P3 gpt-6-luna-off plays `bank 4 sheep for 1 brick`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4150,7 +4150,7 @@ P3 settlements v8/v31; roads e12,e13,e37,e47,e48. 2 hidden VP cards and largest 
 
 _6030 tokens, $0.0006_
 
-## Step 294: P3 openai/gpt-6-luna plays `road e11`
+## Step 294: P3 gpt-6-luna-off plays `road e11`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4164,7 +4164,7 @@ P3 settlements v8/v31; roads now e12,e13,e11,e37,e47,e48. 2 hidden VP cards and 
 
 _6204 tokens, $0.0006_
 
-## Step 295: P3 openai/gpt-6-luna plays `offer ore for wood to P1`
+## Step 295: P3 gpt-6-luna-off plays `offer ore for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4178,7 +4178,7 @@ P3 settlements v8/v31; roads e12,e13,e11,e37,e47,e48. Two hidden VP cards and la
 
 _5579 tokens, $0.0005_
 
-## Step 296: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 296: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P3's offer: 1 ore for 1 wood. Accept or decline.
 
@@ -4192,7 +4192,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _8109 tokens, $0.0009_
 
-## Step 297: P3 openai/gpt-6-luna plays `offer wood for sheep to P2`
+## Step 297: P3 gpt-6-luna-off plays `offer wood for sheep to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4206,7 +4206,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards, large
 
 _5769 tokens, $0.0006_
 
-## Step 298: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 298: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wood for 1 sheep. Accept or decline.
 
@@ -4220,7 +4220,7 @@ Settlements v23,v24,v34. Longest road 6 (safe). VP 5. Hand: wood1 brick2 sheep2.
 
 _5946 tokens, $0.0002_
 
-## Step 299: P3 openai/gpt-6-luna plays `end turn`
+## Step 299: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4234,7 +4234,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards, large
 
 _5749 tokens, $0.0006_
 
-## Step 300: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 300: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4248,7 +4248,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _7883 tokens, $0.0009_
 
-## Step 301: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 301: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4262,7 +4262,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (5VP, longe
 
 _9599 tokens, $0.0010_
 
-## Step 302: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 302: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4276,7 +4276,7 @@ Settlements v23,v24,v34. Longest road 6 (safe). VP 5. Hand: wood1 brick2 sheep3.
 
 _5792 tokens, $0.0009_
 
-## Step 303: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P3`
+## Step 303: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4290,7 +4290,7 @@ Settlements v23,v24,v34. Longest road 6 (safe). VP 5. Hand: wood1 brick2 sheep3.
 
 _7049 tokens, $0.0011_
 
-## Step 304: P3 openai/gpt-6-luna plays `accept`
+## Step 304: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -4304,7 +4304,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards, large
 
 _5515 tokens, $0.0005_
 
-## Step 305: P2 deepseek/deepseek-v4.1-flash plays `settle v35`
+## Step 305: P2 deepseek-v4.1-flash-off plays `settle v35`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4318,7 +4318,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe). VP 6. Hand after: wood0 bric
 
 _6217 tokens, $0.0002_
 
-## Step 306: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P1`
+## Step 306: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4332,7 +4332,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe). VP 6. Hand: brick1 sheep1. N
 
 _6553 tokens, $0.0009_
 
-## Step 307: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 307: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -4346,7 +4346,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8070 tokens, $0.0009_
 
-## Step 308: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 308: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4360,7 +4360,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe). VP 6. Hand: brick1 sheep1. N
 
 _6655 tokens, $0.0005_
 
-## Step 309: P3 openai/gpt-6-luna plays `roll`
+## Step 309: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4374,7 +4374,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards; large
 
 _5424 tokens, $0.0005_
 
-## Step 310: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 310: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -4388,7 +4388,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8078 tokens, $0.0009_
 
-## Step 311: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 311: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -4402,7 +4402,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8056 tokens, $0.0009_
 
-## Step 312: P1 anthropic/claude-haiku-5.5 plays `discard ore`
+## Step 312: P1 claude-haiku-5.5-off plays `discard ore`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -4416,7 +4416,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8114 tokens, $0.0010_
 
-## Step 313: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 313: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -4430,7 +4430,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _7962 tokens, $0.0009_
 
-## Step 314: P3 openai/gpt-6-luna plays `robber h8 P2`
+## Step 314: P3 gpt-6-luna-off plays `robber h8 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -4444,7 +4444,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards; large
 
 _5857 tokens, $0.0006_
 
-## Step 315: P3 openai/gpt-6-luna plays `end turn`
+## Step 315: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4458,7 +4458,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards; large
 
 _5950 tokens, $0.0006_
 
-## Step 316: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 316: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4472,7 +4472,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _7875 tokens, $0.0009_
 
-## Step 317: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 317: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4486,7 +4486,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _9652 tokens, $0.0011_
 
-## Step 318: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 318: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4500,7 +4500,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe). VP 6. Bank rate x4. Need ore
 
 _5882 tokens, $0.0008_
 
-## Step 319: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P3`
+## Step 319: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4514,7 +4514,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe). VP 6. Bank rate x4. Need ore
 
 _6570 tokens, $0.0004_
 
-## Step 320: P3 openai/gpt-6-luna plays `decline`
+## Step 320: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -4528,7 +4528,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards; large
 
 _5534 tokens, $0.0005_
 
-## Step 321: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P3`
+## Step 321: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4542,7 +4542,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe). VP 6. Bank rate x4, hand onl
 
 _6587 tokens, $0.0003_
 
-## Step 322: P3 openai/gpt-6-luna plays `decline`
+## Step 322: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -4556,7 +4556,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards; large
 
 _5463 tokens, $0.0005_
 
-## Step 323: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 323: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4570,7 +4570,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe, next best 3). VP 6. Hand 4 br
 
 _6551 tokens, $0.0002_
 
-## Step 324: P3 openai/gpt-6-luna plays `roll`
+## Step 324: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4584,7 +4584,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards; large
 
 _5402 tokens, $0.0005_
 
-## Step 325: P3 openai/gpt-6-luna plays `dev`
+## Step 325: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4598,7 +4598,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Two hidden VP cards; large
 
 _6154 tokens, $0.0006_
 
-## Step 326: P3 openai/gpt-6-luna plays `end turn`
+## Step 326: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4612,7 +4612,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, currently 
 
 _5761 tokens, $0.0006_
 
-## Step 327: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 327: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4626,7 +4626,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8018 tokens, $0.0009_
 
-## Step 328: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 328: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4640,7 +4640,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _9610 tokens, $0.0011_
 
-## Step 329: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 329: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4654,7 +4654,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe, next best 3). VP 6. Hand 4 br
 
 _5819 tokens, $0.0001_
 
-## Step 330: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P1`
+## Step 330: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4668,7 +4668,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe, next best 3). VP 6. Hand 4 br
 
 _6833 tokens, $0.0008_
 
-## Step 331: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 331: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -4682,7 +4682,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8012 tokens, $0.0009_
 
-## Step 332: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P3`
+## Step 332: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4698,7 +4698,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe, next best 3). VP 6. Hand 4 br
 
 _6814 tokens, $0.0004_
 
-## Step 333: P3 openai/gpt-6-luna plays `decline`
+## Step 333: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -4712,7 +4712,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, currently 
 
 _5518 tokens, $0.0005_
 
-## Step 334: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 334: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4728,7 +4728,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe, next best 3). VP 6. Hand 4 br
 
 _6876 tokens, $0.0004_
 
-## Step 335: P3 openai/gpt-6-luna plays `roll`
+## Step 335: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4742,7 +4742,7 @@ P3 settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, currently 
 
 _5364 tokens, $0.0005_
 
-## Step 336: P3 openai/gpt-6-luna plays `end turn`
+## Step 336: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4756,7 +4756,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5918 tokens, $0.0006_
 
-## Step 337: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 337: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4770,7 +4770,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _7973 tokens, $0.0009_
 
-## Step 338: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 338: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -4784,7 +4784,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8019 tokens, $0.0009_
 
-## Step 339: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 339: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -4798,7 +4798,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _7961 tokens, $0.0009_
 
-## Step 340: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 340: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -4812,7 +4812,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _7994 tokens, $0.0009_
 
-## Step 341: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 341: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -4826,7 +4826,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8024 tokens, $0.0009_
 
-## Step 342: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 342: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -4840,7 +4840,7 @@ Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6VP, longe
 
 _8011 tokens, $0.0009_
 
-## Step 343: P1 anthropic/claude-haiku-5.5 plays `robber h9 P2`
+## Step 343: P1 claude-haiku-5.5-off plays `robber h9 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -4854,7 +4854,7 @@ Turn 61. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8666 tokens, $0.0010_
 
-## Step 344: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 344: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4868,7 +4868,7 @@ Turn 61. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _9325 tokens, $0.0010_
 
-## Step 345: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 345: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -4882,7 +4882,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (safe, next best 3). VP 6. Hand 4 br
 
 _5989 tokens, $0.0003_
 
-## Step 346: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P1`
+## Step 346: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4896,7 +4896,7 @@ Settlements v23,v24,v34,v35. Road 6 (safe). VP 6. Hand: 4 brick,3 sheep. Bank 4:
 
 _6945 tokens, $0.0011_
 
-## Step 347: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 347: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -4910,7 +4910,7 @@ Turn 62. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _7992 tokens, $0.0009_
 
-## Step 348: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P3`
+## Step 348: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4924,7 +4924,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6. Hand: 4 brick,3 sheep.
 
 _6822 tokens, $0.0002_
 
-## Step 349: P3 openai/gpt-6-luna plays `decline`
+## Step 349: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -4938,7 +4938,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5655 tokens, $0.0006_
 
-## Step 350: P2 deepseek/deepseek-v4.1-flash plays `play knight h10 P3`
+## Step 350: P2 deepseek-v4.1-flash-off plays `play knight h10 P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4952,7 +4952,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6. Hand: 4 brick,3 sheep.
 
 _6833 tokens, $0.0002_
 
-## Step 351: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P3`
+## Step 351: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -4972,7 +4972,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6. Hand: 4 brick, 4 sheep
 
 _6655 tokens, $0.0011_
 
-## Step 352: P3 openai/gpt-6-luna plays `decline`
+## Step 352: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -4986,7 +4986,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5497 tokens, $0.0005_
 
-## Step 353: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 353: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5000,7 +5000,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6 (needs 4 more). Hand: 4
 
 _6114 tokens, $0.0004_
 
-## Step 354: P3 openai/gpt-6-luna plays `roll`
+## Step 354: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5014,7 +5014,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5366 tokens, $0.0005_
 
-## Step 355: P3 openai/gpt-6-luna plays `end turn`
+## Step 355: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5028,7 +5028,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5918 tokens, $0.0006_
 
-## Step 356: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 356: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5042,7 +5042,7 @@ Turn 64. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8037 tokens, $0.0009_
 
-## Step 357: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 357: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5056,7 +5056,7 @@ Turn 64. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _9618 tokens, $0.0011_
 
-## Step 358: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 358: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5070,7 +5070,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6 (needs 4 more). Hand: 4
 
 _5899 tokens, $0.0001_
 
-## Step 359: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P1`
+## Step 359: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5084,7 +5084,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6 (needs 4 more). Hand: 4
 
 _6393 tokens, $0.0015_
 
-## Step 360: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 360: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -5098,7 +5098,7 @@ Turn 65. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8060 tokens, $0.0009_
 
-## Step 361: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P3`
+## Step 361: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5112,7 +5112,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6 (need 4). Hand after P1
 
 _6776 tokens, $0.0017_
 
-## Step 362: P3 openai/gpt-6-luna plays `decline`
+## Step 362: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -5126,7 +5126,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5534 tokens, $0.0005_
 
-## Step 363: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P3`
+## Step 363: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5140,7 +5140,7 @@ Settlements v23,v24,v34,v35. Longest road held (6). VP 6 (need 4). Hand: wood 1,
 
 _6797 tokens, $0.0008_
 
-## Step 364: P3 openai/gpt-6-luna plays `decline`
+## Step 364: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -5154,7 +5154,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5417 tokens, $0.0005_
 
-## Step 365: P2 deepseek/deepseek-v4.1-flash plays `road e50`
+## Step 365: P2 deepseek-v4.1-flash-off plays `road e50`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5168,7 +5168,7 @@ Settlements v23,v24,v34,v35. Longest road 6 (extended to v39 via e50). VP 6 (nee
 
 _6290 tokens, $0.0006_
 
-## Step 366: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 366: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5182,7 +5182,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (extended to v39 via e50). VP 6 (nee
 
 _6073 tokens, $0.0009_
 
-## Step 367: P3 openai/gpt-6-luna plays `roll`
+## Step 367: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5196,7 +5196,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5372 tokens, $0.0005_
 
-## Step 368: P3 openai/gpt-6-luna plays `end turn`
+## Step 368: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5210,7 +5210,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _6009 tokens, $0.0006_
 
-## Step 369: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 369: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5224,7 +5224,7 @@ Turn 67. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8035 tokens, $0.0009_
 
-## Step 370: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 370: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -5238,7 +5238,7 @@ Turn 67. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8076 tokens, $0.0009_
 
-## Step 371: P1 anthropic/claude-haiku-5.5 plays `discard ore`
+## Step 371: P1 claude-haiku-5.5-off plays `discard ore`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -5252,7 +5252,7 @@ Turn 67. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8082 tokens, $0.0009_
 
-## Step 372: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 372: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -5266,7 +5266,7 @@ Turn 67. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8017 tokens, $0.0009_
 
-## Step 373: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 373: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -5280,7 +5280,7 @@ Turn 67. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8027 tokens, $0.0009_
 
-## Step 374: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 374: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -5294,7 +5294,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (v39 via e50). VP 6 (need 4). Hand a
 
 _6070 tokens, $0.0003_
 
-## Step 375: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 375: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -5308,7 +5308,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (v39 via e50). VP 6 (need 4). After 
 
 _5836 tokens, $0.0008_
 
-## Step 376: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 376: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -5322,7 +5322,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (v39 via e50). VP 6, need 4. After 7
 
 _5849 tokens, $0.0009_
 
-## Step 377: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 377: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -5336,7 +5336,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (v39 via e50). VP 6, need 4. After 7
 
 _5796 tokens, $0.0003_
 
-## Step 378: P1 anthropic/claude-haiku-5.5 plays `robber h9 P2`
+## Step 378: P1 claude-haiku-5.5-off plays `robber h9 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -5350,7 +5350,7 @@ Turn 67. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8551 tokens, $0.0010_
 
-## Step 379: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 379: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5364,7 +5364,7 @@ Turn 67. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _9232 tokens, $0.0010_
 
-## Step 380: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 380: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5378,7 +5378,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (v39 via e50). VP 6, need 4. Robber 
 
 _5761 tokens, $0.0007_
 
-## Step 381: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 381: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5392,7 +5392,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (v39 via e50). VP 6, need 4. Robber 
 
 _6098 tokens, $0.0014_
 
-## Step 382: P3 openai/gpt-6-luna plays `decline`
+## Step 382: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -5406,7 +5406,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5638 tokens, $0.0006_
 
-## Step 383: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 383: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5420,7 +5420,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (v39 via e50). VP 6, need 4. Robber 
 
 _6077 tokens, $0.0019_
 
-## Step 384: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 384: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -5434,7 +5434,7 @@ Turn 68. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8255 tokens, $0.0010_
 
-## Step 385: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 385: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5448,7 +5448,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand: 4 sheep (surplu
 
 _6098 tokens, $0.0014_
 
-## Step 386: P3 openai/gpt-6-luna plays `decline`
+## Step 386: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -5462,7 +5462,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5463 tokens, $0.0005_
 
-## Step 387: P2 deepseek/deepseek-v4.1-flash plays `bank 4 sheep for 1 wood`
+## Step 387: P2 deepseek-v4.1-flash-off plays `bank 4 sheep for 1 wood`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5476,7 +5476,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand now: 1 wood, 0 b
 
 _5974 tokens, $0.0005_
 
-## Step 388: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 388: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5490,7 +5490,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand now: 1 wood, 0 b
 
 _5874 tokens, $0.0004_
 
-## Step 389: P3 openai/gpt-6-luna plays `roll`
+## Step 389: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5504,7 +5504,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5386 tokens, $0.0005_
 
-## Step 390: P3 openai/gpt-6-luna plays `end turn`
+## Step 390: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5518,7 +5518,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _6022 tokens, $0.0006_
 
-## Step 391: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 391: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5532,7 +5532,7 @@ Turn 70. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18. P2 leads (6
 
 _8001 tokens, $0.0009_
 
-## Step 392: P1 anthropic/claude-haiku-5.5 plays `road e25`
+## Step 392: P1 claude-haiku-5.5-off plays `road e25`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5546,7 +5546,7 @@ Turn 70. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _9451 tokens, $0.0011_
 
-## Step 393: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 393: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5560,7 +5560,7 @@ Turn 70. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _9270 tokens, $0.0010_
 
-## Step 394: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 394: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5574,7 +5574,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand: 1 wood, 2 sheep
 
 _5874 tokens, $0.0005_
 
-## Step 395: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P3`
+## Step 395: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5588,7 +5588,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand: 1 wood, 3 sheep
 
 _6232 tokens, $0.0015_
 
-## Step 396: P3 openai/gpt-6-luna plays `decline`
+## Step 396: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -5602,7 +5602,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5528 tokens, $0.0005_
 
-## Step 397: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P1`
+## Step 397: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5616,7 +5616,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand: 1 wood, 3 sheep
 
 _6243 tokens, $0.0005_
 
-## Step 398: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 398: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -5630,7 +5630,7 @@ Turn 71. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8080 tokens, $0.0009_
 
-## Step 399: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P1`
+## Step 399: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5644,7 +5644,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand: 1 wood, 3 sheep
 
 _6218 tokens, $0.0014_
 
-## Step 400: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 400: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -5658,7 +5658,7 @@ Turn 71. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _7942 tokens, $0.0009_
 
-## Step 401: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 401: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5672,7 +5672,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand: 1 wood, 3 sheep
 
 _5873 tokens, $0.0004_
 
-## Step 402: P3 openai/gpt-6-luna plays `roll`
+## Step 402: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5686,7 +5686,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5418 tokens, $0.0005_
 
-## Step 403: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 403: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -5700,7 +5700,7 @@ Turn 72. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8035 tokens, $0.0009_
 
-## Step 404: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 404: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -5714,7 +5714,7 @@ Turn 72. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _7986 tokens, $0.0009_
 
-## Step 405: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 405: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -5728,7 +5728,7 @@ Turn 72. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _7998 tokens, $0.0009_
 
-## Step 406: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 406: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -5742,7 +5742,7 @@ Turn 72. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _7969 tokens, $0.0009_
 
-## Step 407: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 407: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -5756,7 +5756,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5488 tokens, $0.0005_
 
-## Step 408: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 408: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -5770,7 +5770,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5449 tokens, $0.0005_
 
-## Step 409: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 409: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -5784,7 +5784,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5430 tokens, $0.0005_
 
-## Step 410: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 410: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -5798,7 +5798,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5439 tokens, $0.0005_
 
-## Step 411: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 411: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -5812,7 +5812,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5434 tokens, $0.0005_
 
-## Step 412: P3 openai/gpt-6-luna plays `robber h10 P2`
+## Step 412: P3 gpt-6-luna-off plays `robber h10 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -5826,7 +5826,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5807 tokens, $0.0006_
 
-## Step 413: P3 openai/gpt-6-luna plays `end turn`
+## Step 413: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5840,7 +5840,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5931 tokens, $0.0006_
 
-## Step 414: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 414: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5854,7 +5854,7 @@ Turn 73. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _7957 tokens, $0.0009_
 
-## Step 415: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 415: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5868,7 +5868,7 @@ Turn 73. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _9260 tokens, $0.0010_
 
-## Step 416: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 416: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -5882,7 +5882,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Hand after P3 stole 1
 
 _6013 tokens, $0.0004_
 
-## Step 417: P2 deepseek/deepseek-v4.1-flash plays `robber h15 P3`
+## Step 417: P2 deepseek-v4.1-flash-off plays `robber h15 P3`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -5896,7 +5896,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber on h15 (P3 set
 
 _6313 tokens, $0.0009_
 
-## Step 418: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P1`
+## Step 418: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5910,7 +5910,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber on h15 (P3 set
 
 _6439 tokens, $0.0013_
 
-## Step 419: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 419: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -5924,7 +5924,7 @@ Turn 74. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8140 tokens, $0.0009_
 
-## Step 420: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P1`
+## Step 420: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5938,7 +5938,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber on h15. Hand: 
 
 _6472 tokens, $0.0014_
 
-## Step 421: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 421: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -5952,7 +5952,7 @@ Turn 74. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8032 tokens, $0.0009_
 
-## Step 422: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P3`
+## Step 422: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5966,7 +5966,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber on h15. Hand: 
 
 _6399 tokens, $0.0004_
 
-## Step 423: P3 openai/gpt-6-luna plays `decline`
+## Step 423: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -5980,7 +5980,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5569 tokens, $0.0005_
 
-## Step 424: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 424: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -5994,7 +5994,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber on h15. Hand: 
 
 _5814 tokens, $0.0003_
 
-## Step 425: P3 openai/gpt-6-luna plays `roll`
+## Step 425: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6008,7 +6008,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5371 tokens, $0.0005_
 
-## Step 426: P3 openai/gpt-6-luna plays `end turn`
+## Step 426: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6022,7 +6022,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5853 tokens, $0.0006_
 
-## Step 427: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 427: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6036,7 +6036,7 @@ Turn 76. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _7975 tokens, $0.0009_
 
-## Step 428: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 428: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6050,7 +6050,7 @@ Turn 76. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _9304 tokens, $0.0010_
 
-## Step 429: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 429: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6064,7 +6064,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber on h15. Hand: 
 
 _5855 tokens, $0.0013_
 
-## Step 430: P2 deepseek/deepseek-v4.1-flash plays `offer ore for wheat to P3`
+## Step 430: P2 deepseek-v4.1-flash-off plays `offer ore for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6078,7 +6078,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber h15. Hand: woo
 
 _6929 tokens, $0.0004_
 
-## Step 431: P3 openai/gpt-6-luna plays `accept`
+## Step 431: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 ore for 1 wheat. Accept or decline.
 
@@ -6092,7 +6092,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5534 tokens, $0.0005_
 
-## Step 432: P2 deepseek/deepseek-v4.1-flash plays `dev`
+## Step 432: P2 deepseek-v4.1-flash-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6106,7 +6106,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber h15. Hand afte
 
 _7150 tokens, $0.0004_
 
-## Step 433: P2 deepseek/deepseek-v4.1-flash plays `offer brick for ore to P1`
+## Step 433: P2 deepseek-v4.1-flash-off plays `offer brick for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6120,7 +6120,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber h15. Hand: woo
 
 _6730 tokens, $0.0007_
 
-## Step 434: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 434: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 ore. Accept or decline.
 
@@ -6134,7 +6134,7 @@ Turn 77. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8146 tokens, $0.0009_
 
-## Step 435: P2 deepseek/deepseek-v4.1-flash plays `road e41`
+## Step 435: P2 deepseek-v4.1-flash-off plays `road e41`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6148,7 +6148,7 @@ Settlements v23,v24,v34,v35. Longest road 7. VP 6, need 4. Robber h15. Hand: woo
 
 _6758 tokens, $0.0004_
 
-## Step 436: P2 deepseek/deepseek-v4.1-flash plays `road e55`
+## Step 436: P2 deepseek-v4.1-flash-off plays `road e55`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6162,7 +6162,7 @@ Settlements v23,v24,v34,v35. Longest road 7 (P1 3, P3 3). VP 6, need 4. Robber h
 
 _6729 tokens, $0.0011_
 
-## Step 437: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for ore to P1`
+## Step 437: P2 deepseek-v4.1-flash-off plays `offer sheep for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6176,7 +6176,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Robber h
 
 _6248 tokens, $0.0013_
 
-## Step 438: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 438: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 ore. Accept or decline.
 
@@ -6190,7 +6190,7 @@ Turn 77. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8004 tokens, $0.0009_
 
-## Step 439: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 439: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6204,7 +6204,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand: wo
 
 _5840 tokens, $0.0003_
 
-## Step 440: P3 openai/gpt-6-luna plays `roll`
+## Step 440: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6218,7 +6218,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _5480 tokens, $0.0005_
 
-## Step 441: P3 openai/gpt-6-luna plays `dev`
+## Step 441: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6232,7 +6232,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. Three VP cards, 7 total VP; l
 
 _6065 tokens, $0.0006_
 
-## Step 442: P3 openai/gpt-6-luna plays `end turn`
+## Step 442: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6246,7 +6246,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards, 7 total VP; large
 
 _5677 tokens, $0.0006_
 
-## Step 443: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 443: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6260,7 +6260,7 @@ Turn 79. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _7922 tokens, $0.0009_
 
-## Step 444: P1 anthropic/claude-haiku-5.5 plays `bank 2 wood for 1 wheat`
+## Step 444: P1 claude-haiku-5.5-off plays `bank 2 wood for 1 wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6274,7 +6274,7 @@ Turn 79. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _9632 tokens, $0.0011_
 
-## Step 445: P1 anthropic/claude-haiku-5.5 plays `dev`
+## Step 445: P1 claude-haiku-5.5-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6288,7 +6288,7 @@ Turn 79. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _9883 tokens, $0.0011_
 
-## Step 446: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 446: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6302,7 +6302,7 @@ Turn 79. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _9273 tokens, $0.0010_
 
-## Step 447: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 447: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6316,7 +6316,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand: wo
 
 _5929 tokens, $0.0009_
 
-## Step 448: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for ore to P3`
+## Step 448: P2 deepseek-v4.1-flash-off plays `offer sheep for ore to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6330,7 +6330,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand: wo
 
 _6487 tokens, $0.0004_
 
-## Step 449: P3 openai/gpt-6-luna plays `decline`
+## Step 449: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 ore. Accept or decline.
 
@@ -6344,7 +6344,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards, 7 total VP; large
 
 _5553 tokens, $0.0005_
 
-## Step 450: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 450: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6358,7 +6358,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand: wo
 
 _6472 tokens, $0.0003_
 
-## Step 451: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 451: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -6372,7 +6372,7 @@ Turn 80. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8221 tokens, $0.0010_
 
-## Step 452: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P1`
+## Step 452: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6386,7 +6386,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand: wo
 
 _6445 tokens, $0.0003_
 
-## Step 453: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 453: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -6400,7 +6400,7 @@ Turn 80. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8071 tokens, $0.0009_
 
-## Step 454: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 454: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6414,7 +6414,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand: wo
 
 _5996 tokens, $0.0001_
 
-## Step 455: P3 openai/gpt-6-luna plays `roll`
+## Step 455: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6428,7 +6428,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards, 7 total VP; large
 
 _5434 tokens, $0.0005_
 
-## Step 456: P3 openai/gpt-6-luna plays `play knight h9 P2`
+## Step 456: P3 gpt-6-luna-off plays `play knight h9 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6442,7 +6442,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards, 7 total VP; large
 
 _6240 tokens, $0.0006_
 
-## Step 457: P3 openai/gpt-6-luna plays `end turn`
+## Step 457: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6456,7 +6456,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards and largest army (
 
 _5735 tokens, $0.0006_
 
-## Step 458: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 458: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6470,7 +6470,7 @@ Turn 82. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8025 tokens, $0.0009_
 
-## Step 459: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 459: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6484,7 +6484,7 @@ Turn 82. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8598 tokens, $0.0010_
 
-## Step 460: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 460: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6498,7 +6498,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand was
 
 _5890 tokens, $0.0003_
 
-## Step 461: P2 deepseek/deepseek-v4.1-flash plays `play monopoly ore`
+## Step 461: P2 deepseek-v4.1-flash-off plays `play monopoly ore`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6512,7 +6512,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand ~br
 
 _6594 tokens, $0.0004_
 
-## Step 462: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P1`
+## Step 462: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6526,7 +6526,7 @@ Settlements v23,v24,v34,v35. Longest road 8 (P1 3, P3 3). VP 6, need 4. Hand: br
 
 _6601 tokens, $0.0016_
 
-## Step 463: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 463: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -6540,7 +6540,7 @@ Turn 83. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8079 tokens, $0.0009_
 
-## Step 464: P2 deepseek/deepseek-v4.1-flash plays `bank 4 brick for 1 wood`
+## Step 464: P2 deepseek-v4.1-flash-off plays `bank 4 brick for 1 wood`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6554,7 +6554,7 @@ Settlements v23,v24,v34,v35. Longest road 8. VP 6, need 4. Hand after bank: bric
 
 _6584 tokens, $0.0006_
 
-## Step 465: P2 deepseek/deepseek-v4.1-flash plays `bank 4 sheep for 1 wheat`
+## Step 465: P2 deepseek-v4.1-flash-off plays `bank 4 sheep for 1 wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6572,7 +6572,7 @@ Settlements v23,v24,v34,v35. Longest road 8. VP 6, need 4. Hand: wood1, brick4, 
 
 _7271 tokens, $0.0008_
 
-## Step 466: P2 deepseek/deepseek-v4.1-flash plays `bank 4 brick for 1 wood`
+## Step 466: P2 deepseek-v4.1-flash-off plays `bank 4 brick for 1 wood`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6586,7 +6586,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Banked 4 
 
 _7248 tokens, $0.0004_
 
-## Step 467: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P3`
+## Step 467: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6600,7 +6600,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Hand wood
 
 _6622 tokens, $0.0016_
 
-## Step 468: P3 openai/gpt-6-luna plays `decline`
+## Step 468: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -6614,7 +6614,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards and largest army (
 
 _5626 tokens, $0.0006_
 
-## Step 469: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P1`
+## Step 469: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6628,7 +6628,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Hand wood
 
 _6595 tokens, $0.0007_
 
-## Step 470: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 470: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -6642,7 +6642,7 @@ Turn 83. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8150 tokens, $0.0009_
 
-## Step 471: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 471: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6656,7 +6656,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Hand wood
 
 _5976 tokens, $0.0014_
 
-## Step 472: P3 openai/gpt-6-luna plays `roll`
+## Step 472: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6670,7 +6670,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards and largest army (
 
 _5431 tokens, $0.0005_
 
-## Step 473: P3 openai/gpt-6-luna plays `bank 4 sheep for 1 wood`
+## Step 473: P3 gpt-6-luna-off plays `bank 4 sheep for 1 wood`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6684,7 +6684,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards and largest army (
 
 _5902 tokens, $0.0006_
 
-## Step 474: P3 openai/gpt-6-luna plays `end turn`
+## Step 474: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6698,7 +6698,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards and largest army (
 
 _5951 tokens, $0.0006_
 
-## Step 475: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 475: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6712,7 +6712,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8013 tokens, $0.0009_
 
-## Step 476: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 476: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -6726,7 +6726,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8105 tokens, $0.0009_
 
-## Step 477: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 477: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -6740,7 +6740,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8055 tokens, $0.0009_
 
-## Step 478: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 478: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -6754,7 +6754,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8084 tokens, $0.0009_
 
-## Step 479: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 479: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -6768,7 +6768,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8098 tokens, $0.0009_
 
-## Step 480: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 480: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -6782,7 +6782,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8065 tokens, $0.0009_
 
-## Step 481: P2 deepseek/deepseek-v4.1-flash plays `discard wood`
+## Step 481: P2 deepseek-v4.1-flash-off plays `discard wood`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -6796,7 +6796,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. After rol
 
 _6097 tokens, $0.0003_
 
-## Step 482: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 482: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -6810,7 +6810,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. After 7: 
 
 _5946 tokens, $0.0003_
 
-## Step 483: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 483: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -6824,7 +6824,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. After 7, 
 
 _5938 tokens, $0.0014_
 
-## Step 484: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 484: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -6838,7 +6838,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. After 7, 
 
 _5918 tokens, $0.0003_
 
-## Step 485: P1 anthropic/claude-haiku-5.5 plays `robber h8 P2`
+## Step 485: P1 claude-haiku-5.5-off plays `robber h8 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -6852,7 +6852,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8646 tokens, $0.0010_
 
-## Step 486: P1 anthropic/claude-haiku-5.5 plays `play knight h15 P3`
+## Step 486: P1 claude-haiku-5.5-off plays `play knight h15 P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6866,7 +6866,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25. P2 lead
 
 _8627 tokens, $0.0010_
 
-## Step 487: P1 anthropic/claude-haiku-5.5 plays `road e19`
+## Step 487: P1 claude-haiku-5.5-off plays `road e19`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6880,7 +6880,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25 (+e19 no
 
 _9536 tokens, $0.0011_
 
-## Step 488: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 488: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6894,7 +6894,7 @@ Turn 85. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25,e19. P2 
 
 _9226 tokens, $0.0010_
 
-## Step 489: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 489: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6908,7 +6908,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Hand: woo
 
 _5877 tokens, $0.0008_
 
-## Step 490: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 490: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6922,7 +6922,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Hand: woo
 
 _6309 tokens, $0.0002_
 
-## Step 491: P3 openai/gpt-6-luna plays `roll`
+## Step 491: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6936,7 +6936,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards and largest army (
 
 _5615 tokens, $0.0005_
 
-## Step 492: P3 openai/gpt-6-luna plays `end turn`
+## Step 492: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6950,7 +6950,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 VP cards and largest army (
 
 _5770 tokens, $0.0006_
 
-## Step 493: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 493: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6964,7 +6964,7 @@ Turn 88. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25,e19. P2 
 
 _8040 tokens, $0.0009_
 
-## Step 494: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 494: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -6978,7 +6978,7 @@ Turn 88. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25,e19. P2 
 
 _9381 tokens, $0.0010_
 
-## Step 495: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 495: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -6992,7 +6992,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Hand afte
 
 _5845 tokens, $0.0008_
 
-## Step 496: P2 deepseek/deepseek-v4.1-flash plays `bank 4 brick for 1 wood`
+## Step 496: P2 deepseek-v4.1-flash-off plays `bank 4 brick for 1 wood`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7006,7 +7006,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. Saved whe
 
 _6706 tokens, $0.0010_
 
-## Step 497: P2 deepseek/deepseek-v4.1-flash plays `road e56`
+## Step 497: P2 deepseek-v4.1-flash-off plays `road e56`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7020,7 +7020,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. P3 has 4 
 
 _7182 tokens, $0.0011_
 
-## Step 498: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 498: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7034,7 +7034,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. P3 4 knig
 
 _6429 tokens, $0.0015_
 
-## Step 499: P3 openai/gpt-6-luna plays `decline`
+## Step 499: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -7048,7 +7048,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards and largest
 
 _5544 tokens, $0.0005_
 
-## Step 500: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 500: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7062,7 +7062,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. P3 4 knig
 
 _6392 tokens, $0.0021_
 
-## Step 501: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 501: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -7076,7 +7076,7 @@ Turn 89. Settlements v14,v22,v11,v15. Roads e16,e17,e22,e34,e24,e18,e25,e19. P2 
 
 _8255 tokens, $0.0010_
 
-## Step 502: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 502: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7090,7 +7090,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. P3 4 knig
 
 _6416 tokens, $0.0002_
 
-## Step 503: P3 openai/gpt-6-luna plays `roll`
+## Step 503: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7104,7 +7104,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards and largest
 
 _5412 tokens, $0.0005_
 
-## Step 504: P3 openai/gpt-6-luna plays `end turn`
+## Step 504: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7118,7 +7118,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5776 tokens, $0.0006_
 
-## Step 505: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 505: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7132,7 +7132,7 @@ Turn 91. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest a
 
 _7966 tokens, $0.0009_
 
-## Step 506: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 506: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7146,7 +7146,7 @@ Turn 91. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest a
 
 _9572 tokens, $0.0011_
 
-## Step 507: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 507: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7160,7 +7160,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. P3 4 knig
 
 _5899 tokens, $0.0003_
 
-## Step 508: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 508: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7176,7 +7176,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8 (award). VP 6, need 4. P3 4 knig
 
 _6567 tokens, $0.0007_
 
-## Step 509: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 509: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -7190,7 +7190,7 @@ Turn 92. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest a
 
 _8154 tokens, $0.0009_
 
-## Step 510: P2 deepseek/deepseek-v4.1-flash plays `dev`
+## Step 510: P2 deepseek-v4.1-flash-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7204,7 +7204,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4. P3 4 knights + la
 
 _6426 tokens, $0.0002_
 
-## Step 511: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 511: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7218,7 +7218,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4. P3 4 knights + la
 
 _5990 tokens, $0.0003_
 
-## Step 512: P3 openai/gpt-6-luna plays `accept`
+## Step 512: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -7232,7 +7232,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5584 tokens, $0.0006_
 
-## Step 513: P2 deepseek/deepseek-v4.1-flash plays `offer wood for brick to P3`
+## Step 513: P2 deepseek-v4.1-flash-off plays `offer wood for brick to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7246,7 +7246,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4. P3 4 knights + la
 
 _5974 tokens, $0.0002_
 
-## Step 514: P3 openai/gpt-6-luna plays `decline`
+## Step 514: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 brick. Accept or decline.
 
@@ -7260,7 +7260,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5471 tokens, $0.0005_
 
-## Step 515: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 515: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7274,7 +7274,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4. P3 4 knights + la
 
 _5786 tokens, $0.0003_
 
-## Step 516: P3 openai/gpt-6-luna plays `roll`
+## Step 516: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7288,7 +7288,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5409 tokens, $0.0005_
 
-## Step 517: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 517: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 6 cards after a 7; choose one card.
 
@@ -7302,7 +7302,7 @@ Turn 93: discarding after 7 (owe 6). Settlements v14,v22,v11,v15. P2 leads (6VP,
 
 _8135 tokens, $0.0009_
 
-## Step 518: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 518: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -7316,7 +7316,7 @@ Turn 93: discarding after 7 (owe 5 now). Settlements v14,v22,v11,v15. P2 leads (
 
 _8008 tokens, $0.0009_
 
-## Step 519: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 519: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -7330,7 +7330,7 @@ Turn 93: discarding after 7 (owe 4 now after this). Settlements v14,v22,v11,v15.
 
 _7997 tokens, $0.0009_
 
-## Step 520: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 520: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -7344,7 +7344,7 @@ Turn 93: discarding after 7. Settlements v14,v22,v11,v15. P2 leads (6VP, longest
 
 _7982 tokens, $0.0009_
 
-## Step 521: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 521: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -7358,7 +7358,7 @@ Turn 93: discarding after 7. Settlements v14,v22,v11,v15. P2 leads (6VP, longest
 
 _7968 tokens, $0.0009_
 
-## Step 522: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 522: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -7372,7 +7372,7 @@ Turn 93: discarding after 7. Settlements v14,v22,v11,v15. P2 leads (6VP, longest
 
 _7986 tokens, $0.0009_
 
-## Step 523: P3 openai/gpt-6-luna plays `robber h5 P2`
+## Step 523: P3 gpt-6-luna-off plays `robber h5 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -7386,7 +7386,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5898 tokens, $0.0006_
 
-## Step 524: P3 openai/gpt-6-luna plays `end turn`
+## Step 524: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7400,7 +7400,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _6048 tokens, $0.0006_
 
-## Step 525: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 525: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7414,7 +7414,7 @@ Turn 94+: Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _7923 tokens, $0.0009_
 
-## Step 526: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 526: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7428,7 +7428,7 @@ Turn 94+: Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _9362 tokens, $0.0010_
 
-## Step 527: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 527: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7442,7 +7442,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4 more. P3 has 4 kni
 
 _5932 tokens, $0.0009_
 
-## Step 528: P3 openai/gpt-6-luna plays `discard wheat`
+## Step 528: P3 gpt-6-luna-off plays `discard wheat`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -7456,7 +7456,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5532 tokens, $0.0005_
 
-## Step 529: P3 openai/gpt-6-luna plays `discard wheat`
+## Step 529: P3 gpt-6-luna-off plays `discard wheat`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -7470,7 +7470,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5467 tokens, $0.0005_
 
-## Step 530: P3 openai/gpt-6-luna plays `discard wood`
+## Step 530: P3 gpt-6-luna-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -7484,7 +7484,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5455 tokens, $0.0005_
 
-## Step 531: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 531: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -7498,7 +7498,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5430 tokens, $0.0005_
 
-## Step 532: P2 deepseek/deepseek-v4.1-flash plays `robber h15 P3`
+## Step 532: P2 deepseek-v4.1-flash-off plays `robber h15 P3`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -7512,7 +7512,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4 more. P3: 4 knight
 
 _6330 tokens, $0.0015_
 
-## Step 533: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 533: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7526,7 +7526,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4 more. P3: 4 knight
 
 _6752 tokens, $0.0010_
 
-## Step 534: P3 openai/gpt-6-luna plays `roll`
+## Step 534: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7540,7 +7540,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5429 tokens, $0.0005_
 
-## Step 535: P3 openai/gpt-6-luna plays `end turn`
+## Step 535: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7554,7 +7554,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5762 tokens, $0.0006_
 
-## Step 536: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 536: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7568,7 +7568,7 @@ Turn 94+: Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _8035 tokens, $0.0009_
 
-## Step 537: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 537: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7582,7 +7582,7 @@ Turn 97: Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest a
 
 _9716 tokens, $0.0011_
 
-## Step 538: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 538: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7596,7 +7596,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6, need 4 more. P3: 4 knight
 
 _5957 tokens, $0.0009_
 
-## Step 539: P2 deepseek/deepseek-v4.1-flash plays `dev`
+## Step 539: P2 deepseek-v4.1-flash-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7610,7 +7610,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights + largest a
 
 _7184 tokens, $0.0010_
 
-## Step 540: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 540: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7624,7 +7624,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights + largest a
 
 _6901 tokens, $0.0004_
 
-## Step 541: P3 openai/gpt-6-luna plays `roll`
+## Step 541: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7638,7 +7638,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5474 tokens, $0.0005_
 
-## Step 542: P3 openai/gpt-6-luna plays `end turn`
+## Step 542: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7652,7 +7652,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5774 tokens, $0.0006_
 
-## Step 543: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 543: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7666,7 +7666,7 @@ Turn 100. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _8017 tokens, $0.0009_
 
-## Step 544: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 544: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7680,7 +7680,7 @@ Turn 100. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _9625 tokens, $0.0011_
 
-## Step 545: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 545: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7694,7 +7694,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights + largest a
 
 _5995 tokens, $0.0004_
 
-## Step 546: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 546: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 6 cards after a 7; choose one card.
 
@@ -7708,7 +7708,7 @@ Turn 101. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _8078 tokens, $0.0009_
 
-## Step 547: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 547: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -7722,7 +7722,7 @@ Turn 101. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _8020 tokens, $0.0009_
 
-## Step 548: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 548: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -7736,7 +7736,7 @@ Turn 101. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _7999 tokens, $0.0009_
 
-## Step 549: P1 anthropic/claude-haiku-5.5 plays `discard ore`
+## Step 549: P1 claude-haiku-5.5-off plays `discard ore`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -7750,7 +7750,7 @@ Turn 101. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _8048 tokens, $0.0009_
 
-## Step 550: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 550: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -7764,7 +7764,7 @@ Turn 101. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _7971 tokens, $0.0009_
 
-## Step 551: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 551: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -7778,7 +7778,7 @@ Turn 101. Settlements v14,v22,v11,v15. P2 leads (6VP, longest road). P3 largest 
 
 _7942 tokens, $0.0009_
 
-## Step 552: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 552: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -7792,7 +7792,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights+largest arm
 
 _5991 tokens, $0.0003_
 
-## Step 553: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 553: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -7806,7 +7806,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights+largest arm
 
 _5862 tokens, $0.0005_
 
-## Step 554: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 554: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -7820,7 +7820,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights+largest arm
 
 _5848 tokens, $0.0003_
 
-## Step 555: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 555: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -7834,7 +7834,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights+largest arm
 
 _5880 tokens, $0.0003_
 
-## Step 556: P2 deepseek/deepseek-v4.1-flash plays `discard brick`
+## Step 556: P2 deepseek-v4.1-flash-off plays `discard brick`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -7848,7 +7848,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights+largest arm
 
 _5877 tokens, $0.0020_
 
-## Step 557: P2 deepseek/deepseek-v4.1-flash plays `robber h8 P1`
+## Step 557: P2 deepseek-v4.1-flash-off plays `robber h8 P1`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -7862,7 +7862,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights+largest arm
 
 _6214 tokens, $0.0002_
 
-## Step 558: P2 deepseek/deepseek-v4.1-flash plays `play yearofplenty wood wheat`
+## Step 558: P2 deepseek-v4.1-flash-off plays `play yearofplenty wood wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7876,7 +7876,7 @@ Settlements v23,v24,v34,v35 (4). Longest road 8. VP 6. P3: 4 knights+largest arm
 
 _6405 tokens, $0.0004_
 
-## Step 559: P2 deepseek/deepseek-v4.1-flash plays `settle v44`
+## Step 559: P2 deepseek-v4.1-flash-off plays `settle v44`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7890,7 +7890,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 8. VP 7. P3: 4 knights+largest
 
 _7234 tokens, $0.0011_
 
-## Step 560: P2 deepseek/deepseek-v4.1-flash plays `road e54`
+## Step 560: P2 deepseek-v4.1-flash-off plays `road e54`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7904,7 +7904,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 8. VP 7. P3: 4 knights+largest
 
 _7056 tokens, $0.0024_
 
-## Step 561: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 561: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7918,7 +7918,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9 (after e54). VP 7. P3: 4 kni
 
 _6223 tokens, $0.0004_
 
-## Step 562: P3 openai/gpt-6-luna plays `roll`
+## Step 562: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -7932,7 +7932,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5615 tokens, $0.0005_
 
-## Step 563: P3 openai/gpt-6-luna plays `offer sheep for wood to P1`
+## Step 563: P3 gpt-6-luna-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7946,7 +7946,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5777 tokens, $0.0006_
 
-## Step 564: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 564: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -7960,7 +7960,7 @@ Turn 102. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road, settlement v
 
 _8409 tokens, $0.0010_
 
-## Step 565: P3 openai/gpt-6-luna plays `offer sheep for wood to P1`
+## Step 565: P3 gpt-6-luna-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -7974,7 +7974,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards, largest ar
 
 _5820 tokens, $0.0006_
 
-## Step 566: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 566: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P3's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -7988,7 +7988,7 @@ Turn 102. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8121 tokens, $0.0009_
 
-## Step 567: P3 openai/gpt-6-luna plays `offer sheep for brick to P1`
+## Step 567: P3 gpt-6-luna-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8002,7 +8002,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards; largest ar
 
 _6060 tokens, $0.0006_
 
-## Step 568: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 568: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -8016,7 +8016,7 @@ Turn 102. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8066 tokens, $0.0009_
 
-## Step 569: P3 openai/gpt-6-luna plays `end turn`
+## Step 569: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8030,7 +8030,7 @@ Settlements v8/v31; roads e11,e12,e13,e37,e47,e48. 3 hidden VP cards; largest ar
 
 _5493 tokens, $0.0005_
 
-## Step 570: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 570: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8044,7 +8044,7 @@ Turn 103. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7874 tokens, $0.0009_
 
-## Step 571: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 571: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8058,7 +8058,7 @@ Turn 103. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9397 tokens, $0.0011_
 
-## Step 572: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 572: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8072,7 +8072,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 4 knights+largest
 
 _5928 tokens, $0.0008_
 
-## Step 573: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 573: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -8086,7 +8086,7 @@ Turn 104. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8053 tokens, $0.0009_
 
-## Step 574: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 574: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -8100,7 +8100,7 @@ Turn 104. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8162 tokens, $0.0010_
 
-## Step 575: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 575: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -8114,7 +8114,7 @@ Turn 104. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8008 tokens, $0.0009_
 
-## Step 576: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 576: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -8128,7 +8128,7 @@ Turn 104. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7986 tokens, $0.0009_
 
-## Step 577: P2 deepseek/deepseek-v4.1-flash plays `robber h11 P3`
+## Step 577: P2 deepseek-v4.1-flash-off plays `robber h11 P3`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -8142,7 +8142,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 4 knights+largest
 
 _6254 tokens, $0.0009_
 
-## Step 578: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 578: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8156,7 +8156,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 4 knights+largest
 
 _6706 tokens, $0.0010_
 
-## Step 579: P3 openai/gpt-6-luna plays `roll`
+## Step 579: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8170,7 +8170,7 @@ P3 has 7 VP (2 settlements, 3 hidden VP cards, largest army from 4 knights). P2 
 
 _5586 tokens, $0.0005_
 
-## Step 580: P3 openai/gpt-6-luna plays `robber h16 P2`
+## Step 580: P3 gpt-6-luna-off plays `robber h16 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -8184,7 +8184,7 @@ P3 has 7 VP (2 settlements, 3 hidden VP cards, largest army from 4 knights). P2 
 
 _5924 tokens, $0.0006_
 
-## Step 581: P3 openai/gpt-6-luna plays `offer wheat for brick to P2`
+## Step 581: P3 gpt-6-luna-off plays `offer wheat for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8198,7 +8198,7 @@ P3 at 7 total VP (2 settlements, 3 VP cards, largest army); P2 has 7 visible plu
 
 _6228 tokens, $0.0006_
 
-## Step 582: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 582: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wheat for 1 brick. Accept or decline.
 
@@ -8212,7 +8212,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 4 knights+largest
 
 _5922 tokens, $0.0008_
 
-## Step 583: P3 openai/gpt-6-luna plays `offer wheat for brick to P1`
+## Step 583: P3 gpt-6-luna-off plays `offer wheat for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8226,7 +8226,7 @@ P3 currently 7 VP (2 settlements, 3 VP cards, largest army); P2 7 visible plus l
 
 _6208 tokens, $0.0006_
 
-## Step 584: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 584: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P3's offer: 1 wheat for 1 brick. Accept or decline.
 
@@ -8240,7 +8240,7 @@ Turn 105. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8183 tokens, $0.0009_
 
-## Step 585: P3 openai/gpt-6-luna plays `settle v32`
+## Step 585: P3 gpt-6-luna-off plays `settle v32`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8254,7 +8254,7 @@ P3 is at 8 VP after settling v32; 3 hidden VP cards and largest army. P2 has 7 v
 
 _6615 tokens, $0.0007_
 
-## Step 586: P3 openai/gpt-6-luna plays `end turn`
+## Step 586: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8268,7 +8268,7 @@ P3 at 8 VP shown: 3 settlements, 3 hidden VP cards, largest army. P2 at 7 plus l
 
 _5647 tokens, $0.0006_
 
-## Step 587: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 587: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8282,7 +8282,7 @@ Turn 106. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7895 tokens, $0.0009_
 
-## Step 588: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 588: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8296,7 +8296,7 @@ Turn 106. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9356 tokens, $0.0010_
 
-## Step 589: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 589: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8310,7 +8310,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 4 knights+largest
 
 _5911 tokens, $0.0010_
 
-## Step 590: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 590: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8324,7 +8324,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 4 knights+largest
 
 _6981 tokens, $0.0010_
 
-## Step 591: P3 openai/gpt-6-luna plays `roll`
+## Step 591: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8338,7 +8338,7 @@ P3 has 8 VP (3 settlements, 3 hidden victory points, largest army). P2 has 7 VP 
 
 _5535 tokens, $0.0005_
 
-## Step 592: P3 openai/gpt-6-luna plays `end turn`
+## Step 592: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8352,7 +8352,7 @@ P3 has 8 VP (3 settlements, 3 hidden victory points, largest army). P2 has 7 VP 
 
 _5819 tokens, $0.0006_
 
-## Step 593: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 593: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8366,7 +8366,7 @@ Turn 109. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7967 tokens, $0.0009_
 
-## Step 594: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 594: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8380,7 +8380,7 @@ Turn 109. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9588 tokens, $0.0010_
 
-## Step 595: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 595: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8394,7 +8394,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _5883 tokens, $0.0003_
 
-## Step 596: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 596: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8412,7 +8412,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _7022 tokens, $0.0018_
 
-## Step 597: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 597: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -8426,7 +8426,7 @@ Turn 110. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8081 tokens, $0.0009_
 
-## Step 598: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P3`
+## Step 598: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8440,7 +8440,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _6870 tokens, $0.0007_
 
-## Step 599: P3 openai/gpt-6-luna plays `decline`
+## Step 599: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -8454,7 +8454,7 @@ P3 has 8 VP (3 settlements, 3 hidden victory points, largest army). P2 has 7 VP 
 
 _5585 tokens, $0.0006_
 
-## Step 600: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 600: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8468,7 +8468,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _6915 tokens, $0.0008_
 
-## Step 601: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 601: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -8482,7 +8482,7 @@ Turn 110. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8117 tokens, $0.0009_
 
-## Step 602: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 602: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8496,7 +8496,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _6600 tokens, $0.0007_
 
-## Step 603: P3 openai/gpt-6-luna plays `roll`
+## Step 603: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8510,7 +8510,7 @@ P3 has 8 VP (3 settlements, 3 hidden victory points, largest army). P2 has 7 VP 
 
 _5466 tokens, $0.0005_
 
-## Step 604: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 604: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -8524,7 +8524,7 @@ Turn 111. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8129 tokens, $0.0009_
 
-## Step 605: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 605: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -8538,7 +8538,7 @@ Turn 111. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8063 tokens, $0.0009_
 
-## Step 606: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 606: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -8552,7 +8552,7 @@ Turn 111. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8291 tokens, $0.0010_
 
-## Step 607: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 607: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -8566,7 +8566,7 @@ Turn 111. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8032 tokens, $0.0009_
 
-## Step 608: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 608: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -8580,7 +8580,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _5958 tokens, $0.0008_
 
-## Step 609: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 609: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -8594,7 +8594,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _5833 tokens, $0.0008_
 
-## Step 610: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 610: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -8608,7 +8608,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _5862 tokens, $0.0003_
 
-## Step 611: P2 deepseek/deepseek-v4.1-flash plays `discard sheep`
+## Step 611: P2 deepseek-v4.1-flash-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -8622,7 +8622,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _5823 tokens, $0.0003_
 
-## Step 612: P3 openai/gpt-6-luna plays `robber h9 P2`
+## Step 612: P3 gpt-6-luna-off plays `robber h9 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -8636,7 +8636,7 @@ P3 8 VP: 3 settlements, 3 VPs, largest army. P2 7 VP + longest road (9); P1 4. S
 
 _5979 tokens, $0.0006_
 
-## Step 613: P3 openai/gpt-6-luna plays `dev`
+## Step 613: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8650,7 +8650,7 @@ P3 8 VP: 3 settlements, 3 VPs, largest army. P2 7 VP + longest road (9); P1 4. S
 
 _6158 tokens, $0.0006_
 
-## Step 614: P3 openai/gpt-6-luna plays `end turn`
+## Step 614: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8664,7 +8664,7 @@ P3 8 VP: 3 settlements, 3 victory cards, largest army. P2 7 VP + longest road (9
 
 _5769 tokens, $0.0006_
 
-## Step 615: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 615: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8678,7 +8678,7 @@ Turn 112. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7975 tokens, $0.0009_
 
-## Step 616: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 616: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8694,7 +8694,7 @@ Turn 112. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _19451 tokens, $0.0022_
 
-## Step 617: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 617: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8708,7 +8708,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. P3: 5 VP, 4 knights+l
 
 _5853 tokens, $0.0013_
 
-## Step 618: P2 deepseek/deepseek-v4.1-flash plays `offer brick for ore to P1`
+## Step 618: P2 deepseek-v4.1-flash-off plays `offer brick for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8722,7 +8722,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. Hand: brick4, sheep1.
 
 _6754 tokens, $0.0004_
 
-## Step 619: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 619: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 ore. Accept or decline.
 
@@ -8736,7 +8736,7 @@ Turn 113. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7994 tokens, $0.0009_
 
-## Step 620: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 620: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8750,7 +8750,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. Hand: brick4, sheep1.
 
 _6772 tokens, $0.0004_
 
-## Step 621: P3 openai/gpt-6-luna plays `roll`
+## Step 621: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8764,7 +8764,7 @@ P3 at 8 VP: 3 settlements, 3 victory cards, largest army. P2 7 VP + longest road
 
 _5580 tokens, $0.0006_
 
-## Step 622: P3 openai/gpt-6-luna plays `play knight h16 P2`
+## Step 622: P3 gpt-6-luna-off plays `play knight h16 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8778,7 +8778,7 @@ P3 at 8 VP: 3 settlements, 3 VP cards, largest army (4 knights played). P2 7 VP 
 
 _6683 tokens, $0.0007_
 
-## Step 623: P3 openai/gpt-6-luna plays `bank 2 ore for 1 wood`
+## Step 623: P3 gpt-6-luna-off plays `bank 2 ore for 1 wood`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8792,7 +8792,7 @@ P3 has 8 VP (3 settlements, 3 hidden VP cards, largest army), P2 7 VP plus longe
 
 _6214 tokens, $0.0007_
 
-## Step 624: P3 openai/gpt-6-luna plays `offer sheep for brick to P1`
+## Step 624: P3 gpt-6-luna-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8806,7 +8806,7 @@ P3 at 8 VP (3 settlements, 3 VP cards, largest army); P2 7 plus longest road. Tu
 
 _6058 tokens, $0.0006_
 
-## Step 625: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 625: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -8820,7 +8820,7 @@ Turn 114. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8319 tokens, $0.0010_
 
-## Step 626: P3 openai/gpt-6-luna plays `offer wheat for brick to P2`
+## Step 626: P3 gpt-6-luna-off plays `offer wheat for brick to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8834,7 +8834,7 @@ P3 at 8 VP (3 settlements, 3 VP cards, largest army); P2 7 plus longest road. Tu
 
 _6027 tokens, $0.0006_
 
-## Step 627: P2 deepseek/deepseek-v4.1-flash plays `accept`
+## Step 627: P2 deepseek-v4.1-flash-off plays `accept`
 
 Asked: Answer P3's offer: 1 wheat for 1 brick. Accept or decline.
 
@@ -8848,7 +8848,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. Hand now: brick3, whe
 
 _6023 tokens, $0.0010_
 
-## Step 628: P3 openai/gpt-6-luna plays `road e46`
+## Step 628: P3 gpt-6-luna-off plays `road e46`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8862,7 +8862,7 @@ P3 has 8 VP (3 settlements, 3 victorypoint cards, largest army); P2 has 7 plus l
 
 _6444 tokens, $0.0007_
 
-## Step 629: P3 openai/gpt-6-luna plays `offer wheat for wood to P2`
+## Step 629: P3 gpt-6-luna-off plays `offer wheat for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8876,7 +8876,7 @@ P3 8 VP (3 settlements, 3 VP cards, largest army); P2 7 plus longest road. We ne
 
 _5811 tokens, $0.0006_
 
-## Step 630: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 630: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wheat for 1 wood. Accept or decline.
 
@@ -8890,7 +8890,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. Hand: brick3, wheat1.
 
 _5919 tokens, $0.0020_
 
-## Step 631: P3 openai/gpt-6-luna plays `end turn`
+## Step 631: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8904,7 +8904,7 @@ P3 at 8 VP (3 settlements, 3 VP cards, largest army); P2 at 7 plus longest road.
 
 _5455 tokens, $0.0005_
 
-## Step 632: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 632: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8918,7 +8918,7 @@ Turn 115. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8034 tokens, $0.0009_
 
-## Step 633: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 633: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8932,7 +8932,7 @@ Turn 115. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9623 tokens, $0.0011_
 
-## Step 634: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 634: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -8946,7 +8946,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. Hand: brick3, wheat1.
 
 _5803 tokens, $0.0003_
 
-## Step 635: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P1`
+## Step 635: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8960,7 +8960,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. Hand: brick6, wheat1.
 
 _6806 tokens, $0.0016_
 
-## Step 636: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 636: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -8974,7 +8974,7 @@ Turn 116. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8100 tokens, $0.0009_
 
-## Step 637: P2 deepseek/deepseek-v4.1-flash plays `offer brick for sheep to P3`
+## Step 637: P2 deepseek-v4.1-flash-off plays `offer brick for sheep to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -8988,7 +8988,7 @@ Settlements v23,v24,v34,v35,v44 (5). Longest road 9. VP 7. Hand: wood2, brick5, 
 
 _7308 tokens, $0.0009_
 
-## Step 638: P3 openai/gpt-6-luna plays `accept`
+## Step 638: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 brick for 1 sheep. Accept or decline.
 
@@ -9002,7 +9002,7 @@ P3 at 8 VP: 3 settlements, 3 VP cards, largest army (5 knights); P2 at 7 with lo
 
 _5580 tokens, $0.0005_
 
-## Step 639: P2 deepseek/deepseek-v4.1-flash plays `road e57`
+## Step 639: P2 deepseek-v4.1-flash-off plays `road e57`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9016,7 +9016,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Post-trade hand: w
 
 _6489 tokens, $0.0016_
 
-## Step 640: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 640: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9030,7 +9030,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand: wood0, brick
 
 _6898 tokens, $0.0004_
 
-## Step 641: P3 openai/gpt-6-luna plays `roll`
+## Step 641: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9044,7 +9044,7 @@ P3 at 8 VP: 3 settlements, 3 VP cards, largest army (5 knights); P2 at 7 with lo
 
 _5429 tokens, $0.0005_
 
-## Step 642: P3 openai/gpt-6-luna plays `offer brick for wood to P2`
+## Step 642: P3 gpt-6-luna-off plays `offer brick for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9058,7 +9058,7 @@ P3 at 8 VP: 3 settlements, 3 VP cards, largest army (5 knights); P2 at 7 with lo
 
 _6176 tokens, $0.0006_
 
-## Step 643: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 643: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -9072,7 +9072,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand: wood0, brick
 
 _5968 tokens, $0.0003_
 
-## Step 644: P3 openai/gpt-6-luna plays `offer brick for wood to P1`
+## Step 644: P3 gpt-6-luna-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9086,7 +9086,7 @@ P3 8 VP (3 settlements, 3 hidden VPs, largest army with 5 knights); P2 7 VP and 
 
 _6174 tokens, $0.0006_
 
-## Step 645: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 645: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -9100,7 +9100,7 @@ Turn 117. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8277 tokens, $0.0010_
 
-## Step 646: P3 openai/gpt-6-luna plays `offer brick for wood to P2`
+## Step 646: P3 gpt-6-luna-off plays `offer brick for wood to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9114,7 +9114,7 @@ P3 8 VP (3 settlements, 3 hidden VPs, largest army with 5 knights); P2 7 VP and 
 
 _6145 tokens, $0.0006_
 
-## Step 647: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 647: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -9128,7 +9128,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand: wood0, brick
 
 _5915 tokens, $0.0002_
 
-## Step 648: P3 openai/gpt-6-luna plays `dev`
+## Step 648: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9142,7 +9142,7 @@ P3 now 8 public+hidden VP count (3 settlements, 3 VP dev, largest army); needs 2
 
 _5468 tokens, $0.0005_
 
-## Step 649: P3 openai/gpt-6-luna plays `end turn`
+## Step 649: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9156,7 +9156,7 @@ P3 has 8 VP (3 settlements, 3 victory cards, largest army); needs 2 more. P2 has
 
 _5427 tokens, $0.0005_
 
-## Step 650: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 650: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9170,7 +9170,7 @@ Turn 118. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7962 tokens, $0.0009_
 
-## Step 651: P1 anthropic/claude-haiku-5.5 plays `dev`
+## Step 651: P1 claude-haiku-5.5-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9184,7 +9184,7 @@ Turn 118. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9840 tokens, $0.0011_
 
-## Step 652: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 652: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9198,7 +9198,7 @@ Turn 118. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9460 tokens, $0.0010_
 
-## Step 653: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 653: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9212,7 +9212,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand: wood0, brick
 
 _5879 tokens, $0.0013_
 
-## Step 654: P2 deepseek/deepseek-v4.1-flash plays `play knight h10 P3`
+## Step 654: P2 deepseek-v4.1-flash-off plays `play knight h10 P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9226,7 +9226,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. No wood/ore. Need 
 
 _6987 tokens, $0.0002_
 
-## Step 655: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P1`
+## Step 655: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9240,7 +9240,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand: brick8,sheep
 
 _6427 tokens, $0.0002_
 
-## Step 656: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 656: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -9254,7 +9254,7 @@ Turn 119. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8155 tokens, $0.0009_
 
-## Step 657: P2 deepseek/deepseek-v4.1-flash plays `bank 4 brick for 1 ore`
+## Step 657: P2 deepseek-v4.1-flash-off plays `bank 4 brick for 1 ore`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9268,7 +9268,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand now: brick4,s
 
 _6434 tokens, $0.0001_
 
-## Step 658: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wood to P1`
+## Step 658: P2 deepseek-v4.1-flash-off plays `offer brick for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9282,7 +9282,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand: brick4,sheep
 
 _6677 tokens, $0.0004_
 
-## Step 659: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 659: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wood. Accept or decline.
 
@@ -9296,7 +9296,7 @@ Turn 119. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8033 tokens, $0.0009_
 
-## Step 660: P2 deepseek/deepseek-v4.1-flash plays `offer brick for ore to P1`
+## Step 660: P2 deepseek-v4.1-flash-off plays `offer brick for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9310,7 +9310,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand: brick4,sheep
 
 _6699 tokens, $0.0003_
 
-## Step 661: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 661: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 ore. Accept or decline.
 
@@ -9324,7 +9324,7 @@ Turn 119. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8015 tokens, $0.0009_
 
-## Step 662: P2 deepseek/deepseek-v4.1-flash plays `dev`
+## Step 662: P2 deepseek-v4.1-flash-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9338,7 +9338,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP7. Hand after dev: br
 
 _6064 tokens, $0.0004_
 
-## Step 663: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 663: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9352,7 +9352,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP8 (incl 1 victorypoin
 
 _6050 tokens, $0.0003_
 
-## Step 664: P3 openai/gpt-6-luna plays `roll`
+## Step 664: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9366,7 +9366,7 @@ P3 has 8 VP (3 settlements, 3 victory cards, largest army); needs 2 more. P2 has
 
 _5621 tokens, $0.0005_
 
-## Step 665: P3 openai/gpt-6-luna plays `play knight h16 P2`
+## Step 665: P3 gpt-6-luna-off plays `play knight h16 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9380,7 +9380,7 @@ P3 has 8 VP (3 settlements, 3 victory cards, largest army); needs 2 more. P2 has
 
 _6500 tokens, $0.0007_
 
-## Step 666: P3 openai/gpt-6-luna plays `dev`
+## Step 666: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9394,7 +9394,7 @@ P3 has 8 visible VP (3 settlements, 3 VPs, largest army); needs 2, P2 has 7 + lo
 
 _6260 tokens, $0.0007_
 
-## Step 667: P3 openai/gpt-6-luna plays `end turn`
+## Step 667: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9408,7 +9408,7 @@ P3 has 8 visible VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 + lo
 
 _5670 tokens, $0.0006_
 
-## Step 668: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 668: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9422,7 +9422,7 @@ Turn 119. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8001 tokens, $0.0009_
 
-## Step 669: P1 anthropic/claude-haiku-5.5 plays `bank 2 brick for 1 wheat`
+## Step 669: P1 claude-haiku-5.5-off plays `bank 2 brick for 1 wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9436,7 +9436,7 @@ Turn 121. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8690 tokens, $0.0010_
 
-## Step 670: P1 anthropic/claude-haiku-5.5 plays `dev`
+## Step 670: P1 claude-haiku-5.5-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9450,7 +9450,7 @@ Turn 121. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8654 tokens, $0.0010_
 
-## Step 671: P1 anthropic/claude-haiku-5.5 plays `play knight h9 P2`
+## Step 671: P1 claude-haiku-5.5-off plays `play knight h9 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9464,7 +9464,7 @@ Turn 121. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _10073 tokens, $0.0012_
 
-## Step 672: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 672: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9478,7 +9478,7 @@ Turn 121. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _9307 tokens, $0.0010_
 
-## Step 673: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 673: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9492,7 +9492,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP8 (incl 1 victorypoin
 
 _5984 tokens, $0.0005_
 
-## Step 674: P2 deepseek/deepseek-v4.1-flash plays `robber h15 P3`
+## Step 674: P2 deepseek-v4.1-flash-off plays `robber h15 P3`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -9506,7 +9506,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP8 (incl 1 victorypoin
 
 _6236 tokens, $0.0014_
 
-## Step 675: P2 deepseek/deepseek-v4.1-flash plays `offer brick for ore to P1`
+## Step 675: P2 deepseek-v4.1-flash-off plays `offer brick for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9520,7 +9520,7 @@ P2: settlements v23,v24,v34,v35,v44 (5). Longest road 9, VP8 (incl 1 victorypoin
 
 _6527 tokens, $0.0004_
 
-## Step 676: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 676: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 ore. Accept or decline.
 
@@ -9534,7 +9534,7 @@ Turn 122. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8114 tokens, $0.0009_
 
-## Step 677: P2 deepseek/deepseek-v4.1-flash plays `bank 4 brick for 1 wood`
+## Step 677: P2 deepseek-v4.1-flash-off plays `bank 4 brick for 1 wood`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9548,7 +9548,7 @@ P2: v23,v24,v34,v35,v44 (5 settlements). VP8 (5 settlements + 1 victorypoint + l
 
 _6929 tokens, $0.0005_
 
-## Step 678: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 678: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9564,7 +9564,7 @@ P2: v23,v24,v34,v35,v44,v43 (6 settlements, no pieces left). VP9 (6 + 1 victoryp
 
 _15165 tokens, $0.0018_
 
-## Step 679: P3 openai/gpt-6-luna plays `roll`
+## Step 679: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9578,7 +9578,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 plus longest
 
 _5667 tokens, $0.0006_
 
-## Step 680: P3 openai/gpt-6-luna plays `robber h10 P2`
+## Step 680: P3 gpt-6-luna-off plays `robber h10 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -9592,7 +9592,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 plus longest
 
 _5938 tokens, $0.0006_
 
-## Step 681: P3 openai/gpt-6-luna plays `play yearofplenty wood sheep`
+## Step 681: P3 gpt-6-luna-off plays `play yearofplenty wood sheep`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9606,7 +9606,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 and longest 
 
 _6073 tokens, $0.0006_
 
-## Step 682: P3 openai/gpt-6-luna plays `end turn`
+## Step 682: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9620,7 +9620,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 and longest 
 
 _6285 tokens, $0.0006_
 
-## Step 683: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 683: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9634,7 +9634,7 @@ Turn 124. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8054 tokens, $0.0009_
 
-## Step 684: P1 anthropic/claude-haiku-5.5 plays `play knight h8 P2`
+## Step 684: P1 claude-haiku-5.5-off plays `play knight h8 P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9648,7 +9648,7 @@ Turn 124. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8676 tokens, $0.0010_
 
-## Step 685: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 685: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9662,7 +9662,7 @@ Turn 124. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9666 tokens, $0.0011_
 
-## Step 686: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 686: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9676,7 +9676,7 @@ P2: 6 settlements (v23,v24,v34,v35,v43,v44), VP truth ~9 (6 + 1 victorypoint + 2
 
 _6178 tokens, $0.0002_
 
-## Step 687: P2 deepseek/deepseek-v4.1-flash plays `offer brick for ore to P3`
+## Step 687: P2 deepseek-v4.1-flash-off plays `offer brick for ore to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9690,7 +9690,7 @@ P2: 6 settlements (v23,v24,v34,v35,v43,v44), VP truth ~9 (6 + 1 victorypoint + 2
 
 _6711 tokens, $0.0007_
 
-## Step 688: P3 openai/gpt-6-luna plays `decline`
+## Step 688: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 ore. Accept or decline.
 
@@ -9704,7 +9704,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 VP and longe
 
 _5630 tokens, $0.0006_
 
-## Step 689: P2 deepseek/deepseek-v4.1-flash plays `offer wheat for ore to P1`
+## Step 689: P2 deepseek-v4.1-flash-off plays `offer wheat for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9718,7 +9718,7 @@ P2: 5 settlements (v23,v24,v34,v35,v43,v44), VP 8 (5+1 vp card+2 longest road). 
 
 _6566 tokens, $0.0003_
 
-## Step 690: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 690: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 wheat for 1 ore. Accept or decline.
 
@@ -9732,7 +9732,7 @@ Turn 125. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8188 tokens, $0.0009_
 
-## Step 691: P2 deepseek/deepseek-v4.1-flash plays `offer brick for ore to P1`
+## Step 691: P2 deepseek-v4.1-flash-off plays `offer brick for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9756,7 +9756,7 @@ P2: VP 8 (5 settlements +1 vp card+2 longest road). No settlement pieces left; n
 
 _6977 tokens, $0.0005_
 
-## Step 692: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 692: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 ore. Accept or decline.
 
@@ -9770,7 +9770,7 @@ Turn 125. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8028 tokens, $0.0009_
 
-## Step 693: P2 deepseek/deepseek-v4.1-flash plays `bank 4 brick for 1 ore`
+## Step 693: P2 deepseek-v4.1-flash-off plays `bank 4 brick for 1 ore`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9784,7 +9784,7 @@ P2: VP 8 (5 settlements +1 vp card+2 longest road). No settlement pieces left; n
 
 _6022 tokens, $0.0006_
 
-## Step 694: P2 deepseek/deepseek-v4.1-flash plays `dev`
+## Step 694: P2 deepseek-v4.1-flash-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9798,7 +9798,7 @@ P2: VP 8 (5 settlements +1 vp card+2 longest road). No settlement pieces left; n
 
 _5971 tokens, $0.0013_
 
-## Step 695: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 695: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9812,7 +9812,7 @@ P2: VP 8 (5 settlements +1 vp card+2 longest road). Need city = 2 wheat + 3 ore.
 
 _5874 tokens, $0.0001_
 
-## Step 696: P3 openai/gpt-6-luna plays `roll`
+## Step 696: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9826,7 +9826,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 VP and longe
 
 _5533 tokens, $0.0005_
 
-## Step 697: P3 openai/gpt-6-luna plays `offer sheep for wheat to P2`
+## Step 697: P3 gpt-6-luna-off plays `offer sheep for wheat to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9840,7 +9840,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 VP and longe
 
 _6441 tokens, $0.0007_
 
-## Step 698: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 698: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -9854,7 +9854,7 @@ P2: VP 8 (5 settlements +1 vp card+2 longest road). Need city = 2 wheat + 3 ore;
 
 _5942 tokens, $0.0003_
 
-## Step 699: P3 openai/gpt-6-luna plays `offer sheep for wheat to P1`
+## Step 699: P3 gpt-6-luna-off plays `offer sheep for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9868,7 +9868,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2. P2 has 7 VP and longe
 
 _6436 tokens, $0.0007_
 
-## Step 700: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 700: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -9882,7 +9882,7 @@ Turn 126. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8373 tokens, $0.0010_
 
-## Step 701: P3 openai/gpt-6-luna plays `offer sheep for wheat to P1`
+## Step 701: P3 gpt-6-luna-off plays `offer sheep for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9896,7 +9896,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2, P2 has 7 plus longest
 
 _6468 tokens, $0.0007_
 
-## Step 702: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 702: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -9910,7 +9910,7 @@ Turn 126. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8231 tokens, $0.0010_
 
-## Step 703: P3 openai/gpt-6-luna plays `road e10`
+## Step 703: P3 gpt-6-luna-off plays `road e10`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9924,7 +9924,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2, P2 has 7 plus longest
 
 _5769 tokens, $0.0006_
 
-## Step 704: P3 openai/gpt-6-luna plays `end turn`
+## Step 704: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9938,7 +9938,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2, P2 has 7 plus longest
 
 _5424 tokens, $0.0005_
 
-## Step 705: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 705: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9952,7 +9952,7 @@ Turn 127. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7930 tokens, $0.0009_
 
-## Step 706: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 706: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9966,7 +9966,7 @@ Turn 127. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9653 tokens, $0.0011_
 
-## Step 707: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 707: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -9980,7 +9980,7 @@ P2: VP 8 (5 settlements +1 vp card+2 longest road). Need city = 2 wheat + 3 ore;
 
 _5938 tokens, $0.0003_
 
-## Step 708: P2 deepseek/deepseek-v4.1-flash plays `play knight h11 P3`
+## Step 708: P2 deepseek-v4.1-flash-off plays `play knight h11 P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -9994,7 +9994,7 @@ P2: 8 VP (5 settlements +1 vp card+2 longest road). Need a 10th point: city = 2 
 
 _6712 tokens, $0.0004_
 
-## Step 709: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P1`
+## Step 709: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10010,7 +10010,7 @@ P2: 8 VP (5 settlements +1 vp card+2 longest road). Need a 10th point: city = 2 
 
 _6355 tokens, $0.0006_
 
-## Step 710: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 710: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -10024,7 +10024,7 @@ Turn 128. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8166 tokens, $0.0009_
 
-## Step 711: P2 deepseek/deepseek-v4.1-flash plays `offer ore for wheat to P1`
+## Step 711: P2 deepseek-v4.1-flash-off plays `offer ore for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10038,7 +10038,7 @@ P2: 8 VP (5 settlements +1 vp card+2 longest road). Goal: build a city (2 wheat 
 
 _6255 tokens, $0.0003_
 
-## Step 712: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 712: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 ore for 1 wheat. Accept or decline.
 
@@ -10052,7 +10052,7 @@ Turn 128. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8054 tokens, $0.0009_
 
-## Step 713: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for ore to P1`
+## Step 713: P2 deepseek-v4.1-flash-off plays `offer sheep for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10066,7 +10066,7 @@ P2: 8 VP (5 settlements +1 vp card+2 longest road). Goal: city (2 wheat + 3 ore)
 
 _6358 tokens, $0.0003_
 
-## Step 714: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 714: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 ore. Accept or decline.
 
@@ -10080,7 +10080,7 @@ Turn 128. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8100 tokens, $0.0009_
 
-## Step 715: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 715: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10094,7 +10094,7 @@ P2: 8 VP (5 settlements +1 vp card+2 longest road). Goal: city (2 wheat + 3 ore)
 
 _6015 tokens, $0.0003_
 
-## Step 716: P3 openai/gpt-6-luna plays `roll`
+## Step 716: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10108,7 +10108,7 @@ P3 has 8 VP (3 settlements, 3 VPs, largest army); needs 2, P2 has 7 plus longest
 
 _5570 tokens, $0.0005_
 
-## Step 717: P3 openai/gpt-6-luna plays `dev`
+## Step 717: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10122,7 +10122,7 @@ P3 has 8 VP (3 settlements, 3 victory cards, largest army); needs 2, P2 has 7 pl
 
 _6148 tokens, $0.0006_
 
-## Step 718: P3 openai/gpt-6-luna plays `end turn`
+## Step 718: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10136,7 +10136,7 @@ P3 has 9 VP (3 settlements, 4 victory cards, largest army). P2 has 7 VP plus lon
 
 _5792 tokens, $0.0006_
 
-## Step 719: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 719: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10150,7 +10150,7 @@ Turn 128. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7966 tokens, $0.0009_
 
-## Step 720: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 720: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10164,7 +10164,7 @@ Turn 130. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9294 tokens, $0.0010_
 
-## Step 721: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 721: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10178,7 +10178,7 @@ P2: 8 VP (5 settlements +1 vp card+2 longest road). Goal: city (2 wheat + 3 ore)
 
 _5887 tokens, $0.0005_
 
-## Step 722: P2 deepseek/deepseek-v4.1-flash plays `dev`
+## Step 722: P2 deepseek-v4.1-flash-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10192,7 +10192,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Goal: reach 10. Bought a dev car
 
 _6411 tokens, $0.0015_
 
-## Step 723: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 723: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10206,7 +10206,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Hand empty. Just drew roadbuildi
 
 _5917 tokens, $0.0010_
 
-## Step 724: P3 openai/gpt-6-luna plays `roll`
+## Step 724: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10220,7 +10220,7 @@ P3 has 9 VP (3 settlements, 4 victory cards, largest army); P2 has 7 VP plus lon
 
 _5495 tokens, $0.0005_
 
-## Step 725: P3 openai/gpt-6-luna plays `offer wheat for brick to P1`
+## Step 725: P3 gpt-6-luna-off plays `offer wheat for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10234,7 +10234,7 @@ P3 is at 9 VP (3 settlements, 4 victory cards, largest army). P2 is at 7 plus lo
 
 _5799 tokens, $0.0006_
 
-## Step 726: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 726: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P3's offer: 1 wheat for 1 brick. Accept or decline.
 
@@ -10248,7 +10248,7 @@ Turn 132. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8106 tokens, $0.0009_
 
-## Step 727: P3 openai/gpt-6-luna plays `offer brick for sheep to P1`
+## Step 727: P3 gpt-6-luna-off plays `offer brick for sheep to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10262,7 +10262,7 @@ P3 is at 9 VP (3 settlements, 4 victory cards, largest army). P2 is at 7 plus lo
 
 _6255 tokens, $0.0006_
 
-## Step 728: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 728: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P3's offer: 1 brick for 1 sheep. Accept or decline.
 
@@ -10276,7 +10276,7 @@ Turn 132. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8076 tokens, $0.0009_
 
-## Step 729: P3 openai/gpt-6-luna plays `offer wheat for sheep to P2`
+## Step 729: P3 gpt-6-luna-off plays `offer wheat for sheep to P2`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10290,7 +10290,7 @@ P3 at 9 VP (3 settlements, 4 VP cards, largest army); a settlement wins. Needs s
 
 _6229 tokens, $0.0006_
 
-## Step 730: P2 deepseek/deepseek-v4.1-flash plays `decline`
+## Step 730: P2 deepseek-v4.1-flash-off plays `decline`
 
 Asked: Answer P3's offer: 1 wheat for 1 sheep. Accept or decline.
 
@@ -10304,7 +10304,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Hand empty. Dev: 1 roadbuilding 
 
 _6020 tokens, $0.0008_
 
-## Step 731: P3 openai/gpt-6-luna plays `end turn`
+## Step 731: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10318,7 +10318,7 @@ P3 has 9 VP and needs a settlement to win; has wood 1, brick 1, wheat 2 but no s
 
 _5672 tokens, $0.0005_
 
-## Step 732: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 732: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10332,7 +10332,7 @@ Turn 133. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _7900 tokens, $0.0009_
 
-## Step 733: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 733: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10346,7 +10346,7 @@ Turn 133. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9684 tokens, $0.0011_
 
-## Step 734: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 734: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10360,7 +10360,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _5902 tokens, $0.0001_
 
-## Step 735: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 735: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10374,7 +10374,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _6151 tokens, $0.0004_
 
-## Step 736: P3 openai/gpt-6-luna plays `roll`
+## Step 736: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10388,7 +10388,7 @@ P3 has 9 VP, needs one point (settlement/city or other) to win. Settlement goal 
 
 _5494 tokens, $0.0005_
 
-## Step 737: P3 openai/gpt-6-luna plays `end turn`
+## Step 737: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10402,7 +10402,7 @@ P3 has 9 VP, needs one point to win. Hand wood2 brick1 sheep2 wheat2, ore0; sett
 
 _6390 tokens, $0.0006_
 
-## Step 738: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 738: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10416,7 +10416,7 @@ Turn 136. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _8017 tokens, $0.0009_
 
-## Step 739: P1 anthropic/claude-haiku-5.5 plays `bank 2 brick for 1 wheat`
+## Step 739: P1 claude-haiku-5.5-off plays `bank 2 brick for 1 wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10430,7 +10430,7 @@ Turn 136. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9720 tokens, $0.0011_
 
-## Step 740: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 740: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10444,7 +10444,7 @@ Turn 136. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 largest 
 
 _9563 tokens, $0.0010_
 
-## Step 741: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 741: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10458,7 +10458,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _5917 tokens, $0.0004_
 
-## Step 742: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wood to P1`
+## Step 742: P2 deepseek-v4.1-flash-off plays `offer sheep for wood to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10472,7 +10472,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _6279 tokens, $0.0010_
 
-## Step 743: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 743: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wood. Accept or decline.
 
@@ -10486,7 +10486,7 @@ Turn 137. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8093 tokens, $0.0009_
 
-## Step 744: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for brick to P1`
+## Step 744: P2 deepseek-v4.1-flash-off plays `offer sheep for brick to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10500,7 +10500,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _6659 tokens, $0.0005_
 
-## Step 745: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 745: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 brick. Accept or decline.
 
@@ -10514,7 +10514,7 @@ Turn 137. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8055 tokens, $0.0009_
 
-## Step 746: P2 deepseek/deepseek-v4.1-flash plays `offer wheat for sheep to P1`
+## Step 746: P2 deepseek-v4.1-flash-off plays `offer wheat for sheep to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10528,7 +10528,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _6788 tokens, $0.0005_
 
-## Step 747: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 747: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 wheat for 1 sheep. Accept or decline.
 
@@ -10542,7 +10542,7 @@ Turn 137. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8046 tokens, $0.0009_
 
-## Step 748: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 748: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10564,7 +10564,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _6637 tokens, $0.0006_
 
-## Step 749: P3 openai/gpt-6-luna plays `roll`
+## Step 749: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10578,7 +10578,7 @@ P3 has 9 VP, needs one point to win. Holds 4 hidden VP cards, settlements 3 and 
 
 _5600 tokens, $0.0005_
 
-## Step 750: P3 openai/gpt-6-luna plays `dev`
+## Step 750: P3 gpt-6-luna-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10592,7 +10592,7 @@ P3 has 9 VP and needs one point to win. Holds 4 VP cards; settlements 3 and larg
 
 _6586 tokens, $0.0007_
 
-## Step 751: P3 openai/gpt-6-luna plays `end turn`
+## Step 751: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10606,7 +10606,7 @@ P3 has 9 VP and needs one point to win. Holds 4 VP cards; settlements 3 and larg
 
 _6375 tokens, $0.0007_
 
-## Step 752: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 752: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10620,7 +10620,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _7988 tokens, $0.0009_
 
-## Step 753: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 753: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 7 cards after a 7; choose one card.
 
@@ -10634,7 +10634,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _7996 tokens, $0.0009_
 
-## Step 754: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 754: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 6 cards after a 7; choose one card.
 
@@ -10648,7 +10648,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8007 tokens, $0.0009_
 
-## Step 755: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 755: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -10662,7 +10662,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _7990 tokens, $0.0009_
 
-## Step 756: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 756: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -10676,7 +10676,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _7994 tokens, $0.0009_
 
-## Step 757: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 757: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -10690,7 +10690,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8003 tokens, $0.0009_
 
-## Step 758: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 758: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -10704,7 +10704,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _7990 tokens, $0.0009_
 
-## Step 759: P1 anthropic/claude-haiku-5.5 plays `discard wheat`
+## Step 759: P1 claude-haiku-5.5-off plays `discard wheat`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -10718,7 +10718,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _7974 tokens, $0.0009_
 
-## Step 760: P1 anthropic/claude-haiku-5.5 plays `robber h13 P2`
+## Step 760: P1 claude-haiku-5.5-off plays `robber h13 P2`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -10732,7 +10732,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8656 tokens, $0.0010_
 
-## Step 761: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 761: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10746,7 +10746,7 @@ Turn 139. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _9559 tokens, $0.0010_
 
-## Step 762: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 762: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10760,7 +10760,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: 1 roadbuilding + 1 victoryp
 
 _5998 tokens, $0.0009_
 
-## Step 763: P2 deepseek/deepseek-v4.1-flash plays `offer sheep for wheat to P3`
+## Step 763: P2 deepseek-v4.1-flash-off plays `offer sheep for wheat to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10778,7 +10778,7 @@ P2: 8 VP (5 settlements +1 vp +2 longest road). Dev: roadbuilding + victorypoint
 
 _6912 tokens, $0.0015_
 
-## Step 764: P3 openai/gpt-6-luna plays `accept`
+## Step 764: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 sheep for 1 wheat. Accept or decline.
 
@@ -10792,7 +10792,7 @@ P3 has 9 VP and needs one point to win. Holds 4 VP cards; settlements 3 and larg
 
 _5609 tokens, $0.0005_
 
-## Step 765: P2 deepseek/deepseek-v4.1-flash plays `offer wheat for sheep to P1`
+## Step 765: P2 deepseek-v4.1-flash-off plays `offer wheat for sheep to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10812,7 +10812,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: roadbuilding + victorypoint. Roa
 
 _6973 tokens, $0.0012_
 
-## Step 766: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 766: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P2's offer: 1 wheat for 1 sheep. Accept or decline.
 
@@ -10826,7 +10826,7 @@ Turn 140. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9). P3 larges
 
 _8116 tokens, $0.0009_
 
-## Step 767: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 767: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10840,7 +10840,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: roadbuilding + victorypoint. Han
 
 _7038 tokens, $0.0012_
 
-## Step 768: P3 openai/gpt-6-luna plays `roll`
+## Step 768: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10854,7 +10854,7 @@ P3 has 9 VP and needs one point to win. Holds 4 VP cards; settlements 3 and larg
 
 _5444 tokens, $0.0005_
 
-## Step 769: P3 openai/gpt-6-luna plays `end turn`
+## Step 769: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10868,7 +10868,7 @@ P3 has 9 visible VP and 4 hidden VP cards, 3 settlements and largest army. P2 ha
 
 _6409 tokens, $0.0007_
 
-## Step 770: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 770: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10882,7 +10882,7 @@ Turn 142. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P1 has 5 kn
 
 _7939 tokens, $0.0009_
 
-## Step 771: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 771: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -10896,7 +10896,7 @@ Turn 142. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road 9 roads). P3 
 
 _9901 tokens, $0.0011_
 
-## Step 772: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 772: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -10910,7 +10910,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: roadbuilding + victorypoint. Han
 
 _5903 tokens, $0.0008_
 
-## Step 773: P1 anthropic/claude-haiku-5.5 plays `discard wheat`
+## Step 773: P1 claude-haiku-5.5-off plays `discard wheat`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -10924,7 +10924,7 @@ Turn 143 discarding after 7. Settlements v14,v22,v11,v15. P2 leads (7VP, longest
 
 _8110 tokens, $0.0009_
 
-## Step 774: P1 anthropic/claude-haiku-5.5 plays `discard wheat`
+## Step 774: P1 claude-haiku-5.5-off plays `discard wheat`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -10938,7 +10938,7 @@ Turn 143 discarding after 7. Settlements v14,v22,v11,v15. P2 leads (7VP, longest
 
 _8109 tokens, $0.0009_
 
-## Step 775: P1 anthropic/claude-haiku-5.5 plays `discard wood`
+## Step 775: P1 claude-haiku-5.5-off plays `discard wood`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -10952,7 +10952,7 @@ Turn 143 discarding after 7. Settlements v14,v22,v11,v15. P2 leads (7VP, longest
 
 _8082 tokens, $0.0009_
 
-## Step 776: P1 anthropic/claude-haiku-5.5 plays `discard brick`
+## Step 776: P1 claude-haiku-5.5-off plays `discard brick`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -10966,7 +10966,7 @@ Turn 143 discarding after 7. Settlements v14,v22,v11,v15. P2 leads (7VP, longest
 
 _8066 tokens, $0.0009_
 
-## Step 777: P1 anthropic/claude-haiku-5.5 plays `discard sheep`
+## Step 777: P1 claude-haiku-5.5-off plays `discard sheep`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -10980,7 +10980,7 @@ Turn 143 discarding after 7. Settlements v14,v22,v11,v15. P2 leads (7VP, longest
 
 _8049 tokens, $0.0009_
 
-## Step 778: P3 openai/gpt-6-luna plays `discard wheat`
+## Step 778: P3 gpt-6-luna-off plays `discard wheat`
 
 Asked: Discard 5 cards after a 7; choose one card.
 
@@ -10994,7 +10994,7 @@ P3 has 9 visible VP and 4 hidden VP cards (already at target including hidden). 
 
 _5570 tokens, $0.0005_
 
-## Step 779: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 779: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 4 cards after a 7; choose one card.
 
@@ -11008,7 +11008,7 @@ P3 at target from 5 visible plus 4 VP cards; 3 settlements, largest army. P2 7 V
 
 _5467 tokens, $0.0005_
 
-## Step 780: P3 openai/gpt-6-luna plays `discard sheep`
+## Step 780: P3 gpt-6-luna-off plays `discard sheep`
 
 Asked: Discard 3 cards after a 7; choose one card.
 
@@ -11022,7 +11022,7 @@ P3 at 9 VP, with four hidden VP cards; 3 settlements and largest army. P2 has 7 
 
 _5459 tokens, $0.0005_
 
-## Step 781: P3 openai/gpt-6-luna plays `discard wheat`
+## Step 781: P3 gpt-6-luna-off plays `discard wheat`
 
 Asked: Discard 2 cards after a 7; choose one card.
 
@@ -11036,7 +11036,7 @@ P3 at 9 VP with four hidden VP cards; 3 settlements and largest army. P2 has 7 V
 
 _5445 tokens, $0.0005_
 
-## Step 782: P3 openai/gpt-6-luna plays `discard wheat`
+## Step 782: P3 gpt-6-luna-off plays `discard wheat`
 
 Asked: Discard 1 cards after a 7; choose one card.
 
@@ -11050,7 +11050,7 @@ P3 at 9 VP with four hidden VP cards; 3 settlements and largest army. P2 has 7 V
 
 _5456 tokens, $0.0005_
 
-## Step 783: P2 deepseek/deepseek-v4.1-flash plays `robber h10 P3`
+## Step 783: P2 deepseek-v4.1-flash-off plays `robber h10 P3`
 
 Asked: Move the robber to a different hex and steal if possible.
 
@@ -11064,7 +11064,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: roadbuilding + victorypoint. Han
 
 _6404 tokens, $0.0016_
 
-## Step 784: P2 deepseek/deepseek-v4.1-flash plays `offer brick for wheat to P1`
+## Step 784: P2 deepseek-v4.1-flash-off plays `offer brick for wheat to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11078,7 +11078,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: roadbuilding + victorypoint. Han
 
 _6937 tokens, $0.0023_
 
-## Step 785: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 785: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 brick for 1 wheat. Accept or decline.
 
@@ -11092,7 +11092,7 @@ Turn 143 discarding after 7. Settlements v14,v22,v11,v15. P2 leads (7VP, longest
 
 _8163 tokens, $0.0009_
 
-## Step 786: P2 deepseek/deepseek-v4.1-flash plays `play roadbuilding`
+## Step 786: P2 deepseek-v4.1-flash-off plays `play roadbuilding`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11106,7 +11106,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: victorypoint 1 only after playin
 
 _6818 tokens, $0.0006_
 
-## Step 787: P2 deepseek/deepseek-v4.1-flash plays `road e63`
+## Step 787: P2 deepseek-v4.1-flash-off plays `road e63`
 
 Asked: Place a free road (2 left).
 
@@ -11120,7 +11120,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: victorypoint 1 (played roadbuild
 
 _6180 tokens, $0.0014_
 
-## Step 788: P2 deepseek/deepseek-v4.1-flash plays `bank 4 brick for 1 wheat`
+## Step 788: P2 deepseek-v4.1-flash-off plays `bank 4 brick for 1 wheat`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11134,7 +11134,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: victorypoint 1. Hand now: wood2 
 
 _6553 tokens, $0.0002_
 
-## Step 789: P2 deepseek/deepseek-v4.1-flash plays `offer wheat for ore to P3`
+## Step 789: P2 deepseek-v4.1-flash-off plays `offer wheat for ore to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11148,7 +11148,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: victorypoint 1. Hand now: wood2 
 
 _6368 tokens, $0.0014_
 
-## Step 790: P3 openai/gpt-6-luna plays `decline`
+## Step 790: P3 gpt-6-luna-off plays `decline`
 
 Asked: Answer P2's offer: 1 wheat for 1 ore. Accept or decline.
 
@@ -11162,7 +11162,7 @@ P3 at 9 VP with four hidden VP cards; 3 settlements and largest army. P2 has 7 V
 
 _5550 tokens, $0.0005_
 
-## Step 791: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 791: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11176,7 +11176,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Dev: victorypoint 1. Hand: wood2 shee
 
 _6501 tokens, $0.0006_
 
-## Step 792: P3 openai/gpt-6-luna plays `roll`
+## Step 792: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -11190,7 +11190,7 @@ P3 has 9 VP and should win immediately upon reaching 10; four VP development car
 
 _5397 tokens, $0.0005_
 
-## Step 793: P3 openai/gpt-6-luna plays `play roadbuilding`
+## Step 793: P3 gpt-6-luna-off plays `play roadbuilding`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11204,7 +11204,7 @@ P3 at 9 VP (3 settlements, 4 hidden VP cards, largest army); winning immediately
 
 _6417 tokens, $0.0007_
 
-## Step 794: P3 openai/gpt-6-luna plays `road e14`
+## Step 794: P3 gpt-6-luna-off plays `road e14`
 
 Asked: Place a free road (2 left).
 
@@ -11218,7 +11218,7 @@ P3 at 9 VP (3 settlements, 4 hidden VP cards, largest army); next point wins. P2
 
 _5704 tokens, $0.0006_
 
-## Step 795: P3 openai/gpt-6-luna plays `road e7`
+## Step 795: P3 gpt-6-luna-off plays `road e7`
 
 Asked: Place a free road (1 left).
 
@@ -11232,7 +11232,7 @@ P3 at 9 VP (3 settlements, 4 hidden VP cards, largest army); next point wins. P2
 
 _5730 tokens, $0.0006_
 
-## Step 796: P3 openai/gpt-6-luna plays `end turn`
+## Step 796: P3 gpt-6-luna-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11246,7 +11246,7 @@ P3 at 9 VP (3 settlements, 4 hidden VP cards, largest army); next point wins. P2
 
 _6448 tokens, $0.0007_
 
-## Step 797: P1 anthropic/claude-haiku-5.5 plays `roll`
+## Step 797: P1 claude-haiku-5.5-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -11260,7 +11260,7 @@ Turn 145. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 5VP larg
 
 _8107 tokens, $0.0009_
 
-## Step 798: P1 anthropic/claude-haiku-5.5 plays `dev`
+## Step 798: P1 claude-haiku-5.5-off plays `dev`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11274,7 +11274,7 @@ Turn 145. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 5VP larg
 
 _9653 tokens, $0.0011_
 
-## Step 799: P1 anthropic/claude-haiku-5.5 plays `end turn`
+## Step 799: P1 claude-haiku-5.5-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11288,7 +11288,7 @@ Turn 145. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 5VP larg
 
 _8823 tokens, $0.0010_
 
-## Step 800: P2 deepseek/deepseek-v4.1-flash plays `roll`
+## Step 800: P2 deepseek-v4.1-flash-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -11302,7 +11302,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Hand wood2 sheep1 wheat2. Road 9, hol
 
 _5930 tokens, $0.0003_
 
-## Step 801: P2 deepseek/deepseek-v4.1-flash plays `offer wood for ore to P1`
+## Step 801: P2 deepseek-v4.1-flash-off plays `offer wood for ore to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11316,7 +11316,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Hand wood2 brick2 sheep2 wheat2 ore0.
 
 _6592 tokens, $0.0022_
 
-## Step 802: P1 anthropic/claude-haiku-5.5 plays `decline`
+## Step 802: P1 claude-haiku-5.5-off plays `decline`
 
 Asked: Answer P2's offer: 1 wood for 1 ore. Accept or decline.
 
@@ -11330,7 +11330,7 @@ Turn 146. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 5VP larg
 
 _8083 tokens, $0.0009_
 
-## Step 803: P2 deepseek/deepseek-v4.1-flash plays `offer wood for ore to P3`
+## Step 803: P2 deepseek-v4.1-flash-off plays `offer wood for ore to P3`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11344,7 +11344,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Hand wood2 brick2 sheep2 wheat2 ore0.
 
 _6561 tokens, $0.0022_
 
-## Step 804: P3 openai/gpt-6-luna plays `accept`
+## Step 804: P3 gpt-6-luna-off plays `accept`
 
 Asked: Answer P2's offer: 1 wood for 1 ore. Accept or decline.
 
@@ -11358,7 +11358,7 @@ P3 at 9 VP (3 settlements, 4 hidden VP cards, largest army); next point wins. P2
 
 _5645 tokens, $0.0006_
 
-## Step 805: P2 deepseek/deepseek-v4.1-flash plays `end turn`
+## Step 805: P2 deepseek-v4.1-flash-off plays `end turn`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11372,7 +11372,7 @@ P2: 8 VP (5 settle +1 vp +2 longest road). Hand wood1 brick2 sheep2 wheat2 ore1 
 
 _6795 tokens, $0.0007_
 
-## Step 806: P3 openai/gpt-6-luna plays `roll`
+## Step 806: P3 gpt-6-luna-off plays `roll`
 
 Asked: Roll the two dice.
 
@@ -11386,7 +11386,7 @@ P3 at 9 VP (3 settlements, 4 hidden VP cards, largest army); next point wins. P2
 
 _5460 tokens, $0.0005_
 
-## Step 807: P3 openai/gpt-6-luna plays `offer wheat for sheep to P1`
+## Step 807: P3 gpt-6-luna-off plays `offer wheat for sheep to P1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11400,7 +11400,7 @@ P3 has 9 VP and wins immediately upon next point; 3 settlements, 4 victory cards
 
 _6422 tokens, $0.0007_
 
-## Step 808: P1 anthropic/claude-haiku-5.5 plays `accept`
+## Step 808: P1 claude-haiku-5.5-off plays `accept`
 
 Asked: Answer P3's offer: 1 wheat for 1 sheep. Accept or decline.
 
@@ -11414,7 +11414,7 @@ Turn 147. Settlements v14,v22,v11,v15. P2 leads (7VP, longest road). P3 5VP larg
 
 _8233 tokens, $0.0009_
 
-## Step 809: P3 openai/gpt-6-luna plays `road e1`
+## Step 809: P3 gpt-6-luna-off plays `road e1`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11432,7 +11432,7 @@ P3 is at 9 VP, needs one point. Settlement attempts v12 and v13 failed due to ad
 
 _20126 tokens, $0.0010_
 
-## Step 810: P3 openai/gpt-6-luna plays `bank 4 wheat for 1 brick`
+## Step 810: P3 gpt-6-luna-off plays `bank 4 wheat for 1 brick`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11446,7 +11446,7 @@ P3 at 9 VP (3 settlements, 4 hidden VPs, largest army). Need one point. Hand bef
 
 _6089 tokens, $0.0006_
 
-## Step 811: P3 openai/gpt-6-luna plays `settle v0`
+## Step 811: P3 gpt-6-luna-off plays `settle v0`
 
 Asked: Build, trade, play a development card, or end your turn.
 
@@ -11462,6 +11462,6 @@ _6420 tokens, $0.0006_
 
 ## Finished after 811 steps
 
-- #1 P3 openai/gpt-6-luna: 10 points
-- #2 P2 deepseek/deepseek-v4.1-flash: 8 points
-- #3 P1 anthropic/claude-haiku-5.5: 4 points
+- #1 P3 gpt-6-luna-off: 10 points
+- #2 P2 deepseek-v4.1-flash-off: 8 points
+- #3 P1 claude-haiku-5.5-off: 4 points

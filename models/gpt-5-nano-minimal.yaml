@@ -1,0 +1,4 @@
+model: openai/gpt-5-nano
+reasoning: true
+reasoning_effort: minimal
+verbosity: low
