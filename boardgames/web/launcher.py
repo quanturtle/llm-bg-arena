@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict
 from boardgames.arena.clock import Clock, SystemClock
 from boardgames.arena.control import PauseGate
 from boardgames.arena.lineup import (
+    DEFAULT_MODEL_CONFIGS,
     DEFAULT_REPLIES,
     PreparedMatch,
     new_match_id,
@@ -29,6 +30,7 @@ from boardgames.arena.lineup import (
     run_prepared,
 )
 from boardgames.arena.match_config import parse_match_config
+from boardgames.arena.model_configs import ModelConfigs
 from boardgames.core import ArenaError, ConfigError
 from boardgames.llm.cache import ResponseStore
 from boardgames.llm.model import ChatModel
@@ -88,13 +90,15 @@ class MatchLauncher:
         clock: Clock | None = None,
         id_factory: Callable[[], str] = new_match_id,
         replies: ResponseStore = DEFAULT_REPLIES,
+        configs: ModelConfigs = DEFAULT_MODEL_CONFIGS,
         open_files: Callable[
             [PreparedMatch], AbstractContextManager[RecordSink]
         ] = open_match_files,
     ) -> None:
         """`model` serves every seat; with None (no API key) each start raises.
 
-        The clock, match ids, reply cache and log files are injectable for tests.
+        `configs` holds the saved model configs that seats name. The clock, match
+        ids, reply cache and log files are injectable for tests.
         """
         self._runs_dir = runs_dir
         self._model = model
@@ -102,6 +106,7 @@ class MatchLauncher:
         self._clock = clock or SystemClock()
         self._id_factory = id_factory
         self._replies = replies
+        self._configs = configs
         self._open_files = open_files
         self._launched: dict[str, Running] = {}
         self._tasks: dict[str, asyncio.Task[None]] = {}
@@ -132,6 +137,7 @@ class MatchLauncher:
                 use_config_log=False,
                 id_factory=self._id_factory,
                 replies=self._replies,
+                configs=self._configs,
                 clock=self._clock,
             )
         )

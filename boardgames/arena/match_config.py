@@ -2,8 +2,9 @@
 
 A file is read once into frozen pydantic models. Unknown keys are errors. Every
 seat is a language model; with no `seats`, every player is the default model.
-Each seat carries its own model and settings; what it leaves unset takes the
-built-in default (DEFAULT_MODEL, ModelSettings, PromptSettings, LlmAgentSettings).
+A seat names a saved model config, or carries its own model and settings; what
+it leaves unset takes the built-in default (DEFAULT_MODEL, ModelSettings,
+PromptSettings, LlmAgentSettings).
 """
 
 from dataclasses import replace
@@ -15,6 +16,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    PlainValidator,
     StringConstraints,
     ValidationError,
     model_validator,
@@ -137,6 +139,25 @@ class LlmSeat(LlmOptions):
     seed: int | None = None
 
 
+class ConfigSeat(ConfigModel):
+    """A seat that plays a saved model config, with none of its settings changed."""
+
+    config: ModelConfigName
+    seed: int | None = None
+
+
+def parse_seat(raw: object) -> object:
+    """A seat as the shape its keys call for: a `config` key makes a config seat."""
+    if isinstance(raw, ConfigSeat | LlmSeat):
+        return raw
+    if isinstance(raw, dict) and "config" in raw:
+        return ConfigSeat.model_validate(raw)
+    return LlmSeat.model_validate(raw)
+
+
+type Seat = Annotated[ConfigSeat | LlmSeat, PlainValidator(parse_seat)]
+
+
 class MatchConfig(ConfigModel):
     """One match: `seats` left out means every player is the default model.
 
@@ -148,7 +169,7 @@ class MatchConfig(ConfigModel):
     seed: int = 0
     log: Path | None = None
     cache: bool = False
-    seats: list[LlmSeat] | None = None
+    seats: list[Seat] | None = None
 
 
 def load_match_config(path: Path) -> MatchConfig:
@@ -190,6 +211,8 @@ def problem_text(problem: ErrorDetails) -> str:
 def check_reasoning(config: MatchConfig, source: str) -> None:
     """Raise ConfigError if a seat's reasoning settings contradict each other."""
     for index, seat in enumerate(config.seats or []):
+        if isinstance(seat, ConfigSeat):
+            continue
         problem = reasoning_conflict(
             seat.reasoning, seat.reasoning_effort, seat.thinking_budget_tokens
         )
@@ -198,7 +221,7 @@ def check_reasoning(config: MatchConfig, source: str) -> None:
     return
 
 
-def seats_for(config: MatchConfig, num_players: int) -> list[LlmSeat]:
+def seats_for(config: MatchConfig, num_players: int) -> list[ConfigSeat | LlmSeat]:
     """The seats to fill, one per player; with no `seats`, each is the default model."""
     if config.seats is None:
         return [LlmSeat() for _ in range(num_players)]

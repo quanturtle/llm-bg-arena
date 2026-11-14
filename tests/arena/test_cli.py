@@ -13,8 +13,11 @@ from boardgames.arena.lineup import (
     player_names,
     prepare_match,
 )
-from boardgames.arena.match_config import LlmSeat, parse_match_config
+from boardgames.arena.match_config import LlmSeat, ModelConfig, parse_match_config
+from boardgames.arena.model_configs import DirectoryModelConfigs
+from boardgames.core import ConfigError
 from boardgames.llm.cache import DirectoryResponseStore
+from boardgames.llm.model import ModelSettings
 from tests.arena.support import FakeClock
 from tests.llm.fakes import FirstListedMove
 
@@ -150,6 +153,37 @@ def test_prepare_match_accepts_ids_paths_replies_and_clock(tmp_path: Path) -> No
     assert prepared.match_id == "chosen"
     assert (prepared.log_path, prepared.thoughts_path) == (log, thoughts)
     assert prepared.clock.now_iso() == FakeClock().now_iso()
+    return
+
+
+def test_config_seats_play_the_saved_config_under_its_name(tmp_path: Path) -> None:
+    configs = DirectoryModelConfigs(tmp_path / "models")
+    configs.save("haiku-low", ModelConfig(model="a/haiku", reasoning_effort="low"))
+    seats = [{"config": "haiku-low"}, {"config": "haiku-low"}]
+    config = parse_match_config({"game": "tic_tac_toe", "seats": seats}, "test")
+    prepared = prepare_match(config, FirstListedMove(), tmp_path, configs=configs)
+    first = prepared.agents[0]
+    assert [agent.name for agent in prepared.agents] == ["haiku-low #1", "haiku-low #2"]
+    assert first.settings()["config"] == "haiku-low"
+    assert (
+        first.settings()["model"]
+        == ModelSettings(
+            model="a/haiku",
+            reasoning=True,
+            reasoning_effort="low",
+            seed=derive_seed(0, 0) % 2**31,
+        ).to_json()
+    )
+    return
+
+
+def test_seat_label_that_is_a_saved_config_is_rejected(tmp_path: Path) -> None:
+    configs = DirectoryModelConfigs(tmp_path)
+    configs.save("haiku-low", ModelConfig(model="a/haiku"))
+    seats = [{"label": "haiku-low"}, {}]
+    config = parse_match_config({"game": "tic_tac_toe", "seats": seats}, "test")
+    with pytest.raises(ConfigError, match="is a saved model config"):
+        prepare_match(config, FirstListedMove(), tmp_path, configs=configs)
     return
 
 

@@ -76,6 +76,8 @@ class LlmAgentSettings:
     max_tool_calls: int = 12
     fallback: FallbackPolicy = "random"
     label: str | None = None
+    # the saved model config the seat plays, None for a seat with its own settings
+    config: str | None = None
 
 
 @dataclass(frozen=True)
@@ -124,6 +126,7 @@ class LlmAgent:
         prompt = self._settings.prompt
         return {
             "kind": "llm",
+            "config": self._settings.config,
             "model": self._settings.model.to_json(),
             "prompt_version": PROMPT_VERSION,
             "prompt_fingerprint": prompt_fingerprint(),

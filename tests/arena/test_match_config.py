@@ -5,6 +5,7 @@ import yaml
 
 from boardgames.arena.match_config import (
     DEFAULT_MODEL,
+    ConfigSeat,
     LlmSeat,
     MatchConfig,
     llm_agent_settings,
@@ -43,7 +44,9 @@ def full_config() -> MatchConfig:
 
 def llm_seat(config: MatchConfig, index: int) -> LlmSeat:
     assert config.seats is not None
-    return config.seats[index]
+    seat = config.seats[index]
+    assert isinstance(seat, LlmSeat)
+    return seat
 
 
 def test_full_file_loads(tmp_path: Path) -> None:
@@ -54,8 +57,7 @@ def test_full_file_loads(tmp_path: Path) -> None:
     assert config.config == {"num_players": 3}
     assert config.log == Path("runs/puerto_rico.jsonl")
     assert config.cache is True
-    assert config.seats is not None
-    assert llm_agent_settings(config.seats[2], 0).model.model == DEFAULT_MODEL
+    assert llm_agent_settings(llm_seat(config, 2), 0).model.model == DEFAULT_MODEL
     return
 
 
@@ -129,7 +131,18 @@ def test_seats_default_to_the_default_model_and_counts_must_match() -> None:
     assert seats == [LlmSeat(), LlmSeat()]
     assert llm_agent_settings(LlmSeat(), 1).model.model == DEFAULT_MODEL
     bare = parse_match_config({"game": "x", "seats": [{}, {"model": "a/b"}]}, "t")
-    assert [seat.model for seat in bare.seats or []] == [None, "a/b"]
+    assert [llm_seat(bare, index).model for index in range(2)] == [None, "a/b"]
     with pytest.raises(ConfigError, match="seats 2 players but the file lists 3"):
         seats_for(full_config(), 2)
+    return
+
+
+def test_seat_names_a_saved_config_and_changes_none_of_its_settings() -> None:
+    raw = {"game": "x", "seats": [{"config": "haiku-low", "seed": 4}]}
+    assert parse_match_config(raw, "t").seats == [
+        ConfigSeat(config="haiku-low", seed=4)
+    ]
+    raw = {"game": "x", "seats": [{"config": "haiku-low", "temperature": 1}]}
+    with pytest.raises(ConfigError, match=r"seats\.0\.temperature: Extra inputs"):
+        parse_match_config(raw, "t")
     return

@@ -34,6 +34,7 @@ from boardgames.arena.lineup import (
     run_prepared,
 )
 from boardgames.arena.match_config import load_match_config
+from boardgames.arena.model_configs import DirectoryModelConfigs
 from boardgames.arena.viewer import build_viewer, run_build_command, viewer_is_stale
 from boardgames.core import ArenaError, ConfigError
 from boardgames.games import game_ids
@@ -49,6 +50,7 @@ from boardgames.web.store import MatchStore
 
 DEFAULT_LOG_DIR = Path("runs")
 DEFAULT_EXAMPLES_DIR = Path("examples")
+DEFAULT_MODELS_DIR = Path("models")
 VIEWER_SOURCES = Path("web")
 DEFAULT_VIEWER_DIR = VIEWER_SOURCES / "out"
 VIEWER_BUILD_COMMAND = "pnpm --dir web install && pnpm --dir web build"
@@ -115,8 +117,20 @@ def add_play_command(commands: Commands) -> None:
     parser.add_argument(
         "--log", type=Path, help="log path (default: the file's log, else runs/...)"
     )
+    add_models_argument(parser)
     parser.add_argument("--quiet", action="store_true", help="print only the result")
     parser.set_defaults(handler=play)
+    return
+
+
+def add_models_argument(parser: argparse.ArgumentParser) -> None:
+    """`--models DIR`: where the saved model configs that seats name are kept."""
+    parser.add_argument(
+        "--models",
+        type=Path,
+        default=DEFAULT_MODELS_DIR,
+        help="saved model configs, one YAML file each (default models/)",
+    )
     return
 
 
@@ -157,6 +171,7 @@ def add_serve_command(commands: Commands) -> None:
         default=DEFAULT_EXAMPLES_DIR,
         help="match configs offered on the new-match page",
     )
+    add_models_argument(parser)
     parser.add_argument(
         "--viewer",
         type=Path,
@@ -201,6 +216,7 @@ def play(args: argparse.Namespace, config: AppConfig) -> None:
         DEFAULT_LOG_DIR,
         seed=args.seed,
         log=args.log,
+        configs=DirectoryModelConfigs(args.models),
     )
     console = None if args.quiet else sys.stdout
     result = asyncio.run(run_prepared(prepared, console))
@@ -299,7 +315,12 @@ def serve(args: argparse.Namespace, config: AppConfig) -> None:
     game_ids()
     viewer = current_viewer(args.viewer)
     opened = () if args.log is None else (args.log,)
-    launcher = MatchLauncher(args.runs, config.chat_model(), args.examples)
+    launcher = MatchLauncher(
+        args.runs,
+        config.chat_model(),
+        args.examples,
+        configs=DirectoryModelConfigs(args.models),
+    )
     print(f"Serving {args.runs} at http://{args.host}:{args.port}/")
     store = MatchStore(args.runs, read_only=opened)
     app = create_app(store, launcher, OpenRouterCatalog(), viewer)

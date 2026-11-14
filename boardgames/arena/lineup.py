@@ -19,11 +19,13 @@ from boardgames.arena.clock import Clock, SystemClock
 from boardgames.arena.console import ConsoleLog
 from boardgames.arena.control import MatchControl
 from boardgames.arena.match_config import (
+    ConfigSeat,
     LlmSeat,
     MatchConfig,
     llm_agent_settings,
     seats_for,
 )
+from boardgames.arena.model_configs import DirectoryModelConfigs, ModelConfigs
 from boardgames.arena.runner import ALWAYS_RUNNING, MatchResult, play_match
 from boardgames.core import AnyGame, ConfigError, GameConfig, create_game
 from boardgames.llm.cache import (
@@ -40,6 +42,7 @@ from boardgames.logs.thoughts import ThoughtsFile, thoughts_path
 
 DEFAULT_CACHE_DIR = Path(".arena_cache")
 DEFAULT_REPLIES = DirectoryResponseStore(DEFAULT_CACHE_DIR)
+DEFAULT_MODEL_CONFIGS = DirectoryModelConfigs(Path("models"))
 API_KEY_VARIABLE = "OPENROUTER_API_KEY"
 
 
@@ -82,6 +85,37 @@ def derive_seed(match_seed: int, seat: int) -> int:
     return int.from_bytes(digest[:8], "big")
 
 
+@dataclass(frozen=True)
+class Player:
+    """A seat's settings, and the saved model config they came from, if any."""
+
+    seat: LlmSeat
+    config: str | None = None
+
+
+def players_for(
+    seats: Sequence[ConfigSeat | LlmSeat], configs: ModelConfigs
+) -> list[Player]:
+    """Each seat with its settings: a config seat takes the saved config's, under
+    the config's name. A seat's own label may not be a saved config's name, which
+    would put its results in that config's leaderboard row."""
+    saved = set(configs.names())
+    players = []
+    for index, seat in enumerate(seats):
+        if isinstance(seat, ConfigSeat):
+            settings = configs.get(seat.config).model_dump()
+            named = LlmSeat(**settings, label=seat.config, seed=seat.seed)
+            players.append(Player(named, seat.config))
+            continue
+        if seat.label in saved:
+            raise ConfigError(
+                f"seats.{index}: the label {seat.label!r} is a saved model config; "
+                f"use `config: {seat.label}` or another label"
+            )
+        players.append(Player(seat))
+    return players
+
+
 def player_names(seats: Sequence[LlmSeat]) -> list[str]:
     """Each seat's label or model; names that repeat get #1, #2... in seat order."""
     bases = [seat.label or llm_agent_settings(seat, 0).model.model for seat in seats]
@@ -103,14 +137,17 @@ def agent_for_seat(
     match_seed: int,
     index: int,
     model: ChatModel,
+    config: str | None = None,
 ) -> Agent:
     """The language model player for one seat, called `name` in logs and the viewer.
+
+    `config` is the saved model config the seat plays, recorded with its settings.
 
     A seat's `seed` replaces the derived seed for the model only, reduced below 2**31.
     """
     seed = derive_seed(match_seed, index)
     model_seed = (seed if seat.seed is None else seat.seed) % 2**31
-    settings = replace(llm_agent_settings(seat, model_seed), label=name)
+    settings = replace(llm_agent_settings(seat, model_seed), label=name, config=config)
     extractor = None
     if seat.extractor is not None:
         extractor_settings = ModelSettings(
@@ -131,24 +168,27 @@ def prepare_match(
     use_config_log: bool = True,
     id_factory: Callable[[], str] = new_match_id,
     replies: ResponseStore = DEFAULT_REPLIES,
+    configs: ModelConfigs = DEFAULT_MODEL_CONFIGS,
     clock: Clock | None = None,
 ) -> PreparedMatch:
     """Agents and log paths for a config; the keyword arguments override defaults.
 
-    `model` serves every seat; None (no API key) is a ConfigError.
+    `model` serves every seat; None (no API key) is a ConfigError. `configs` holds
+    the saved model configs that seats name.
     """
     game = create_game(config.game)
     game_config = game.parse_config(config.config)
     match_seed = config.seed if seed is None else seed
-    seats = seats_for(config, game_config.num_players)
+    players = players_for(seats_for(config, game_config.num_players), configs)
+    seats = [player.seat for player in players]
     if model is None:
         first = llm_agent_settings(seats[0], 0).model.model
         raise ConfigError(f"set {API_KEY_VARIABLE} in .env to seat {first!r}")
     stack = with_cache(model, config.cache, replies)
     agents = [
-        agent_for_seat(seat, name, match_seed, index, stack)
-        for index, (seat, name) in enumerate(
-            zip(seats, player_names(seats), strict=True)
+        agent_for_seat(player.seat, name, match_seed, index, stack, player.config)
+        for index, (player, name) in enumerate(
+            zip(players, player_names(seats), strict=True)
         )
     ]
     match_id = id_factory()
