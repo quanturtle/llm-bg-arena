@@ -1,5 +1,7 @@
 # Terra Mystica
 
+The source of truth for these rules is [Yucata's Terra Mystica rules](https://www.yucata.de/en/Rules/TerraMystica). If this summary and that page disagree, that page wins.
+
 ## Goal
 Build the most victory points over the configured number of rounds (six by
 default). Points come from buildings, towns, shipping and digging tracks, cult
