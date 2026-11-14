@@ -6,6 +6,7 @@ from typing import Literal, cast
 
 from boardgames.core import JsonValue, PlayerId, Rng
 from boardgames.games.terra_mystica.constants import (
+    BASE_MAP_ROWS,
     CULT_ORDER,
     CULT_POWER_THRESHOLDS,
     FACTION_BY_TYPE,
@@ -28,7 +29,6 @@ from boardgames.games.terra_mystica.constants import (
     ScoringTile,
     Terrain,
 )
-from boardgames.games.terra_mystica.maps import MAP_ROWS
 
 type Phase = Literal[
     "setup",
@@ -108,9 +108,9 @@ class Tile:
         return self.terrain is not Terrain.RIVER
 
 
-def _map_tiles(name: str) -> tuple[tuple[Hex, Terrain], ...]:
+def _base_tiles() -> tuple[tuple[Hex, Terrain], ...]:
     items: list[tuple[Hex, Terrain]] = []
-    for row_number, row in MAP_ROWS[name]:
+    for row_number, row in enumerate(BASE_MAP_ROWS):
         start_q = -(row_number // 2)
         for offset, terrain in enumerate(row):
             items.append((Hex(start_q + offset, row_number), terrain))
@@ -119,7 +119,7 @@ def _map_tiles(name: str) -> tuple[tuple[Hex, Terrain], ...]:
 
 @dataclass(frozen=True)
 class Board:
-    """One map's immutable tiles and its buildings."""
+    """The standard map's immutable tiles and its buildings."""
 
     tiles: tuple[Tile, ...]
     index: tuple[Hex, ...] = ()
@@ -132,14 +132,8 @@ class Board:
 
     @classmethod
     def base(cls) -> "Board":
-        return cls.for_map("standard")
-
-    @classmethod
-    def for_map(cls, name: str) -> "Board":
-        if name not in MAP_ROWS:
-            raise ValueError(f"unknown map {name!r}")
         return cls(
-            tuple(Tile(position, terrain) for position, terrain in _map_tiles(name))
+            tuple(Tile(position, terrain) for position, terrain in _base_tiles())
         )
 
     def tile(self, position: Hex) -> Tile | None:
@@ -384,11 +378,10 @@ class PowerGain:
 
 @dataclass(frozen=True)
 class TerraMysticaConfig:
-    """Table size, length, map and optional rules modules."""
+    """Table size, length and optional rules modules."""
 
     num_players: int = 2
     rounds: int = 6
-    map_variant: Literal["standard", "fjords", "lakes"] = "standard"
     bonus_cards: bool = True
     faction_choice: bool = True
     variable_points: bool = False

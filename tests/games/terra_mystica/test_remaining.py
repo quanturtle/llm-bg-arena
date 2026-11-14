@@ -1,7 +1,6 @@
 """Tests for bonus cards, special actions, faction abilities and variants."""
 
 from dataclasses import replace
-from typing import Literal
 
 from boardgames.core import PlayerId
 from boardgames.games.terra_mystica import (
@@ -59,7 +58,6 @@ def _playing(
     players: int = 2,
     seed: int = 1,
     rounds: int = 1,
-    map_variant: Literal["standard", "fjords", "lakes"] = "standard",
     bonus_cards: bool = False,
     faction_choice: bool = False,
     variable_points: bool = False,
@@ -70,7 +68,6 @@ def _playing(
         TerraMysticaConfig(
             num_players=players,
             rounds=rounds,
-            map_variant=map_variant,
             bonus_cards=bonus_cards,
             faction_choice=faction_choice,
             variable_points=variable_points,
@@ -112,15 +109,6 @@ def _empty_land(state: TerraMysticaState, terrain: Terrain | None = None) -> Hex
         and tile.building is None
         and (terrain is None or tile.terrain is terrain)
     )
-
-
-def test_map_variants_load() -> None:
-    standard = _playing()
-    fjords = _playing(map_variant="fjords")
-    lakes = _playing(map_variant="lakes")
-    assert len(standard.board.tiles) == 113
-    assert len(fjords.board.tiles) == 113
-    assert len(lakes.board.tiles) == 112
 
 
 def test_faction_choice_and_fixed_setup() -> None:

@@ -14,10 +14,9 @@ starting cult positions, building costs and a few rules exceptions. You may only
 build on your home terrain, so you must transform neighbouring terrain to expand.
 
 This implementation uses the standard 113-tile base map, all fourteen base-game
-factions and their starting resources, building costs and cost/track exceptions,
-and the optional Fjords and Lakes maps (113 and 112 tiles). Dwarves may tunnel
-two spaces and Fakirs may fly two spaces (three with a stronghold), so both can
-build and score across rivers. Bonus cards, the faction special actions, the
+factions and their starting resources, building costs and cost/track exceptions.
+Dwarves may tunnel two spaces and Fakirs may fly two spaces (three with a
+stronghold), so both can build and score across rivers. Bonus cards, the faction special actions, the
 Auren/Alchemists/Engineers/Cultists abilities, faction choice, variable starting
 points, promo town tiles and the fixed beginner setup are implemented.
 
@@ -146,8 +145,8 @@ collect any coins on it. Each end of round adds 1 coin to every available card.
 ## Setup variants
 Faction choice is used by default; players choose unused factions in play order.
 The fixed beginner setup uses the recommended factions instead. Variable points
-give factions their published starting VP for the chosen map. The Fjords and
-Lakes maps replace the base terrain layout. Promo town tiles add three tile
+give factions their published starting VP for the standard map. Promo town
+tiles add three tile
 kinds: 2 VP, +2 on every cult and 2 keys; 4 VP with a shipping step (or an extra
 Fakir flight space); and 11 VP. Pass order still determines the next round's
 starting player.

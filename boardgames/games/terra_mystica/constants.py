@@ -287,42 +287,20 @@ BONUS_CARDS: tuple[BonusCard, ...] = (
 
 BONUS_CARD_COUNTS: tuple[int, ...] = (5, 6, 7, 8)
 
-VARIABLE_START_VP: dict[str, dict[FactionType, int]] = {
-    "standard": {
-        FactionType.DARKLINGS: 15,
-        FactionType.CULTISTS: 16,
-        FactionType.ENGINEERS: 16,
-        FactionType.CHAOS_MAGICIANS: 19,
-        FactionType.MERMAIDS: 19,
-        FactionType.NOMADS: 19,
-        FactionType.WITCHES: 19,
-        FactionType.SWARMLINGS: 22,
-        FactionType.GIANTS: 25,
-        FactionType.ALCHEMISTS: 27,
-        FactionType.AUREN: 27,
-        FactionType.FAKIRS: 33,
-    },
-    "fjords": {
-        FactionType.NOMADS: 15,
-        FactionType.WITCHES: 15,
-        FactionType.CULTISTS: 15,
-        FactionType.DARKLINGS: 15,
-        FactionType.FAKIRS: 25,
-        FactionType.HALFLINGS: 25,
-        FactionType.AUREN: 25,
-        FactionType.GIANTS: 25,
-        FactionType.ALCHEMISTS: 25,
-    },
-    "lakes": {
-        FactionType.NOMADS: 15,
-        FactionType.ENGINEERS: 15,
-        FactionType.CULTISTS: 15,
-        FactionType.DARKLINGS: 15,
-        FactionType.FAKIRS: 25,
-        FactionType.SWARMLINGS: 25,
-        FactionType.GIANTS: 25,
-        FactionType.DWARVES: 30,
-    },
+# starting victory points on the standard map; a faction left out starts at 20
+VARIABLE_START_VP: dict[FactionType, int] = {
+    FactionType.DARKLINGS: 15,
+    FactionType.CULTISTS: 16,
+    FactionType.ENGINEERS: 16,
+    FactionType.CHAOS_MAGICIANS: 19,
+    FactionType.MERMAIDS: 19,
+    FactionType.NOMADS: 19,
+    FactionType.WITCHES: 19,
+    FactionType.SWARMLINGS: 22,
+    FactionType.GIANTS: 25,
+    FactionType.ALCHEMISTS: 27,
+    FactionType.AUREN: 27,
+    FactionType.FAKIRS: 33,
 }
 
 FIXED_FACTIONS: dict[int, tuple[FactionType, ...]] = {

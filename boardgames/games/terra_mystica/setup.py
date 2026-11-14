@@ -52,15 +52,13 @@ def check_config(config: TerraMysticaConfig) -> None:
         )
     if not 1 <= config.rounds <= 6:
         raise ConfigError(f"rounds must be from 1 to 6, got {config.rounds}")
-    if config.map_variant not in ("standard", "fjords", "lakes"):
-        raise ConfigError(f"unknown map {config.map_variant!r}")
     return
 
 
 def _starting_victory_points(config: TerraMysticaConfig, faction: FactionType) -> int:
     if not config.variable_points:
         return 20
-    return VARIABLE_START_VP.get(config.map_variant, {}).get(faction, 20)
+    return VARIABLE_START_VP.get(faction, 20)
 
 
 def initial_setup_queue(
@@ -138,7 +136,7 @@ def start_game(config: TerraMysticaConfig, seed: int) -> Transition[TerraMystica
     state = TerraMysticaState(
         config=config,
         rng=rng,
-        board=Board.for_map(config.map_variant),
+        board=Board.base(),
         players=player_states,
         order=order,
         active_player=active_player,
@@ -162,7 +160,6 @@ def start_game(config: TerraMysticaConfig, seed: int) -> Transition[TerraMystica
             {
                 "num_players": n,
                 "starting_player": order[0],
-                "map": config.map_variant,
             },
         ),
         Event(
