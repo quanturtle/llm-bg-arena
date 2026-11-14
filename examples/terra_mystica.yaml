@@ -5,7 +5,5 @@ game: terra_mystica
 config: {num_players: 2, rounds: 3}
 seed: 1
 seats:
-  - model: qwen/qwen3.7-flash
-    temperature: 0.3
-  - model: openai/gpt-5-nano
-    reasoning_effort: low
+  - config: qwen3.7-flash-off
+  - config: gpt-5-nano-low

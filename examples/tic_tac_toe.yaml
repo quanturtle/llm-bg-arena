@@ -1,9 +1,8 @@
-# Two cheap models at tic-tac-toe. Each seat names its model and its own settings;
-# a seat without a model plays the default, qwen/qwen3.7-flash.
+# Two cheap models at tic-tac-toe. Each seat names a saved model config: a file
+# in models/ with the model and its settings, which is also its leaderboard name.
 # Needs OPENROUTER_API_KEY in the environment or in .env.
 game: tic_tac_toe
 seed: 7
 seats:
-  - model: qwen/qwen3.7-flash    # reasoning is off unless a seat asks for it
-  - model: openai/gpt-5-nano
-    reasoning_effort: low     # this model must think; low keeps replies short
+  - config: qwen3.7-flash-off    # models/qwen3.7-flash-off.yaml: reasoning off
+  - config: gpt-5-nano-low       # this model must think; low keeps replies short
