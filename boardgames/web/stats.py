@@ -2,8 +2,9 @@
 
 Everything here is a pure function of a list of `MatchSummary`; only finished
 matches and language model seats count, so bots get no rows or ratings. An
-agent is identified by the name its seat recorded, so two runs of one model
-with different settings share a row.
+agent is a seat's entrant: the saved model config it played, else the name the
+seat recorded. One model saved under two configs gets two rows, and a config at
+two seats of one match counts once per seat in one row.
 """
 
 from collections import defaultdict
@@ -134,21 +135,26 @@ class Ratings:
         return self.values.get(agent, ELO_START)
 
     def update(self, match: FinishedMatch) -> None:
-        """Each pair of model seats plays one Elo game; a seat's change is the mean."""
+        """Each pair of seats of different agents plays one Elo game.
+
+        A seat's change is the mean over its rivals, and an agent's change is the
+        mean over its seats, so an agent seated twice is not rated against itself.
+        """
         seats = model_seats(match)
-        if len(seats) < 2:
-            return
-        changes: defaultdict[str, float] = defaultdict(float)
+        changes: defaultdict[str, list[float]] = defaultdict(list)
         for first in seats:
-            for second in seats:
-                if first.player == second.player:
-                    continue
-                gap = (self.rating(second.agent) - self.rating(first.agent)) / 400
+            rivals = [seat for seat in seats if seat.entrant != first.entrant]
+            if not rivals:
+                continue
+            change = 0.0
+            for second in rivals:
+                gap = (self.rating(second.entrant) - self.rating(first.entrant)) / 400
                 expected = 1 / (1 + 10**gap)
-                delta = ELO_K * (score_against(first, second) - expected)
-                changes[first.agent] += delta / (len(seats) - 1)
-        for agent, change in changes.items():
-            self.values[agent] = self.rating(agent) + change
+                change += ELO_K * (score_against(first, second) - expected)
+            changes[first.entrant].append(change / len(rivals))
+        for agent, seat_changes in changes.items():
+            mean = sum(seat_changes) / len(seat_changes)
+            self.values[agent] = self.rating(agent) + mean
         return
 
 
@@ -228,7 +234,7 @@ def leaderboard(
     for match in finished:
         sole_winner = len(match.winners()) == 1
         for seat in model_seats(match):
-            tallies[seat.agent].add(seat, won_outright=sole_winner and seat.rank == 1)
+            tallies[seat.entrant].add(seat, won_outright=sole_winner and seat.rank == 1)
         if game_id is not None:
             ratings.update(match)
     rows = [
@@ -258,13 +264,13 @@ def head_to_head(matches: Sequence[AnyMatch], agent: str) -> list[HeadToHead]:
     records: dict[str, dict[str, int]] = {}
     for match in finished_in_order(matches):
         for seat in match.seats:
-            if seat.agent != agent:
+            if seat.entrant != agent:
                 continue
             for other in match.seats:
-                if other.player == seat.player or other.agent == agent:
+                if other.entrant == agent:
                     continue
                 record = records.setdefault(
-                    other.agent, {"ahead": 0, "level": 0, "behind": 0}
+                    other.entrant, {"ahead": 0, "level": 0, "behind": 0}
                 )
                 outcome = score_against(seat, other)
                 record[
@@ -284,7 +290,7 @@ def head_to_head(matches: Sequence[AnyMatch], agent: str) -> list[HeadToHead]:
 
 def agent_detail(matches: Sequence[AnyMatch], agent: str) -> AgentDetail:
     """The agent's overall row, one row per game it played, and head-to-head records."""
-    played = [m for m in matches if any(seat.agent == agent for seat in m.seats)]
+    played = [m for m in matches if any(seat.entrant == agent for seat in m.seats)]
     game_ids = sorted({m.game_id for m in played})
     # Ratings need every match at the game, not only the agent's own, or they
     # disagree with the leaderboard built over the whole store.
@@ -307,7 +313,7 @@ def agent_detail(matches: Sequence[AnyMatch], agent: str) -> AgentDetail:
         overall.kind
         if overall
         else next(
-            (s.kind for m in played for s in m.seats if s.agent == agent), "unknown"
+            (s.kind for m in played for s in m.seats if s.entrant == agent), "unknown"
         )
     )
     return AgentDetail(

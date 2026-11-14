@@ -328,13 +328,13 @@ def game_detail(request: Request, game_id: str) -> GameDetail:
 def list_matches(
     request: Request, game: str | None = None, agent: str | None = None
 ) -> Catalog:
-    """Matches newest first, filtered by game id and by an agent name at any seat."""
+    """Matches newest first, filtered by game id and by an agent at any seat."""
     catalog = store_of(request).catalog()
     matches = [
         m
         for m in catalog.matches
         if (game is None or m.game_id == game)
-        and (agent is None or any(seat.agent == agent for seat in m.seats))
+        and (agent is None or any(seat.entrant == agent for seat in m.seats))
     ]
     return Catalog(matches=matches, unreadable=catalog.unreadable)
 

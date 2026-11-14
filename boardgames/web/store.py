@@ -44,11 +44,14 @@ class Summary(BaseModel):
 class SeatSummary(Summary):
     """One seat's result and usage; points and rank are None while the match runs.
 
-    `model` is the model id of a language model seat, None for a bot.
+    `model` is the model id of a language model seat, None for a bot. `entrant`
+    is the name its results count under: the saved model config it played, else
+    the seat's own name.
     """
 
     player: int
     agent: str
+    entrant: str
     kind: str
     model: str | None
     settings: dict[str, PlainJson]
@@ -157,6 +160,12 @@ def seat_model(settings: dict[str, PlainJson]) -> str | None:
     return model_id if isinstance(model_id, str) else None
 
 
+def seat_config(settings: dict[str, PlainJson]) -> str | None:
+    """The saved model config a seat recorded in its settings, else None."""
+    config = settings.get("config")
+    return config if isinstance(config, str) else None
+
+
 def add_cost(total: float | None, cost: float | None) -> float | None:
     """Sum of costs where one unknown cost makes the total unknown."""
     if total is None or cost is None:
@@ -187,6 +196,7 @@ def seat_summary(
     return SeatSummary(
         player=player,
         agent=seat.agent,
+        entrant=seat_config(seat.settings) or seat.agent,
         kind=seat_kind(seat.settings),
         model=seat_model(seat.settings),
         settings=seat.settings,

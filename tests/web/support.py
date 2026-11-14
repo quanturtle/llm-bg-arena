@@ -24,10 +24,17 @@ from tests.arena.support import FakeClock, MemorySink, random_agents
 class CostlyAgent:
     """Random play that reports a model-like trace on every decision."""
 
-    def __init__(self, inner: Agent, agent_name: str, cost: float | None) -> None:
+    def __init__(
+        self,
+        inner: Agent,
+        agent_name: str,
+        cost: float | None,
+        config: str | None = None,
+    ) -> None:
         self._inner = inner
         self._name = agent_name
         self._cost = cost
+        self._config = config
         return
 
     @property
@@ -35,7 +42,11 @@ class CostlyAgent:
         return self._name
 
     def settings(self) -> dict[str, JsonValue]:
-        return {"kind": "llm", "model": {"model": self._name}}
+        return {
+            "kind": "llm",
+            "config": self._config,
+            "model": {"model": self._name},
+        }
 
     async def decide[A](self, request: DecisionRequest[A]) -> AgentChoice[A]:
         choice = await self._inner.decide(request)

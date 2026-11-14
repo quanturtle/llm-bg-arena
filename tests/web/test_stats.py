@@ -66,6 +66,29 @@ def named_match(
     return summarize(play_records(TicTacToe(), TicTacToeConfig(), agents, 0, match_id))
 
 
+def config_match(match_id: str, first: str, second: str) -> AnyMatch:
+    """X wins; each seat plays the saved config named, under a numbered seat name."""
+    agents: list[Agent] = [
+        CostlyAgent(ScriptedAgent(X_WINS[0]), f"{first} #1", 0.0, config=first),
+        CostlyAgent(ScriptedAgent(X_WINS[1]), f"{second} #2", 0.0, config=second),
+    ]
+    return summarize(play_records(TicTacToe(), TicTacToeConfig(), agents, 0, match_id))
+
+
+def test_seats_of_one_config_share_a_row_and_are_not_rated_against_it() -> None:
+    mirror = leaderboard([config_match("m", "low", "low")], "tic_tac_toe")
+    assert [(row.agent, row.matches, row.elo) for row in mirror.rows] == [
+        ("low", 2, 1000.0)
+    ]
+    versus = [config_match("v", "low", "off")]
+    assert [row.agent for row in leaderboard(versus, "tic_tac_toe").rows] == [
+        "low",
+        "off",
+    ]
+    assert [row.opponent for row in agent_detail(versus, "low").opponents] == ["off"]
+    return
+
+
 def test_agent_page_elo_matches_the_leaderboard() -> None:
     matches = [named_match(f"b{index}", "B", "C", X_WINS) for index in range(5)]
     matches.append(named_match("a", "A", "B", X_WINS))
