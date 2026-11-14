@@ -1,13 +1,15 @@
 // The table pieces around the map: the round tiles picked for the match, the town-tile bonuses
 // and the shared power actions. The cult tracks have their own tab.
-import { Check, Zap, type LucideIcon } from "lucide-react";
+import { Check, Coins, Scroll, Zap, type LucideIcon } from "lucide-react";
 
 import { bonusReward, bonusText } from "@/games/terra-mystica/format";
 import {
+  BONUS_CARDS,
   CULT_META,
   POWER_ACTIONS,
   SCORING_META,
   TOWN_TILES,
+  UNKNOWN_BONUS_CARD,
   UNKNOWN_SCORING,
 } from "@/games/terra-mystica/meta";
 import type { TerraMysticaObservation } from "@/games/terra-mystica/observation";
@@ -113,6 +115,39 @@ export function TerraMysticaTownTiles({ observation }: { observation: TerraMysti
                 <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">{left === 0 ? "taken" : `×${left}`}</span>
               </div>
               <span className="truncate text-[10px] text-muted-foreground">+ {tile.reward}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+/** The bonus cards nobody holds, with the coins gathered on each; a passing player takes one. */
+export function TerraMysticaBonusCards({ observation }: { observation: TerraMysticaObservation }) {
+  return (
+    <section aria-label="Bonus cards" className="flex shrink-0 flex-col gap-1.5 rounded-lg border bg-card px-2.5 py-2">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+        <h3 className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          <Scroll className="size-3" aria-hidden="true" /> Bonus cards
+        </h3>
+        <p className="text-[10px] text-muted-foreground">taken when passing</p>
+      </header>
+      <ul className="grid grid-cols-1 gap-1">
+        {observation.bonus_available.map((card) => {
+          const meta = BONUS_CARDS[card.index] ?? UNKNOWN_BONUS_CARD;
+          return (
+            <li key={card.index} className="flex min-w-0 items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs" title={card.label}>
+              <meta.icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">
+                <span className="font-medium">{meta.income}</span>
+                {meta.extra ? <span className="text-muted-foreground"> · {meta.extra}</span> : null}
+              </span>
+              {card.coins > 0 ? (
+                <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-muted-foreground tabular-nums" title={`${card.coins} coins lie on this card`}>
+                  <Coins className="size-3" aria-hidden="true" />+{card.coins}
+                </span>
+              ) : null}
             </li>
           );
         })}

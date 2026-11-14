@@ -31,7 +31,7 @@ import { bonusText, titleCase } from "@/games/terra-mystica/format";
 import type { TerraMysticaObservation } from "@/games/terra-mystica/observation";
 import { observationSchema } from "@/games/terra-mystica/observation";
 import { TerraMysticaPlayers } from "@/games/terra-mystica/players";
-import { TerraMysticaPowerActions, TerraMysticaRoundTiles, TerraMysticaTownTiles } from "@/games/terra-mystica/table";
+import { TerraMysticaBonusCards, TerraMysticaPowerActions, TerraMysticaRoundTiles, TerraMysticaTownTiles } from "@/games/terra-mystica/table";
 import type { MatchSummary } from "@/lib/api";
 
 function TerraMysticaStatus({ observation, match }: { observation: TerraMysticaObservation; match: MatchSummary }) {
@@ -106,6 +106,7 @@ function TerraMysticaBoard({ observation, context }: { observation: TerraMystica
         </div>
         <div className="flex min-w-0 flex-col gap-3 @4xl:min-h-0 @4xl:overflow-y-auto">
           <TerraMysticaPlayers observation={observation} match={context.match} />
+          <TerraMysticaBonusCards observation={observation} />
         </div>
       </div>
     </div>

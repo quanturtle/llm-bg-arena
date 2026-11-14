@@ -42,6 +42,8 @@ const playerSchema = z.object({
   digging: z.number(),
   keys: z.number(),
   favors: z.array(z.object({ index: z.number(), label: z.string() })),
+  // null before the first card is picked, and in a match played without bonus cards
+  bonus_card: z.object({ index: z.number(), label: z.string() }).nullable(),
   buildings: z.array(
     z.object({
       position: z.string(),
@@ -81,6 +83,8 @@ export const observationSchema = z.object({
   pending_favors: z.number(),
   pending_town: z.boolean(),
   pending_towns: z.number(),
+  // the cards nobody holds, with the coins that have gathered on each
+  bonus_available: z.array(z.object({ index: z.number(), label: z.string(), coins: z.number() })),
   used_orders: z.array(z.object({ cult, order: z.number(), player: z.number() })),
   passed: z.array(z.number()),
   pass_order: z.array(z.number()),

@@ -1,10 +1,10 @@
 // One compact card per Terra Mystica player: points, faction, resources, power, cults and keys.
-import { Castle, Church, Coins, KeyRound, Route, Ship, Shovel, Sparkles, Users, Zap } from "lucide-react";
+import { Castle, Church, Coins, KeyRound, Route, Scroll, Ship, Shovel, Sparkles, Users, Zap } from "lucide-react";
 
 import { BorderPill, BorderPills, Stat } from "@/components/board-parts";
 import { SeatChip } from "@/components/seat";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CULTS, CULT_META, TERRAIN_META, factionMeta, type Cult } from "@/games/terra-mystica/meta";
+import { BONUS_CARDS, CULTS, CULT_META, TERRAIN_META, UNKNOWN_BONUS_CARD, factionMeta, type Cult } from "@/games/terra-mystica/meta";
 import type { TerraMysticaObservation, TerraMysticaPlayer } from "@/games/terra-mystica/observation";
 import type { MatchSummary } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -59,6 +59,34 @@ function TaskPill({ children }: { children: React.ReactNode }) {
   return <span className="flex h-5 items-center gap-1 rounded-md border px-1.5 text-[11px] text-muted-foreground">{children}</span>;
 }
 
+// The bonus card a player holds this round; the full text shows on hover. The row is always
+// there, so the player cards do not shift when a card is picked.
+function BonusCardRow({ card }: { card: TerraMysticaPlayer["bonus_card"] }) {
+  if (card === null) {
+    return (
+      <div className="flex h-5 items-center gap-1.5 text-xs text-muted-foreground">
+        <Scroll className="size-3.5 shrink-0" aria-hidden="true" />
+        no bonus card
+      </div>
+    );
+  }
+  const meta = BONUS_CARDS[card.index] ?? UNKNOWN_BONUS_CARD;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="flex h-5 min-w-0 items-center gap-1.5 text-xs">
+          <meta.icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className="min-w-0 truncate">
+            <span className="font-medium">{meta.income}</span>
+            {meta.extra ? <span className="text-muted-foreground"> · {meta.extra}</span> : null}
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>Bonus card: {card.label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function PlayerCard({
   observation,
   match,
@@ -79,8 +107,7 @@ function PlayerCard({
   const faction = factionMeta(player.faction);
   const buildingCount = player.buildings.length;
   const towns = player.buildings.filter((building) => building.in_town).length;
-  const bridgeCount = observation.bridges.filter((bridge) => bridge.owner === seat).length;
-  return (
+  const bridgeCount = observation.bridges.filter((bridge) => bridge.owner === seat).length;  return (
     <section
       aria-label={`Player ${seat + 1}`}
       className={cn("relative flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-2.5", isActive && "border-primary ring-1 ring-primary")}
@@ -108,6 +135,7 @@ function PlayerCard({
           <span className="truncate">home {terrain.label.toLowerCase()}</span>
         </span>
       </div>
+      <BonusCardRow card={player.bonus_card} />
       {/* numbers sit at the right of their column; the wide gap keeps each one apart from the next column's icon */}
       <div className="grid grid-cols-3 gap-x-5 gap-y-1 text-xs">
         <Stat alignEnd icon={Coins} label="Coins" value={player.coins} />

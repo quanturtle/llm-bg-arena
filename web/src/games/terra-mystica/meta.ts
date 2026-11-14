@@ -14,6 +14,8 @@ import {
   Mountain,
   Pickaxe,
   Route,
+  Scroll,
+  Ship,
   Shovel,
   Sparkles,
   Target,
@@ -146,3 +148,25 @@ export const TOWN_TILES: readonly TownTileMeta[] = [
   { index: 3, victory_points: 6, reward: "8 power", icon: Zap },
   { index: 4, victory_points: 8, reward: "1 cult step each", icon: Sparkles },
 ];
+
+// The nine bonus cards, by the index the engine gives them: what each pays every income
+// phase, and what else it does while held.
+export type BonusCardMeta = {
+  income: string;
+  extra?: string;
+  icon: LucideIcon;
+};
+
+export const BONUS_CARDS: readonly BonusCardMeta[] = [
+  { income: "1 priest", icon: Church },
+  { income: "1 worker, 3 power", icon: Users },
+  { income: "6 coins", icon: Coins },
+  { income: "3 power", extra: "shipping +1", icon: Ship },
+  { income: "2 coins", extra: "free spade action", icon: Shovel },
+  { income: "4 coins", extra: "cult step action", icon: Sparkles },
+  { income: "2 coins", extra: "pass: 1 VP per dwelling", icon: House },
+  { income: "1 worker", extra: "pass: 2 VP per trading house", icon: Building2 },
+  { income: "2 workers", extra: "pass: 4 VP stronghold, 4 sanctuary", icon: Castle },
+];
+
+export const UNKNOWN_BONUS_CARD: BonusCardMeta = { income: "Unknown card", icon: Scroll };
