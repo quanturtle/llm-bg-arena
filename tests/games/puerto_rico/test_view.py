@@ -4,11 +4,12 @@ from dataclasses import replace
 
 from boardgames.core import seats
 from boardgames.games.puerto_rico import Build, SelectRole, TakePlantation, TakeQuarry
-from boardgames.games.puerto_rico.model import OwnedBuilding, public_points
+from boardgames.games.puerto_rico.model import OwnedBuilding, Plantation, public_points
 from tests.games.puerto_rico.support import (
     GAME,
     start,
     with_buildings,
+    with_plantations,
     with_vp_chips,
 )
 
@@ -55,6 +56,18 @@ def test_render_text_names_the_viewer() -> None:
     assert "Face-up plantations:" in text
     spectator = GAME.render_text(GAME.observe(state, None))
     assert "You are" not in spectator
+
+
+def test_render_text_shows_building_capacity_and_production() -> None:
+    state = start(seed=1)
+    p1 = state.order[0]
+    state = with_buildings(state, p1, OwnedBuilding("indigo_plant", 1))
+    state = with_plantations(
+        state, p1, Plantation("indigo", True), Plantation("indigo", True)
+    )
+    text = GAME.render_text(GAME.observe(state, p1))
+    assert "indigo_plant(1/3)" in text
+    assert "production [indigo 1]" in text
 
 
 def test_describe_action_names_the_action() -> None:

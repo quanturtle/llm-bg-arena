@@ -1,5 +1,7 @@
 """Observation data, text rendering and action descriptions for Puerto Rico."""
 
+from typing import cast
+
 from boardgames.core import (
     JsonObject,
     JsonValue,
@@ -15,7 +17,7 @@ from boardgames.core.json_data import (
     json_str,
     json_str_list,
 )
-from boardgames.games.puerto_rico.constants import GOODS
+from boardgames.games.puerto_rico.constants import BUILDINGS, GOODS, Good
 from boardgames.games.puerto_rico.model import (
     Action,
     Build,
@@ -23,9 +25,12 @@ from boardgames.games.puerto_rico.model import (
     FinishPlacement,
     LoadShip,
     LoadWharf,
+    OwnedBuilding,
     Pass,
     PickUpColonist,
     PlaceColonist,
+    Plantation,
+    PlayerState,
     ProducePrivilege,
     PuertoRicoState,
     SelectRole,
@@ -39,6 +44,7 @@ from boardgames.games.puerto_rico.model import (
     goods_json_map,
     island_spaces_used,
     occupied_island_spaces,
+    production,
     public_points,
     total_points,
 )
@@ -180,6 +186,12 @@ def render_text(observation: Observation) -> str:
     lines.append("")
     lines.append(
         "Legend: role = role card, doubloons = money. "
+        "settler (2d) = 2 doubloons on the role card, taken by its chooser. "
+        "Nd = N doubloons. indigo* = plantation with a colonist; indigo = "
+        "plantation without one. quarries 1/2 = colonized/owned. "
+        "indigo_plant(1/3) = colonists/circles. production = goods the player "
+        "makes in the next Craftsman phase, before bank limits. Plantation and "
+        "building indices count from 0 in the order listed. "
         "take <good> = take a face-up plantation, take quarry = take a quarry; "
         "`nohospice` declines the optional Hospice colonist. "
         "build <name> = build a building; `nouniversity` declines its optional "
@@ -275,7 +287,8 @@ def player_lines(data: JsonObject) -> list[str]:
             for item in _objects(player, "plantations")
         ]
         buildings = [
-            f"{json_str(item, 'name')}({json_int(item, 'colonists')})"
+            f"{json_str(item, 'name')}({json_int(item, 'colonists')}/"
+            f"{BUILDINGS[json_str(item, 'name')].max_colonists})"
             for item in _objects(player, "buildings")
         ]
         public_vp = json_int(player, "public_points")
@@ -286,10 +299,29 @@ def player_lines(data: JsonObject) -> list[str]:
             f"quarries {json_int(player, 'occupied_quarries')}/"
             f"{json_int(player, 'quarries')}, "
             f"buildings [{', '.join(buildings) or 'none'}], "
+            f"production [{production_text(player) or 'none'}], "
             f"colonists unplaced {json_int(player, 'colonists_unplaced')}, "
             f"public VP {public_vp}."
         )
     return lines
+
+
+def production_text(player: JsonObject) -> str:
+    """Goods the player's colonized island and staffed buildings make per Craftsman."""
+    island = PlayerState(
+        plantations=tuple(
+            Plantation(cast(Good, json_str(item, "good")), json_bool(item, "colonized"))
+            for item in _objects(player, "plantations")
+        ),
+        buildings=tuple(
+            OwnedBuilding(json_str(item, "name"), json_int(item, "colonists"))
+            for item in _objects(player, "buildings")
+        ),
+    )
+    produced = production(island)
+    return ", ".join(
+        f"{good} {count}" for good, count in zip(GOODS, produced, strict=True) if count
+    )
 
 
 def final_lines(data: JsonObject) -> list[str]:
