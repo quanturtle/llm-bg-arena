@@ -8,21 +8,27 @@ Build the most victory points. Points come from shipping goods to Europe (victor
 - The colonist ship starts with one colonist per player. The colonist supply holds 55/75/95 colonists for 3/4/5 players.
 - The victory point supply holds 75/100/122 chips for 3/4/5 players.
 - The three cargo ships have capacities 4, 5, 6 (3 players), 5, 6, 7 (4 players) or 6, 7, 8 (5 players).
-- The governor chooses first. Role cards are chosen once each round in governor order; after every player has chosen, the round ends and the governorship passes clockwise.
+- The governor chooses first.
+
+## Round structure
+1. Each round, every player chooses one role, one after another in order from the governor. A role chosen this round cannot be chosen again until the next round.
+2. When a player chooses a role, every player takes that role's action in player order, starting with the chooser. Only the chooser gets the privilege. Two exceptions: in the Craftsman phase every player produces but only the chooser takes the extra good, and the Prospector has no action for anyone else.
+3. The chooser takes every doubloon lying on the chosen role card.
+4. After every player has chosen, one doubloon is added to each role card nobody chose, so ignored roles become more valuable. Then the governorship passes clockwise.
 
 ## Roles and privileges
 - **Settler:** take a face-up plantation. Privilege: the Settler may take a quarry instead. A player with an active Construction Hut may also take a quarry. A Hospice may colonize the taken plantation or quarry, but its owner may decline. Unchosen face-up plantations wait in a discard pile; when the deck cannot refill the row, any leftover deck is drawn first and the discard pile is then shuffled into a new deck. A Hacienda can also draw after the deck runs out by shuffling the discard pile.
-- **Mayor:** colonists from the ship are distributed round-robin starting with the Mayor. Privilege: the Mayor takes one extra colonist from the supply. Then each player places every new colonist on an empty circle before moving any existing colonist. After that a player may rearrange colonists without a fixed limit and finishes when ready.
+- **Mayor:** colonists from the ship are distributed round-robin starting with the Mayor. Privilege: the Mayor takes one extra colonist from the supply. Then each player places every new colonist on an empty circle before moving any existing colonist. After that a player may rearrange colonists without a fixed limit and finishes when ready. A player cannot finish while holding an unplaced colonist and an empty circle remains. At the end of the Mayor phase the colonist ship is refilled from the supply with one colonist per empty building circle across all players, and at least one per player.
 - **Builder:** build one building. Privilege: the Builder pays one doubloon less. Each active quarry also reduces a building's cost by one, up to the building's victory point value. A University may place a colonist on the new building, but its owner may decline.
 - **Craftsman:** every player produces goods. Privilege: the Craftsman may take one extra producible good from the supply.
-- **Trader:** sell one good to the trading house. Privilege: the Trader gets one extra doubloon. The trading house holds at most four goods; when it is full at the end of the Trader phase its goods return to the supply. An Office lets its owner sell a type already present.
-- **Captain:** load goods on the cargo ships. Privilege: the Captain gets one extra victory point on their first shipment of the phase. A Harbor gives one extra victory point on every shipment. A Wharf may load all goods of one type once per phase; goods shipped by Wharf return to the supply.
+- **Trader:** each player may sell one good to the trading house. Prices: corn 0, indigo 1, sugar 2, tobacco 3, coffee 4 doubloons. Privilege: the Trader gets one extra doubloon. The trading house holds at most four goods and only one of each type; an Office lets its owner sell a type already present. When it is full at the end of the Trader phase its goods return to the supply.
+- **Captain:** starting with the Captain, players take turns loading one good type onto one ship, going around the table until nobody can load. Loading is mandatory: a player may pass only when no cargo ship can take any of their goods; the Wharf is optional. Privilege: the Captain gets one extra victory point on their first shipment of the phase. A Harbor gives one extra victory point on every shipment. A Wharf may load all goods of one type once per phase; goods shipped by Wharf return to the supply.
 - **Prospector:** take one doubloon and no action. In a 4-player game there is one Prospector; in a 5-player game there are two.
 
 ## Production and shipping
 - Each occupied production building needs matching occupied plantations: a small building needs one colonist and one matching plantation, a large building needs up to its colonist capacity and matching plantations. Corn needs no building; every occupied corn plantation produces one corn.
 - Production is limited by the goods supply. A Factory gives 1/2/3/5 doubloons when 2/3/4/5 different goods types are produced.
-- Each cargo ship carries only one good type. Load as much of a good as the ship's remaining space allows; when several empty ships could take it, choose the one that can take the most. Each good shipped gives one victory point chip. A full ship's goods return to the supply when the Captain phase ends; partially filled and empty ships stay as they are.
+- Each cargo ship carries only one good type, and a type already on one ship cannot be loaded on another. Load as much of a good as the ship's remaining space allows; when several empty ships could take it, choose the one that can take the most. Each good shipped gives one victory point chip. A full ship's goods return to the supply when the Captain phase ends; partially filled and empty ships stay as they are.
 - After shipping, each player keeps one good in total. A Small Warehouse keeps all goods of one type and a Large Warehouse keeps all goods of two types. Excess goods return to the supply.
 
 ## Buildings
@@ -60,6 +66,8 @@ Score victory point chips, the printed points of every building, and the bonuses
 ## Differences from the standard game
 - Only three to five players are supported; the rulebook's two-player game is not implemented.
 - `max_rounds` and `victory_point_supply` are optional config variants, off by default.
+- The rulebook shares the win when doubloons plus goods also tie; here the player closest to the final governor wins.
+- In the Mayor phase, new colonists must be placed before any existing colonist is moved.
 
 ## Notation
 Actions are written exactly as listed, with single spaces.
